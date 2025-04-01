@@ -1,0 +1,324 @@
+{
+    "table_names": {
+        "sample_table": {
+            "columns": ["id", "name", "type"],
+            "primary_key": "id"
+        },
+        "child_sample": {
+            "columns": ["id", "name", "sample_object", "parent"],
+            "primary_key": "id"
+        },
+        "complex_table": {
+            "columns": [
+                "id", "name", "my_enum", "fk_to_sample", "some_json", "some_text_array", "unique_combo", "complex_one", "complex_two", "complex_four", "complex_five", "complex_three", "complex_six"
+            ],
+            "primary_key": "id"
+        },
+        "side_table": {
+            "columns": ["id", "name", "complex"],
+            "primary_key": "id"
+        },
+        "child_side_many_to_many": {
+            "columns": ["id", "child", "side", "added_field"],
+            "primary_key": "id"
+        }
+    },
+    "tables": [
+        {
+            "table_name": "sample_table",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "type",
+                    "data_type": "page_type",
+                    "options": ["full_page", "partial_page", "sample_page"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "child_sample_parent_fkey",
+                    "foreign_key_column": "parent",
+                    "referenced_table": "sample_table",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "complex_table_fk_to_sample_fkey",
+                    "foreign_key_column": "fk_to_sample",
+                    "referenced_table": "sample_table",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "child_sample",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "sample_object",
+                    "data_type": "json",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "parent",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "child_sample_parent_fkey",
+                    "foreign_key_column": "parent",
+                    "referenced_table": "sample_table",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "child_side_many_to_many_child_fkey",
+                    "foreign_key_column": "child",
+                    "referenced_table": "child_sample",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "complex_table",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "my_enum",
+                    "data_type": "page_type",
+                    "options": ["full_page", "partial_page", "sample_page"],
+                    "is_required": false,
+                    "default_value": "'partial_page'::page_type",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "fk_to_sample",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "some_json",
+                    "data_type": "json",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "'[{\"some_default\":\"default value\"}]'::json",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "some_text_array",
+                    "data_type": "varchar[]",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "unique_combo",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_one",
+                    "data_type": "text[]",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_two",
+                    "data_type": "varchar[]",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_four",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_five",
+                    "data_type": "page_type[]",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_three",
+                    "data_type": "timestamp with time zone",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex_six",
+                    "data_type": "timestamp without time zone",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "(now() AT TIME ZONE 'utc'::text)",
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "complex_table_fk_to_sample_fkey",
+                    "foreign_key_column": "fk_to_sample",
+                    "referenced_table": "sample_table",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "side_table_complex_fkey",
+                    "foreign_key_column": "complex",
+                    "referenced_table": "complex_table",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "side_table",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "complex",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "side_table_complex_fkey",
+                    "foreign_key_column": "complex",
+                    "referenced_table": "complex_table",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "child_side_many_to_many_side_fkey",
+                    "foreign_key_column": "side",
+                    "referenced_table": "side_table",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "child_side_many_to_many",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "child",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "side",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "added_field",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "child_side_many_to_many_child_fkey",
+                    "foreign_key_column": "child",
+                    "referenced_table": "child_sample",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "child_side_many_to_many_side_fkey",
+                    "foreign_key_column": "side",
+                    "referenced_table": "side_table",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }
+    ]
+}

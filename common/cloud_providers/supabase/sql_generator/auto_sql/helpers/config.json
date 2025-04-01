@@ -1,0 +1,235 @@
+{
+    "reserved_words": [
+        {
+            "word": "all"
+        },
+        {
+            "word": "analyse"
+        },
+        {
+            "word": "analyze"
+        },
+        {
+            "word": "and"
+        },
+        {
+            "word": "any"
+        },
+        {
+            "word": "array"
+        },
+        {
+            "word": "as"
+        },
+        {
+            "word": "asc"
+        },
+        {
+            "word": "asymmetric"
+        },
+        {
+            "word": "both"
+        },
+        {
+            "word": "case"
+        },
+        {
+            "word": "cast"
+        },
+        {
+            "word": "check"
+        },
+        {
+            "word": "collate"
+        },
+        {
+            "word": "column"
+        },
+        {
+            "word": "constraint"
+        },
+        {
+            "word": "create"
+        },
+        {
+            "word": "current_catalog"
+        },
+        {
+            "word": "current_date"
+        },
+        {
+            "word": "current_role"
+        },
+        {
+            "word": "current_time"
+        },
+        {
+            "word": "current_timestamp"
+        },
+        {
+            "word": "current_user"
+        },
+        {
+            "word": "default"
+        },
+        {
+            "word": "deferrable"
+        },
+        {
+            "word": "desc"
+        },
+        {
+            "word": "distinct"
+        },
+        {
+            "word": "do"
+        },
+        {
+            "word": "else"
+        },
+        {
+            "word": "end"
+        },
+        {
+            "word": "except"
+        },
+        {
+            "word": "false"
+        },
+        {
+            "word": "fetch"
+        },
+        {
+            "word": "for"
+        },
+        {
+            "word": "foreign"
+        },
+        {
+            "word": "from"
+        },
+        {
+            "word": "grant"
+        },
+        {
+            "word": "group"
+        },
+        {
+            "word": "having"
+        },
+        {
+            "word": "in"
+        },
+        {
+            "word": "initially"
+        },
+        {
+            "word": "intersect"
+        },
+        {
+            "word": "into"
+        },
+        {
+            "word": "lateral"
+        },
+        {
+            "word": "leading"
+        },
+        {
+            "word": "limit"
+        },
+        {
+            "word": "localtime"
+        },
+        {
+            "word": "localtimestamp"
+        },
+        {
+            "word": "not"
+        },
+        {
+            "word": "null"
+        },
+        {
+            "word": "offset"
+        },
+        {
+            "word": "on"
+        },
+        {
+            "word": "only"
+        },
+        {
+            "word": "or"
+        },
+        {
+            "word": "order"
+        },
+        {
+            "word": "placing"
+        },
+        {
+            "word": "primary"
+        },
+        {
+            "word": "references"
+        },
+        {
+            "word": "returning"
+        },
+        {
+            "word": "select"
+        },
+        {
+            "word": "session_user"
+        },
+        {
+            "word": "some"
+        },
+        {
+            "word": "symmetric"
+        },
+        {
+            "word": "table"
+        },
+        {
+            "word": "then"
+        },
+        {
+            "word": "to"
+        },
+        {
+            "word": "trailing"
+        },
+        {
+            "word": "true"
+        },
+        {
+            "word": "union"
+        },
+        {
+            "word": "unique"
+        },
+        {
+            "word": "user"
+        },
+        {
+            "word": "using"
+        },
+        {
+            "word": "variadic"
+        },
+        {
+            "word": "when"
+        },
+        {
+            "word": "where"
+        },
+        {
+            "word": "window"
+        },
+        {
+            "word": "with"
+        }
+    ]
+}

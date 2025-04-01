@@ -1,0 +1,1648 @@
+{
+    "table_names": {
+        "args": {
+            "columns": ["id", "name", "required", "default", "data_type", "ready", "registered_function"],
+            "primary_key": "id"
+        },
+        "recipe_display": {
+            "columns": ["id", "recipe", "display", "priority", "display_settings"],
+            "primary_key": "id"
+        },
+        "system_function": {
+            "columns": ["id", "public_name", "description", "sample", "input_params", "output_options", "rf_id"],
+            "primary_key": "id"
+        },
+        "automation_boundary_brokers": {
+            "columns": ["id", "matrix", "broker", "spark_source", "beacon_destination"],
+            "primary_key": "id"
+        },
+        "registered_function": {
+            "columns": ["id", "name", "module_path", "class_name", "description", "return_broker"],
+            "primary_key": "id"
+        },
+        "recipe_function": {
+            "columns": ["id", "recipe", "function", "role", "params"],
+            "primary_key": "id"
+        },
+        "tool": {
+            "columns": ["id", "name", "source", "description", "parameters", "required_args", "system_function", "additional_params"],
+            "primary_key": "id"
+        },
+        "transformers": {
+            "columns": ["id", "name", "input_params", "ourput_params"],
+            "primary_key": "id"
+        },
+        "ai_endpoint": {
+            "columns": ["id", "name", "provider", "description", "additional_cost", "cost_details", "params"],
+            "primary_key": "id"
+        },
+        "recipe_broker": {
+            "columns": ["id", "recipe", "broker", "broker_role", "required"],
+            "primary_key": "id"
+        },
+        "recipe_processors": {
+            "columns": ["id", "recipe", "processor", "params"],
+            "primary_key": "id"
+        },
+        "action": {
+            "columns": ["id", "name", "matrix", "transformer", "node_type", "reference_id"],
+            "primary_key": "id"
+        },
+        "ai_model": {
+            "columns": ["id", "name", "common_name", "class", "provider", "endpoints", "context_window", "max_tokens", "capabilities", "controls"],
+            "primary_key": "id"
+        },
+        "data_input_component": {
+            "columns": ["id", "options", "include_other", "min", "max", "step", "min_rows", "max_rows", "acceptable_filetypes", "src", "classes", "color_overrides", "additional_params"],
+            "primary_key": "id"
+        },
+        "data_output_component": {
+            "columns": ["id", "component_type", "ui_component", "props", "additional_params"],
+            "primary_key": "id"
+        },
+        "processors": {
+            "columns": ["id", "name", "depends_default", "default_extractors", "params"],
+            "primary_key": "id"
+        },
+        "recipe_model": {
+            "columns": ["id", "recipe", "ai_model", "role", "priority"],
+            "primary_key": "id"
+        },
+        "broker": {
+            "columns": [
+                "id", "name", "value", "data_type", "ready", "default_source", "display_name", "description", "tooltip", "validation_rules", "sample_entries", "custom_source_component",
+                "additional_params", "other_source_params", "default_destination", "output_component", "tags"
+            ],
+            "primary_key": "id"
+        },
+        "extractor": {
+            "columns": ["id", "name", "output_type", "default_identifier", "default_index"],
+            "primary_key": "id"
+        },
+        "recipe_tools": {
+            "columns": ["id", "recipe", "tool", "params"],
+            "primary_key": "id"
+        },
+        "display_option": {
+            "columns": ["id", "name", "default_params", "customizable_params", "additional_params"],
+            "primary_key": "id"
+        },
+        "automation_matrix": {
+            "columns": ["id", "name", "description", "average_seconds", "is_automated", "cognition_matrices"],
+            "primary_key": "id"
+        },
+        "recipe": {
+            "columns": ["id", "name", "description", "tags", "sample_output", "is_public", "status", "varsion", "messages", "post_result_options"],
+            "primary_key": "id"
+        }
+    },
+    "tables": [
+        {
+            "table_name": "args",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "required",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "true",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "data_type",
+                    "data_type": "data_type",
+                    "options": ["bool", "dict", "float", "int", "list", "str", "url"],
+                    "is_required": false,
+                    "default_value": "'str'::data_type",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "ready",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "false",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "registered_function",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "args_registered_function_fkey",
+                    "foreign_key_column": "registered_function",
+                    "referenced_table": "registered_function",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "recipe_display",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "display",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "priority",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "'1'::smallint",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "display_settings",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_display_display_fkey",
+                    "foreign_key_column": "display",
+                    "referenced_table": "display_option",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_display_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "system_function",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "public_name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "sample",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "input_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "output_options",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "rf_id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "system_function_function_fkey",
+                    "foreign_key_column": "rf_id",
+                    "referenced_table": "registered_function",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_function_function_fkey",
+                    "foreign_key_column": "function",
+                    "referenced_table": "system_function",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "tool_system_function_fkey",
+                    "foreign_key_column": "system_function",
+                    "referenced_table": "system_function",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "automation_boundary_brokers",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "matrix",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "broker",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "spark_source",
+                    "data_type": "data_source",
+                    "options": ["api", "chance", "database", "environment", "file", "function", "generated_data", "none", "user_input"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "beacon_destination",
+                    "data_type": "data_destination",
+                    "options": ["api_response", "database", "file", "function", "user_output"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "boundary_brokers_broker_fkey",
+                    "foreign_key_column": "broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "boundary_brokers_matrix_fkey",
+                    "foreign_key_column": "matrix",
+                    "referenced_table": "automation_matrix",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "registered_function",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "module_path",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "class_name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "return_broker",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "registered_function_return_broker_fkey",
+                    "foreign_key_column": "return_broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "args_registered_function_fkey",
+                    "foreign_key_column": "registered_function",
+                    "referenced_table": "registered_function",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "system_function_function_fkey",
+                    "foreign_key_column": "rf_id",
+                    "referenced_table": "registered_function",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "recipe_function",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "function",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "role",
+                    "data_type": "function_role",
+                    "options": ["comparison", "decision", "other", "post_processing", "pre-Processing", "rating", "save_data", "validation"],
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_function_function_fkey",
+                    "foreign_key_column": "function",
+                    "referenced_table": "system_function",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_function_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "tool",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "source",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "'{\"host\": \"ame\"}'::jsonb",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "parameters",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "required_args",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "system_function",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "tool_system_function_fkey",
+                    "foreign_key_column": "system_function",
+                    "referenced_table": "system_function",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_tools_tool_fkey",
+                    "foreign_key_column": "tool",
+                    "referenced_table": "tool",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "transformers",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "input_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "ourput_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "action_transformer_fkey",
+                    "foreign_key_column": "transformer",
+                    "referenced_table": "transformers",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "ai_endpoint",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "provider",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_cost",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "true",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "cost_details",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "params",
+                    "data_type": "json",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "recipe_broker",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "broker",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "broker_role",
+                    "data_type": "broker_role",
+                    "options": ["input_broker", "output_broker"],
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "required",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "true",
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_broker_broker_fkey",
+                    "foreign_key_column": "broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_broker_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "recipe_processors",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "processor",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_processors_processor_fkey",
+                    "foreign_key_column": "processor",
+                    "referenced_table": "processors",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_processors_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "action",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "matrix",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "transformer",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "node_type",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "reference_id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "action_matrix_fkey",
+                    "foreign_key_column": "matrix",
+                    "referenced_table": "automation_matrix",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "action_transformer_fkey",
+                    "foreign_key_column": "transformer",
+                    "referenced_table": "transformers",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "ai_model",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "common_name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "class",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "provider",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "endpoints",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "context_window",
+                    "data_type": "bigint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "max_tokens",
+                    "data_type": "bigint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "capabilities",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "controls",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_model_ai_model_fkey",
+                    "foreign_key_column": "ai_model",
+                    "referenced_table": "ai_model",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "data_input_component",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "options",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "include_other",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "min",
+                    "data_type": "real",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "max",
+                    "data_type": "real",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "step",
+                    "data_type": "integer",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "min_rows",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "max_rows",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "acceptable_filetypes",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "src",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "classes",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "color_overrides",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "broker_custom_component_fkey",
+                    "foreign_key_column": "custom_source_component",
+                    "referenced_table": "data_input_component",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "data_output_component",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "component_type",
+                    "data_type": "destination_component",
+                    "options": [
+                        "3DModelViewer", "AudioOutput", "BucketList", "BudgetVisualizer", "Calendar", "Carousel", "Checklist", "Clock", "CodeView", "ComplexMulti", "DataFlowDiagram", "DecisionTree",
+                        "DiffViewer", "FileOutput", "FitnessTracker", "Flowchart", "Form", "GanttChart", "GeographicMap", "GlossaryView", "Heatmap", "HorizontalList", "ImageView", "InteractiveChart",
+                        "JsonViewer", "KanbanBoard", "LaTeXRenderer", "LiveTraffic", "LocalEvents", "MarkdownViewer", "MealPlanner", "MindMap", "NeedNewOption", "NetworkGraph", "NewsAggregator",
+                        "PDFViewer", "PivotTable", "PlainText", "Presentation", "PublicLiveCam", "RichTextEditor", "RunCodeBack", "RunCodeFront", "SVGEditor", "SankeyDiagram", "SatelliteView",
+                        "SocialMediaInfo", "SpectrumAnalyzer", "Spreadsheet", "Table", "TaskPrioritization", "Textarea", "Thermometer", "Timeline", "TravelPlanner", "TreeView", "UMLDiagram",
+                        "VerticalList", "VoiceSentimentAnalysis", "WeatherDashboard", "WeatherMap", "WordHighlighter", "WordMap", "chatResponse", "none", "video"
+                    ],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "ui_component",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "props",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "processors",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "depends_default",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_extractors",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "processors_depends_default_fkey",
+                    "foreign_key_column": "depends_default",
+                    "referenced_table": "processors",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_processors_processor_fkey",
+                    "foreign_key_column": "processor",
+                    "referenced_table": "processors",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "processors_depends_default_fkey",
+                    "foreign_key_column": "depends_default",
+                    "referenced_table": "processors",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "recipe_model",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "ai_model",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "role",
+                    "data_type": "model_role",
+                    "options": ["primary_model", "trial_model", "verified_model"],
+                    "is_required": true,
+                    "default_value": "'primary_model'::model_role",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "priority",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "'1'::smallint",
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_model_ai_model_fkey",
+                    "foreign_key_column": "ai_model",
+                    "referenced_table": "ai_model",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_model_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "broker",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "value",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "data_type",
+                    "data_type": "data_type",
+                    "options": ["bool", "dict", "float", "int", "list", "str", "url"],
+                    "is_required": true,
+                    "default_value": "'str'::data_type",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "ready",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "false",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_source",
+                    "data_type": "data_source",
+                    "options": ["api", "chance", "database", "environment", "file", "function", "generated_data", "none", "user_input"],
+                    "is_required": false,
+                    "default_value": "'none'::data_source",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "display_name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "tooltip",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "validation_rules",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "sample_entries",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "custom_source_component",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "other_source_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_destination",
+                    "data_type": "data_destination",
+                    "options": ["api_response", "database", "file", "function", "user_output"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "output_component",
+                    "data_type": "destination_component",
+                    "options": [
+                        "3DModelViewer", "AudioOutput", "BucketList", "BudgetVisualizer", "Calendar", "Carousel", "Checklist", "Clock", "CodeView", "ComplexMulti", "DataFlowDiagram", "DecisionTree",
+                        "DiffViewer", "FileOutput", "FitnessTracker", "Flowchart", "Form", "GanttChart", "GeographicMap", "GlossaryView", "Heatmap", "HorizontalList", "ImageView", "InteractiveChart",
+                        "JsonViewer", "KanbanBoard", "LaTeXRenderer", "LiveTraffic", "LocalEvents", "MarkdownViewer", "MealPlanner", "MindMap", "NeedNewOption", "NetworkGraph", "NewsAggregator",
+                        "PDFViewer", "PivotTable", "PlainText", "Presentation", "PublicLiveCam", "RichTextEditor", "RunCodeBack", "RunCodeFront", "SVGEditor", "SankeyDiagram", "SatelliteView",
+                        "SocialMediaInfo", "SpectrumAnalyzer", "Spreadsheet", "Table", "TaskPrioritization", "Textarea", "Thermometer", "Timeline", "TravelPlanner", "TreeView", "UMLDiagram",
+                        "VerticalList", "VoiceSentimentAnalysis", "WeatherDashboard", "WeatherMap", "WordHighlighter", "WordMap", "chatResponse", "none", "video"
+                    ],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "tags",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": "'[]'::jsonb",
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "broker_custom_component_fkey",
+                    "foreign_key_column": "custom_source_component",
+                    "referenced_table": "data_input_component",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "boundary_brokers_broker_fkey",
+                    "foreign_key_column": "broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "registered_function_return_broker_fkey",
+                    "foreign_key_column": "return_broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_broker_broker_fkey",
+                    "foreign_key_column": "broker",
+                    "referenced_table": "broker",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "extractor",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "output_type",
+                    "data_type": "data_type",
+                    "options": ["bool", "dict", "float", "int", "list", "str", "url"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_identifier",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_index",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "recipe_tools",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "recipe",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "tool",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_tools_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_tools_tool_fkey",
+                    "foreign_key_column": "tool",
+                    "referenced_table": "tool",
+                    "referenced_column": "id"
+                }
+            ],
+            "outbound_foreign_keys": null
+        }, {
+            "table_name": "display_option",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "default_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "customizable_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "additional_params",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_display_display_fkey",
+                    "foreign_key_column": "display",
+                    "referenced_table": "display_option",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "automation_matrix",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "average_seconds",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "is_automated",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "cognition_matrices",
+                    "data_type": "cognition_matrices",
+                    "options": ["agent_crew", "agent_mixture", "conductor", "hypercluster", "knowledge_matrix", "monte_carlo", "the_matrix", "workflow"],
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "boundary_brokers_matrix_fkey",
+                    "foreign_key_column": "matrix",
+                    "referenced_table": "automation_matrix",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "action_matrix_fkey",
+                    "foreign_key_column": "matrix",
+                    "referenced_table": "automation_matrix",
+                    "referenced_column": "id"
+                }
+            ]
+        }, {
+            "table_name": "recipe",
+            "primary_key": "id",
+            "schema": [
+                {
+                    "column_name": "id",
+                    "data_type": "uuid",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "gen_random_uuid()",
+                    "is_primary_key": true
+                }, {
+                    "column_name": "name",
+                    "data_type": "character varying",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "description",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "tags",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "sample_output",
+                    "data_type": "text",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "is_public",
+                    "data_type": "boolean",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "status",
+                    "data_type": "recipe_status",
+                    "options": ["active_testing", "archived", "draft", "in_review", "live", "other"],
+                    "is_required": true,
+                    "default_value": "'draft'::recipe_status",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "varsion",
+                    "data_type": "smallint",
+                    "options": null,
+                    "is_required": true,
+                    "default_value": "'1'::smallint",
+                    "is_primary_key": false
+                }, {
+                    "column_name": "messages",
+                    "data_type": "jsonb[]",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }, {
+                    "column_name": "post_result_options",
+                    "data_type": "jsonb",
+                    "options": null,
+                    "is_required": false,
+                    "default_value": null,
+                    "is_primary_key": false
+                }
+            ],
+            "inbound_foreign_keys": null,
+            "outbound_foreign_keys": [
+                {
+                    "constraint_name": "recipe_display_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_function_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_broker_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_processors_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_model_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }, {
+                    "constraint_name": "recipe_tools_recipe_fkey",
+                    "foreign_key_column": "recipe",
+                    "referenced_table": "recipe",
+                    "referenced_column": "id"
+                }
+            ]
+        }
+    ]
+}

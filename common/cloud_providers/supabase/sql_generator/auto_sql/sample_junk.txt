@@ -1,0 +1,32 @@
+CREATE OR REPLACE FUNCTION public.upsert_registered_function(
+  input_json json
+) RETURNS json
+LANGUAGE plpgsql AS $function$
+DECLARE
+  converted_fields record;
+  upserted_row public.registered_function%ROWTYPE;
+BEGIN
+  SELECT * INTO converted_fields FROM public.convert_frontend_to_db_fields(input_json);
+
+  INSERT INTO public.registered_function (
+    "id", "name", "module_path", "class_name", "description", "return_broker"
+  ) VALUES (
+    converted_fields.p_id,
+    converted_fields.p_name,
+    converted_fields.p_module_path,
+    converted_fields.p_class_name,
+    converted_fields.p_description,
+    converted_fields.p_return_broker
+  )
+  ON CONFLICT ("id") DO UPDATE
+  SET
+    "name" = EXCLUDED."name",
+    "module_path" = EXCLUDED."module_path",
+    "class_name" = EXCLUDED."class_name",
+    "description" = EXCLUDED."description",
+    "return_broker" = EXCLUDED."return_broker"
+  RETURNING * INTO upserted_row;
+
+  RETURN public.convert_registered_function_fields(ARRAY[upserted_row]);
+END;
+$function$;

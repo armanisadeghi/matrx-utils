@@ -176,3 +176,4 @@ cython_debug/
 aidream-bases/
 .idea
 temp/
+code_generator/local_data

@@ -9,9 +9,8 @@ from uuid import UUID
 import datetime
 import types
 import random
+import os
 
-from database.orm.core.fields import Field
-from database.orm.core.extended import BaseDTO
 from core import settings, get_logger
 from .colors import COLORS
 
@@ -108,6 +107,7 @@ def vcprint(
     Returns:
         None
     """
+    from database.orm.core.extended import BaseDTO
 
     if data is None:
         data = "No data provided."
@@ -323,6 +323,9 @@ def handle_dto_instance(instance):
 
 
 def convert_to_json_compatible(data):
+    from database.orm.core.fields import Field
+    from database.orm.core.extended import BaseDTO
+
     TYPE_HANDLERS = {
         "simplenamespace": (lambda x: isinstance(x, types.SimpleNamespace), handle_simplenamespace_instance),
         "dto": (
@@ -474,3 +477,114 @@ def create_inline_printer(prefix="[AI Matrix] ", separator=" | "):
 def get_random_color():
     all_colors = list(COLORS.keys())
     return random.choice(all_colors)
+
+
+def is_empty(value):
+    """
+    Recursively check if a value is considered empty.
+    - None, empty strings, empty dictionaries, and empty lists are considered empty.
+    - For dictionaries, all values must be empty for it to be considered empty.
+    """
+    if value is None or value == "" or (isinstance(value, (list, dict)) and not value):
+        return True
+    if isinstance(value, dict):
+        return all(is_empty(v) for v in value.values())
+    if isinstance(value, list):
+        return all(is_empty(v) for v in value)
+    return False
+
+
+def vclist(data=None, title="Unnamed Data", verbose=True, color=None, background=None, style=None, pretty=False,
+           indent=4, inline=False):
+    """
+    Wrapper for vcprint that handles lists of data.
+    Calls vcprint for each item in the list, only including the title for the first item.
+    Skips empty lists, empty items, empty dictionaries, and empty nested lists.
+    """
+    if not data:  # Check if data is None or an empty list
+        return
+
+    if isinstance(data, list):
+        for index, item in enumerate(data):
+            if is_empty(item):
+                continue
+
+            # Prepare arguments for vcprint
+            vcprint_args = {
+                "data": item,
+                "verbose": verbose,
+                "color": color,
+                "background": background,
+                "style": style,
+                "pretty": pretty,
+                "indent": indent,
+                "inline": inline,
+            }
+
+            if index == 0 and title:  # Only include the title for the first item
+                vcprint_args["title"] = title
+
+            vcprint(**vcprint_args)
+    else:
+        # If data is not a list, just call vcprint normally
+        vcprint(
+            data=data,
+            title=title,
+            verbose=verbose,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+        )
+
+
+def vcdlist(data=None, verbose=True, color=None, background=None, style=None, pretty=False, indent=4, inline=False):
+    """
+    Specialized wrapper for vcprint that handles a list of dictionaries.
+    For each dictionary in the list, it calls vcprint with the dictionary's key as the title
+    and its value as the data.
+    Skips empty dictionaries and values.
+    """
+    if not data:  # Check if data is None or an empty list
+        return
+
+    if isinstance(data, list):
+        for item in data:
+            if is_empty(item):
+                continue
+
+            if isinstance(item, dict):
+                for key, value in item.items():
+                    if not is_empty(value):  # Ensure value is not empty
+                        vcprint(
+                            data=value,
+                            title=key,
+                            verbose=verbose,
+                            color=color,
+                            background=background,
+                            style=style,
+                            pretty=pretty,
+                            indent=indent,
+                            inline=inline,
+                        )
+    else:
+        # If data is not a list, just call vcprint normally
+        vcprint(data=data, verbose=verbose, color=color, background=background, style=style, pretty=pretty,
+                indent=indent, inline=inline)
+
+
+def print_file_link(path):
+    if isinstance(path, str):
+        if not os.path.isabs(path):
+            path = os.path.abspath(path)
+        # if not os.path.exists(path):
+        # raise FileNotFoundError(f"The path {path} does not exist.")
+        url_compatible_path = path.replace("\\", "/")
+    else:
+        if not os.path.exists(str(path)):
+            raise FileNotFoundError(f"The path {path} does not exist.")
+        url_compatible_path = str(path).replace("\\", "/")
+
+    print("file:///{}".format(url_compatible_path))

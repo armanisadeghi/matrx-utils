@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_DIR: Path = Path(TEMP_DIR) / "logs"
     LOG_FILENAME: str = f"matrx-{APP_NAME}-{APP_VERSION}.log"
-    LOG_VCPRINT: bool = True
+    LOG_VCPRINT: bool = False
 
     PORT: int = 8000
 
@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 # Create settings instance
 settings = Settings()
 
+BASE_DIR = settings.BASE_DIR
+TEMP_DIR = settings.TEMP_DIR
 # Ensure directories exist
 os.makedirs(settings.TEMP_DIR, exist_ok=True)
 os.makedirs(settings.LOG_DIR, exist_ok=True)
