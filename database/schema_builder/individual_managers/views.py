@@ -75,10 +75,7 @@ class View:
 
         unique_names = set(name_variations)
 
-        formatted_unique_names = {
-            f'"{name}"' if " " in name or "-" in name else name: self.name_camel
-            for name in unique_names
-        }
+        formatted_unique_names = {f'"{name}"' if " " in name or "-" in name else name: self.name_camel for name in unique_names}
 
         self.unique_name_lookups = formatted_unique_names
 

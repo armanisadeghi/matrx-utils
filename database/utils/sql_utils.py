@@ -1,7 +1,7 @@
 import re
 import os
 from common import print_link
-from core import BASE_DIR, TEMP_DIR
+from core.settings import BASE_DIR, TEMP_DIR
 import json
 import datetime
 
@@ -23,8 +23,9 @@ def clean_default_value(default_value, data_type):
         except ValueError:
             return cleaned_value
     elif data_type == "boolean":
-        return cleaned_value.lower() == 'true'
+        return cleaned_value.lower() == "true"
     return cleaned_value
+
 
 def save_to_json(data, dir_override=None, filename_override=None, save_to_local_data=False):
     if save_to_local_data:
@@ -38,7 +39,7 @@ def save_to_json(data, dir_override=None, filename_override=None, save_to_local_
     filename = filename_override if filename_override else f"db_schema_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     filepath = os.path.join(directory, filename)
 
-    with open(filepath, 'w') as json_file:
+    with open(filepath, "w") as json_file:
         json.dump(data, json_file, indent=4)
 
     print_link(filepath)
@@ -52,5 +53,5 @@ def sql_param_to_psycopg2(sql, params):
         key = match.group(1)
         return f"%({key})s"
 
-    modified_sql = re.sub(r':(\w+)', replace_named_param, sql)
+    modified_sql = re.sub(r":(\w+)", replace_named_param, sql)
     return modified_sql, named_params

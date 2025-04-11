@@ -1,4 +1,4 @@
-from database.orm.supabase.utils.connection_pool import ConnectionPool
+from database.orm.utils.connection_pool import ConnectionPool
 
 
 class AdaptiveConnectionPool(ConnectionPool):
@@ -17,6 +17,7 @@ class AdaptiveConnectionPool(ConnectionPool):
         elif current_usage < self.target_usage / 2 and self.num_connections > self.min_connections:
             self._remove_connection()
 
+
 # Add metrics
 class MetricCollector:
     def collect_metrics(self):
@@ -25,6 +26,7 @@ class MetricCollector:
             "used_connections": self.num_used_connections,
             "available_connections": self.num_available_connections,
         }
+
 
 class MetricsEnabledConnectionPool(ConnectionPool, MetricCollector):
     pass

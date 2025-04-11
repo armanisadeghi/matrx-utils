@@ -1,8 +1,7 @@
-
-
 import asyncio
-from common.utils.fancy_prints import vcprint
-from database.models import MessageTemplate, DataBrokerManager
+from common import vcprint
+from database.orm.models import MessageTemplate
+from database.orm.models import DataBrokerManager
 
 
 class BrokerManager(DataBrokerManager):
@@ -10,7 +9,6 @@ class BrokerManager(DataBrokerManager):
         super().__init__()
         all_attributes = vars(self)
         vcprint(all_attributes, title="All Attributes", color="blue", pretty=True)
-
 
     async def load_broker(self, id):
         return await self.load_item(id)
@@ -50,52 +48,34 @@ class BrokerManager(DataBrokerManager):
         return component.to_dict() if component else None
 
     async def get_active_input_components(self):
-        return await asyncio.gather(
-            *(self.get_input_component(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_input_component(bid) for bid in self._active_items))
 
     async def get_active_input_components_dict(self):
-        return await asyncio.gather(
-            *(self.get_input_component_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_input_component_dict(bid) for bid in self._active_items))
 
     async def get_message_brokers(self, id):
-        return await self.get_inverse_related_objects(
-            id, "message_brokers_inverse"
-        )
+        return await self.get_inverse_related_objects(id, "message_brokers_inverse")
 
     async def get_message_brokers_dict(self, id):
-        return [
-            broker.to_dict() for broker in await self.get_message_brokers(id)
-        ]
+        return [broker.to_dict() for broker in await self.get_message_brokers(id)]
 
     async def get_active_message_brokers(self):
-        return await asyncio.gather(
-            *(self.get_message_brokers(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_message_brokers(bid) for bid in self._active_items))
 
     async def get_active_message_brokers_dict(self):
-        return await asyncio.gather(
-            *(self.get_message_brokers_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_message_brokers_dict(bid) for bid in self._active_items))
 
     async def get_messages(self, id):
-        return await self.get_related_through_inverse(
-            id, "message_brokers_inverse", "message_id", MessageTemplate
-        )
+        return await self.get_related_through_inverse(id, "message_brokers_inverse", "message_id", MessageTemplate)
 
     async def get_messages_dict(self, id):
         return [msg.to_dict() for msg in await self.get_messages(id)]
 
     async def get_active_messages(self):
-        return await asyncio.gather(
-            *(self.get_messages(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_messages(bid) for bid in self._active_items))
 
     async def get_active_messages_dict(self):
-        return await asyncio.gather(
-            *(self.get_messages_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_messages_dict(bid) for bid in self._active_items))
 
     async def get_active_related_data(self):
         return {
@@ -103,7 +83,6 @@ class BrokerManager(DataBrokerManager):
             "message_brokers": await self.get_active_message_brokers_dict(),
             "messages": await self.get_active_messages_dict(),
         }
-
 
 
 async def main():
@@ -118,7 +97,12 @@ async def main():
     vcprint(active_brokers_dict, title="Active Brokers Dict", color="green", pretty=True)
 
     active_input_components_dict = await broker_manager.get_active_input_components_dict()
-    vcprint(active_input_components_dict, title="Active Input Components Dict", color="cyan", pretty=True)
+    vcprint(
+        active_input_components_dict,
+        title="Active Input Components Dict",
+        color="cyan",
+        pretty=True,
+    )
 
     # active_message_brokers_dict = await broker_manager.get_active_message_brokers_dict()
     # active_messages_dict = await broker_manager.get_active_messages_dict()
@@ -128,8 +112,7 @@ async def main():
     # vcprint(active_message_brokers_dict, title="Active Message Brokers Dict", color="magenta", pretty=True)
     # vcprint(active_messages_dict, title="Active Messages Dict", color="red", pretty=True)
     # vcprint(related_data, title="Related Data", color="yellow", pretty=True)
-    
-    
+
+
 if __name__ == "__main__":
-    
     asyncio.run(main())

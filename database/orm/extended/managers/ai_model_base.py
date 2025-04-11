@@ -1,21 +1,57 @@
-
 from dataclasses import dataclass
 from database.orm.core.extended import BaseManager, BaseDTO
-from database.models import AiModel
+from database.orm.models import AiModel
 from typing import Optional, Type, Any
+from common import vcprint
+
 
 @dataclass
 class AiModelDTO(BaseDTO):
     id: str
 
-    @classmethod
-    async def from_model(cls, model):
-        return cls(id=str(model.id))
+    async def _initialize_dto(self, ai_model_item):
+        """Override the base initialization method."""
+        self.id = str(ai_model_item.id)
+        await self._process_core_data(ai_model_item)
+        await self._process_metadata(ai_model_item)
+        await self._initial_validation(ai_model_item)
+        self.initialized = True
+
+    async def _process_core_data(self, ai_model_item):
+        """Process core data from the model item."""
+        pass
+
+    async def _process_metadata(self, ai_model_item):
+        """Process metadata from the model item."""
+        pass
+
+    async def _initial_validation(self, ai_model_item):
+        """Validate fields from the model item."""
+        pass
+
+    async def _final_validation(self):
+        """Final validation of the model item."""
+        return True
+
+    async def get_validated_dict(self):
+        """Get the validated dictionary."""
+        validated = await self._final_validation()
+        dict_data = self.to_dict()
+        if not validated:
+            vcprint(
+                dict_data,
+                "[AiModelDTO] Validation Failed",
+                verbose=True,
+                pretty=True,
+                color="red",
+            )
+        return dict_data
+
 
 class AiModelBase(BaseManager):
-    def __init__(self, dto_class: Optional[Type[Any]] = None, fetch_on_init_limit: int = 200, fetch_on_init_with_warnings_off: str = "YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_100"):
+    def __init__(self, dto_class: Optional[Type[Any]] = None):
         self.dto_class = dto_class or AiModelDTO
-        super().__init__(AiModel, self.dto_class, fetch_on_init_limit, fetch_on_init_with_warnings_off)
+        super().__init__(AiModel, self.dto_class)
 
     def _initialize_manager(self):
         super()._initialize_manager()
@@ -53,6 +89,30 @@ class AiModelBase(BaseManager):
     async def get_or_create(self, defaults=None, **kwargs):
         return await self.get_or_create(defaults, **kwargs)
 
+    async def get_ai_model_with_ai_provider(self, id):
+        return await self.get_item_with_related(id, "ai_provider")
+
+    async def get_ai_models_with_ai_provider(self):
+        return await self.get_items_with_related("ai_provider")
+
+    async def get_ai_model_with_ai_model_endpoint(self, id):
+        return await self.get_item_with_related(id, "ai_model_endpoint")
+
+    async def get_ai_models_with_ai_model_endpoint(self):
+        return await self.get_items_with_related("ai_model_endpoint")
+
+    async def get_ai_model_with_ai_settings(self, id):
+        return await self.get_item_with_related(id, "ai_settings")
+
+    async def get_ai_models_with_ai_settings(self):
+        return await self.get_items_with_related("ai_settings")
+
+    async def get_ai_model_with_recipe_model(self, id):
+        return await self.get_item_with_related(id, "recipe_model")
+
+    async def get_ai_models_with_recipe_model(self):
+        return await self.get_items_with_related("recipe_model")
+
     async def load_ai_models_by_name(self, name):
         return await self.load_items(name=name)
 
@@ -71,12 +131,6 @@ class AiModelBase(BaseManager):
     async def filter_ai_models_by_provider(self, provider):
         return await self.filter_items(provider=provider)
 
-    async def load_ai_models_by_endpoints(self, endpoints):
-        return await self.load_items(endpoints=endpoints)
-
-    async def filter_ai_models_by_endpoints(self, endpoints):
-        return await self.filter_items(endpoints=endpoints)
-
     async def load_ai_models_by_model_class(self, model_class):
         return await self.load_items(model_class=model_class)
 
@@ -89,60 +143,90 @@ class AiModelBase(BaseManager):
     async def filter_ai_models_by_model_provider(self, model_provider):
         return await self.filter_items(model_provider=model_provider)
 
-    async def get_active_ai_models_with_ai_settings(self):
-        return await self.get_active_items_with_one_relation('ai_settings')
+    async def create_ai_model_get_dict(self, **data):
+        return await self.create_item_get_dict(**data)
 
-    async def get_active_ai_model_with_ai_settings(self):
-        return await self.get_active_item_with_one_relation('ai_settings')
+    async def filter_ai_models_get_dict(self, **kwargs):
+        return await self.filter_items_get_dict(**kwargs)
 
-    async def get_ai_model_with_ai_settings(self, id):
-        return await self.get_item_with_related(id, 'ai_settings')
+    async def get_active_ai_model_dict(self, id):
+        return await self.get_active_item_dict(id)
 
-    async def get_ai_models_with_ai_settings(self):
-        return await self.get_items_with_related('ai_settings')
+    async def get_active_ai_models_dict(self):
+        return await self.get_active_items_dict()
 
-    async def get_active_ai_model_with_through_ai_settings(self, id, second_relationship):
-        return await self.get_active_item_with_through_fk(id, 'ai_settings', second_relationship)
+    async def get_active_ai_models_with_all_related_dict(self):
+        return await self.get_active_items_with_all_related_dict()
 
-    async def get_active_ai_models_with_ai_model_endpoints(self):
-        return await self.get_active_items_with_one_relation('ai_model_endpoints')
+    async def get_active_ai_models_with_ifks_dict(self):
+        return await self.get_active_items_with_ifks_dict()
 
-    async def get_active_ai_model_with_ai_model_endpoints(self):
-        return await self.get_active_item_with_one_relation('ai_model_endpoints')
+    async def get_ai_model_dict(self, id):
+        return await self.get_item_dict(id)
 
-    async def get_ai_model_with_ai_model_endpoints(self, id):
-        return await self.get_item_with_related(id, 'ai_model_endpoints')
+    async def get_ai_models_dict(self, **kwargs):
+        return await self.get_items_dict(**kwargs)
 
-    async def get_ai_models_with_ai_model_endpoints(self):
-        return await self.get_items_with_related('ai_model_endpoints')
+    async def get_ai_models_with_all_related_dict(self):
+        return await self.get_items_with_all_related_dict()
 
-    async def get_active_ai_model_with_through_ai_model_endpoints(self, id, second_relationship):
-        return await self.get_active_item_with_through_fk(id, 'ai_model_endpoints', second_relationship)
+    async def load_ai_model_get_dict(self, use_cache=True, **kwargs):
+        return await self.load_item_get_dict(use_cache, **kwargs)
 
-    async def get_active_ai_models_with_recipe_models(self):
-        return await self.get_active_items_with_one_relation('recipe_models')
+    async def load_ai_models_by_ids_get_dict(self, ids):
+        return await self.load_items_by_ids_get_dict(ids)
 
-    async def get_active_ai_model_with_recipe_models(self):
-        return await self.get_active_item_with_one_relation('recipe_models')
+    async def update_ai_model_get_dict(self, id, **updates):
+        return await self.update_item_get_dict(id, **updates)
 
-    async def get_ai_model_with_recipe_models(self, id):
-        return await self.get_item_with_related(id, 'recipe_models')
+    async def get_active_ai_model_with_ai_provider_dict(self):
+        return await self.get_active_item_with_one_relation_dict("ai_provider")
 
-    async def get_ai_models_with_recipe_models(self):
-        return await self.get_items_with_related('recipe_models')
+    async def get_ai_models_with_ai_provider_dict(self):
+        return await self.get_items_with_related_dict("ai_provider")
 
-    async def get_active_ai_model_with_through_recipe_models(self, id, second_relationship):
-        return await self.get_active_item_with_through_fk(id, 'recipe_models', second_relationship)
+    async def get_active_ai_model_with_ai_model_endpoint_dict(self):
+        return await self.get_active_item_with_one_relation_dict("ai_model_endpoint")
+
+    async def get_ai_models_with_ai_model_endpoint_dict(self):
+        return await self.get_items_with_related_dict("ai_model_endpoint")
+
+    async def get_active_ai_model_with_ai_settings_dict(self):
+        return await self.get_active_item_with_one_relation_dict("ai_settings")
+
+    async def get_ai_models_with_ai_settings_dict(self):
+        return await self.get_items_with_related_dict("ai_settings")
+
+    async def get_active_ai_model_with_recipe_model_dict(self):
+        return await self.get_active_item_with_one_relation_dict("recipe_model")
+
+    async def get_ai_models_with_recipe_model_dict(self):
+        return await self.get_items_with_related_dict("recipe_model")
 
     async def load_ai_models_by_ids(self, ids):
         return await self.load_items_by_ids(ids)
-    
+
     def add_computed_field(self, field):
         self.add_computed_field(field)
 
     def add_relation_field(self, field):
         self.add_relation_field(field)
-    
+
     @property
     def active_ai_model_ids(self):
         return self.active_item_ids
+
+
+class AiModelManager(AiModelBase):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(AiModelManager, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        super().__init__()
+
+
+ai_model_manager_instance = AiModelManager()

@@ -5,6 +5,7 @@ verbose = False
 debug = False
 info = True
 
+
 def get_table_relationships(schema, database_project):
     """
     Executes the SQL query to fetch relationship information for all tables in the specified schema.
@@ -278,38 +279,39 @@ def analyze_junction_tables(schema, database_project, additional_schemas=None):
     analyzed_junctions = {}
     all_relationships = []
     for row in results:
-        table_name = row['table_name']
+        table_name = row["table_name"]
 
         # Convert PostgreSQL array string to Python list
-        additional_fields = row['additional_fields']
+        additional_fields = row["additional_fields"]
         if isinstance(additional_fields, str):
             # Remove the curly braces and split the string
-            additional_fields = additional_fields.strip('{}').split(',')
+            additional_fields = additional_fields.strip("{}").split(",")
             # Remove any empty strings
             additional_fields = [field for field in additional_fields if field]
 
         # Convert PostgreSQL array of primary keys to Python list
-        primary_keys = row['primary_keys']
+        primary_keys = row["primary_keys"]
         if isinstance(primary_keys, str):
-            primary_keys = primary_keys.strip('{}').split(',')
+            primary_keys = primary_keys.strip("{}").split(",")
             primary_keys = [key.strip() for key in primary_keys if key.strip()]
 
         analyzed_junctions[table_name] = {
-            'schema': row['table_schema'],
-            'connected_tables': row['connected_tables'],
-            'additional_fields': additional_fields,
-            'primary_keys': primary_keys
+            "schema": row["table_schema"],
+            "connected_tables": row["connected_tables"],
+            "additional_fields": additional_fields,
+            "primary_keys": primary_keys,
         }
 
         # Extract relationships from connected_tables and add to all_relationships
-        if row['connected_tables']:
-            for relationship in row['connected_tables']:
+        if row["connected_tables"]:
+            for relationship in row["connected_tables"]:
                 # Create a copy of the relationship and add the additional_fields
                 relationship_with_fields = relationship.copy()
-                relationship_with_fields['table_additional_fields'] = additional_fields
+                relationship_with_fields["table_additional_fields"] = additional_fields
                 all_relationships.append(relationship_with_fields)
 
     return analyzed_junctions, all_relationships
+
 
 def analyze_relationships(results):
     """
@@ -324,40 +326,40 @@ def analyze_relationships(results):
     summary = {}
 
     relationship_types = {
-        'self-referential': set(),
-        'many-to-many': set(),
-        'one-to-one': set(),
-        'many-to-one': set(),
-        'one-to-many': set(),
-        'undefined': set(),
-        'inverse_references': set()
+        "self-referential": set(),
+        "many-to-many": set(),
+        "one-to-one": set(),
+        "many-to-one": set(),
+        "one-to-many": set(),
+        "undefined": set(),
+        "inverse_references": set(),
     }
 
     for table_data in results:
-        table_name = table_data['table_name']
+        table_name = table_data["table_name"]
         summary[table_name] = {
-            'self-referential': [],
-            'many-to-many': [],
-            'one-to-one': [],
-            'many-to-one': [],
-            'one-to-many': [],
-            'undefined': [],
-            'inverse_references': []
+            "self-referential": [],
+            "many-to-many": [],
+            "one-to-one": [],
+            "many-to-one": [],
+            "one-to-many": [],
+            "undefined": [],
+            "inverse_references": [],
         }
 
         # Process foreign keys
-        if table_data['foreign_keys']:
-            for related_table, details in table_data['foreign_keys'].items():
-                if related_table != 'self_reference':
-                    rel_type = details['relationship_type']
+        if table_data["foreign_keys"]:
+            for related_table, details in table_data["foreign_keys"].items():
+                if related_table != "self_reference":
+                    rel_type = details["relationship_type"]
                     summary[table_name][rel_type].append(related_table)
                     relationship_types[rel_type].add(f"{table_name} → {related_table}")
 
         # Process referenced_by
-        if table_data['referenced_by']:
-            for related_table in table_data['referenced_by'].keys():
-                summary[table_name]['inverse_references'].append(related_table)
-                relationship_types['inverse_references'].add(f"{related_table} → {table_name}")
+        if table_data["referenced_by"]:
+            for related_table in table_data["referenced_by"].keys():
+                summary[table_name]["inverse_references"].append(related_table)
+                relationship_types["inverse_references"].add(f"{related_table} → {table_name}")
 
     # Print summary
     if verbose:
@@ -388,47 +390,46 @@ def analyze_many_to_many_relationships(all_relationships_list):
     # First pass - group relationships by joining table
     joined_relationships = {}
     for relationship in all_relationships_list:
-        joining_table = relationship['table']
+        joining_table = relationship["table"]
 
         if joining_table not in joined_relationships:
             # Initialize the entry for this joining table
             joined_relationships[joining_table] = {
-                'joiningEntity': {
-                    'tableName': joining_table,
-                    'primaryKeyFields': relationship['table_pks'],
-                    'additionalFields': relationship['table_additional_fields'],
-                    'referenceFields': {}  # Dictionary to store field mappings
+                "joiningEntity": {
+                    "tableName": joining_table,
+                    "primaryKeyFields": relationship["table_pks"],
+                    "additionalFields": relationship["table_additional_fields"],
+                    "referenceFields": {},  # Dictionary to store field mappings
                 },
-                'relatedEntities': {}  # Dictionary to store related entities
+                "relatedEntities": {},  # Dictionary to store related entities
             }
 
         # Generate a unique index for this relationship
-        rel_index = len(joined_relationships[joining_table]['relatedEntities']) + 1
+        rel_index = len(joined_relationships[joining_table]["relatedEntities"]) + 1
 
         # Add this relationship's info
-        joined_relationships[joining_table]['relatedEntities'][f'rel_{rel_index}'] = {
-            'tableName': relationship['related_table'],
-            'referenceField': relationship['referenced_column'],
-            'primaryKeyFields': relationship['related_pks']
+        joined_relationships[joining_table]["relatedEntities"][f"rel_{rel_index}"] = {
+            "tableName": relationship["related_table"],
+            "referenceField": relationship["referenced_column"],
+            "primaryKeyFields": relationship["related_pks"],
         }
         # Store the reference field with the same index
-        joined_relationships[joining_table]['joiningEntity']['referenceFields'][f'rel_{rel_index}_field'] = \
-        relationship['connecting_column']
+        joined_relationships[joining_table]["joiningEntity"]["referenceFields"][f"rel_{rel_index}_field"] = relationship["connecting_column"]
 
     # Convert to final format with dynamic number of relationships
     final_relationships = []
     for joining_table, data in joined_relationships.items():
-        relationship_count = len(data['relatedEntities'])
+        relationship_count = len(data["relatedEntities"])
 
         final_rel = {
-            'joiningEntity': {
-                'tableName': data['joiningEntity']['tableName'],
-                'referenceFields': data['joiningEntity']['referenceFields'],
-                'relationshipCount': relationship_count,
-                'primaryKeyFields': data['joiningEntity']['primaryKeyFields'],
-                'additionalFields': data['joiningEntity']['additionalFields'],
+            "joiningEntity": {
+                "tableName": data["joiningEntity"]["tableName"],
+                "referenceFields": data["joiningEntity"]["referenceFields"],
+                "relationshipCount": relationship_count,
+                "primaryKeyFields": data["joiningEntity"]["primaryKeyFields"],
+                "additionalFields": data["joiningEntity"]["additionalFields"],
             },
-            'relationships': data['relatedEntities'],
+            "relationships": data["relatedEntities"],
         }
         final_relationships.append(final_rel)
 
@@ -438,29 +439,60 @@ def analyze_many_to_many_relationships(all_relationships_list):
 
     return final_relationships
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from common import vcprint
 
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
-    additional_schemas = ['auth']
+    schema = "public"
+    database_project = "supabase_automation_matrix"
+    additional_schemas = ["auth"]
 
     relationships = get_table_relationships(schema=schema, database_project=database_project)
     junction_analysis, all_relationships_list = analyze_junction_tables(
         schema=schema,
         database_project=database_project,
-        additional_schemas=additional_schemas
+        additional_schemas=additional_schemas,
     )
 
-    vcprint(data=relationships, title='Table Relationships', pretty=True, verbose=True, color='green')
+    vcprint(
+        data=relationships,
+        title="Table Relationships",
+        pretty=True,
+        verbose=True,
+        color="green",
+    )
 
     # New analysis output
     analysis = analyze_relationships(relationships)
-    vcprint(data=analysis, title='Relationship Analysis', pretty=True, verbose=True, color='yellow')
+    vcprint(
+        data=analysis,
+        title="Relationship Analysis",
+        pretty=True,
+        verbose=True,
+        color="yellow",
+    )
 
-    vcprint(data=junction_analysis, title='Junction Table Analysis', pretty=True, verbose=True, color='green')
+    vcprint(
+        data=junction_analysis,
+        title="Junction Table Analysis",
+        pretty=True,
+        verbose=True,
+        color="green",
+    )
 
-    vcprint(data=all_relationships_list, title='All Relationships List', pretty=True, verbose=True, color='blue')
+    vcprint(
+        data=all_relationships_list,
+        title="All Relationships List",
+        pretty=True,
+        verbose=True,
+        color="blue",
+    )
 
     many_to_many_relationships = analyze_many_to_many_relationships(all_relationships_list)
-    vcprint(data=many_to_many_relationships, title='Many-to-Many Relationships', pretty=True, verbose=True, color='yellow')
+    vcprint(
+        data=many_to_many_relationships,
+        title="Many-to-Many Relationships",
+        pretty=True,
+        verbose=True,
+        color="yellow",
+    )

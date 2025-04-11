@@ -2,10 +2,11 @@ from database.schema_builder.helpers.manual_overrides import SYSTEM_OVERRIDES_EN
 
 
 def generate_imports():
-#     return """import { EntityKeys } from '@/types';
-# import { EntityOverrides } from './overrideTypes';
-# """
+    #     return """import { EntityKeys } from '@/types';
+    # import { EntityOverrides } from './overrideTypes';
+    # """
     return ""
+
 
 def generate_typescript_entity(entity_name, overrides=None):
     overrides = overrides or {}
@@ -27,24 +28,20 @@ const {entity_name}EntityOverrides: EntityOverrides<'{entity_name}'> = {{
 """
     return ts_template
 
+
 def generate_multiple_entities(entity_names, system_overrides):
     imports = generate_imports()
-    entities_code = "\n\n".join(
-        generate_typescript_entity(name, system_overrides.get(name, {})) 
-        for name in entity_names
-    )
-    
-    entity_overrides_list = "\n".join(
-        f"    {name}: {name}EntityOverrides," for name in entity_names
-    )
-    
+    entities_code = "\n\n".join(generate_typescript_entity(name, system_overrides.get(name, {})) for name in entity_names)
+
+    entity_overrides_list = "\n".join(f"    {name}: {name}EntityOverrides," for name in entity_names)
+
     entity_overrides_block = f"""
 
 export const ENTITY_OVERRIDES: Record<EntityKeys, EntityOverrides<EntityKeys>> = {{
 {entity_overrides_list}
 }};
 """
-    
+
     return imports + "\n" + entities_code + entity_overrides_block
 
 

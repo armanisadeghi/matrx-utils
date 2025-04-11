@@ -1,4 +1,4 @@
-from data_handling import DataTransformer
+from data_handling.data_transformer import DataTransformer
 
 schema_builder_verbose = False
 schema_builder_debug = False

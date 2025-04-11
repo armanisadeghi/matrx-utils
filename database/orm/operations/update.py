@@ -7,19 +7,22 @@ from ..core.expressions import F
 
 debug = False
 
+
 async def update(model, filters, **kwargs):
     return await QueryBuilder(model).filter(**filters).update(**kwargs)
+
 
 async def bulk_update(model, objects, fields):
     if not objects:
         return 0
 
     query = QueryBuilder(model)._build_query()
-    query['objects'] = objects
-    query['fields'] = fields
+    query["objects"] = objects
+    query["fields"] = fields
 
     executor = QueryExecutor(query)
     return await executor.adapter.bulk_update(query)
+
 
 async def update_or_create(model, defaults=None, **kwargs):
     defaults = defaults or {}
@@ -34,17 +37,20 @@ async def update_or_create(model, defaults=None, **kwargs):
         instance = await model.objects.create(**params)
         return instance, True
 
+
 async def increment(model, filters, **kwargs):
     updates = {}
     for field, amount in kwargs.items():
         updates[field] = F(field) + amount
     return await update(model, filters, **updates)
 
+
 async def decrement(model, filters, **kwargs):
     updates = {}
     for field, amount in kwargs.items():
         updates[field] = F(field) - amount
     return await update(model, filters, **updates)
+
 
 async def update_instance(instance, fields=None):
     model_class = instance.__class__
@@ -68,18 +74,18 @@ async def update_instance(instance, fields=None):
             update_data[field_name] = field.get_db_prep_value(value)
 
     filters = {pk_name: pk_value}
-    
+
     if debug:
         vcprint(f"Updating instance with filters: {filters}", verbose=debug, color="cyan")
         vcprint(f"Update data: {update_data}", verbose=debug, color="cyan")
-        
+
     result = await update(model_class, filters, **update_data)
-    
-    if result['rows_affected'] == 0:
+
+    if result["rows_affected"] == 0:
         raise ValueError(f"No rows were updated for {model_class.__name__} with {pk_name}={pk_value}")
-        
-    if result['updated_rows']:
-        for key, value in result['updated_rows'][0].items():
+
+    if result["updated_rows"]:
+        for key, value in result["updated_rows"][0].items():
             setattr(instance, key, value)
-            
+
     return instance

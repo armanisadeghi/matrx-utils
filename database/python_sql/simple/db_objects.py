@@ -1,6 +1,7 @@
 from database.client.postgres_connection import execute_sql_query
 
-def get_db_objects(schema='public'):
+
+def get_db_objects(schema="public"):
     """
     Retrieves comprehensive information about tables and views in the specified schema.
     """
@@ -83,12 +84,12 @@ def get_db_objects(schema='public'):
     """
     return execute_sql_query(query, (schema,))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from common import vcprint
 
-    schema = 'public'
+    schema = "public"
 
     results = get_db_objects(schema=schema)
 
-    vcprint(data=results, title='Database Objects', pretty=True, verbose=True, color='blue')
-
+    vcprint(data=results, title="Database Objects", pretty=True, verbose=True, color="blue")

@@ -6,6 +6,7 @@ verbose = False
 debug = False
 info = True
 
+
 def get_full_db_objects(schema, database_project):
     """
     Retrieves comprehensive information about tables and views in the specified schema.
@@ -188,15 +189,21 @@ def get_db_objects(schema, database_project):
     # Retrieve the raw database objects
     objects = get_full_db_objects(schema, database_project)
 
-    ts_objects, full_relationships, full_junction_analysis, overview_analysis = get_ts_object(
-        schema,
-        database_project,
-        additional_schemas=['auth']
-    )
+    ts_objects, full_relationships, full_junction_analysis, overview_analysis = get_ts_object(schema, database_project, additional_schemas=["auth"])
 
     # Define the fields relevant for views
-    relevant_view_fields = {'oid', 'name', 'type', 'schema', 'database', 'owner', 'size_bytes', 'description',
-                            'columns', 'view_definition'}
+    relevant_view_fields = {
+        "oid",
+        "name",
+        "type",
+        "schema",
+        "database",
+        "owner",
+        "size_bytes",
+        "description",
+        "columns",
+        "view_definition",
+    }
 
     # Set to collect base types that have enum labels
     all_enum_base_types = set()
@@ -204,35 +211,35 @@ def get_db_objects(schema, database_project):
     processed_objects = []
     for obj in objects:
         # Add database_project to the top-level object
-        obj['database_project'] = database_project
-        obj['unique_table_id'] = f"{database_project}:{obj['schema']}:{obj['name']}"
+        obj["database_project"] = database_project
+        obj["unique_table_id"] = f"{database_project}:{obj['schema']}:{obj['name']}"
 
         # Process columns if they exist
-        if 'columns' in obj and obj['columns']:
-            for column in obj['columns']:
-                column['database_project'] = database_project
+        if "columns" in obj and obj["columns"]:
+            for column in obj["columns"]:
+                column["database_project"] = database_project
 
         # Process table_columns if they exist
-        if 'table_columns' in obj and obj['table_columns']:
-            for column in obj['table_columns']:
-                column['database_project'] = database_project
-                column['unique_column_id'] = f"{database_project}:{obj['schema']}:{obj['name']}:{column['name']}"
+        if "table_columns" in obj and obj["table_columns"]:
+            for column in obj["table_columns"]:
+                column["database_project"] = database_project
+                column["unique_column_id"] = f"{database_project}:{obj['schema']}:{obj['name']}:{column['name']}"
 
                 # Check for enum labels and collect base types
-                enum_labels = column.get('enum_labels')
-                base_type = column.get('base_type')
+                enum_labels = column.get("enum_labels")
+                base_type = column.get("base_type")
                 # Check if enum_labels exists and is not None/empty
                 if enum_labels and enum_labels != "None" and base_type and base_type != "None":
                     # If enum_labels is a string representation of a list, we still want to capture the base_type
                     all_enum_base_types.add(base_type)
 
         # Merge TypeScript relationships if the table name matches
-        table_name = obj.get('name')
+        table_name = obj.get("name")
         if table_name in ts_objects:
-            obj['junction_analysis_ts'] = ts_objects[table_name]
+            obj["junction_analysis_ts"] = ts_objects[table_name]
 
         # For views, keep only the relevant fields
-        if obj['type'] == 'view':
+        if obj["type"] == "view":
             processed_obj = {k: v for k, v in obj.items() if k in relevant_view_fields}
         else:
             processed_obj = obj
@@ -240,7 +247,13 @@ def get_db_objects(schema, database_project):
         # Append the processed object to the result list
         processed_objects.append(processed_obj)
 
-    return processed_objects, full_relationships, full_junction_analysis, all_enum_base_types, overview_analysis
+    return (
+        processed_objects,
+        full_relationships,
+        full_junction_analysis,
+        all_enum_base_types,
+        overview_analysis,
+    )
 
 
 # Mapping of database types to React components
@@ -268,7 +281,7 @@ component_mapping = {
     "jsonb[]": "JsonEditor (array)",
     "broker_role": "Select",
     "function_role": "Select",
-    "model_role": "Select"
+    "model_role": "Select",
 }
 
 
@@ -282,7 +295,7 @@ def map_datatypes_to_components(datatypes):
     return result
 
 
-def extract_unique_values_and_counts(db_objects_tuple, fields='*'):
+def extract_unique_values_and_counts(db_objects_tuple, fields="*"):
     """
     Extracts unique values and their counts for the specified fields from the objects' table columns.
 
@@ -303,10 +316,10 @@ def extract_unique_values_and_counts(db_objects_tuple, fields='*'):
     # Iterate over the database objects
     for obj in objects:
         # Ensure we process only tables with `table_columns`
-        if obj.get('table_columns'):
-            for column in obj['table_columns']:
+        if obj.get("table_columns"):
+            for column in obj["table_columns"]:
                 # If fields is '*' (all fields), extract all available fields in the column
-                if fields == '*':
+                if fields == "*":
                     for field, value in column.items():
                         # Convert non-hashable types like dicts or lists to strings
                         if isinstance(value, (dict, list)):
@@ -328,10 +341,10 @@ def extract_unique_values_and_counts(db_objects_tuple, fields='*'):
     return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from common import vcprint
 
-    schema = 'public'
+    schema = "public"
     database_project = "supabase_automation_matrix"
     # results = get_db_objects(schema=schema, database_project=database_project)
 
@@ -355,9 +368,21 @@ if __name__ == '__main__':
     # mapped_components = map_datatypes_to_components(full_type)
     # vcprint(data=mapped_components, title='Mapped Components', pretty=True, verbose=True, color='magenta')
 
-    processed_objects, full_relationships, full_junction_analysis, all_enum_base_types, overview_analysis = get_db_objects(schema=schema, database_project=database_project)
+    (
+        processed_objects,
+        full_relationships,
+        full_junction_analysis,
+        all_enum_base_types,
+        overview_analysis,
+    ) = get_db_objects(schema=schema, database_project=database_project)
 
-    vcprint(data=processed_objects, title='Processed Objects', pretty=True, verbose=True, color='blue')
+    vcprint(
+        data=processed_objects,
+        title="Processed Objects",
+        pretty=True,
+        verbose=True,
+        color="blue",
+    )
     # vcprint(data=full_relationships, title='Full Relationships', pretty=True, verbose=True, color='green')
     # vcprint(data=full_junction_analysis, title='Full Junction Analysis', pretty=True, verbose=True, color='yellow')
     # vcprint(data=all_enum_base_types, title='All Enum Base Types', pretty=True, verbose=True, color='red')

@@ -4,6 +4,7 @@ import re
 import json
 from copy import deepcopy
 
+
 def merge_component_props(overrides=None):
     """
     Merges provided overrides with the default componentProps while retaining order.
@@ -13,7 +14,7 @@ def merge_component_props(overrides=None):
     props_without_required_entry.pop("required", None)  # Avoid KeyError if missing
 
     merged_props = deepcopy(props_without_required_entry)
-    
+
     if overrides:  # Ensure overrides is not None
         merged_props.update(overrides)  # Apply overrides
 
@@ -27,7 +28,7 @@ def merge_component_props(overrides=None):
     formatted_props = json.dumps(ordered_props, indent=4)
 
     # Remove quotes from keys to match TypeScript syntax
-    formatted_props = re.sub(r'"(\w+)"\s*:', r'\1:', formatted_props)
+    formatted_props = re.sub(r'"(\w+)"\s*:', r"\1:", formatted_props)
 
     return formatted_props
 
@@ -37,7 +38,7 @@ def format_ts_object(ts_object_str):
     Formats a JSON-like string to remove quotes from keys for TypeScript compatibility.
     Ensures TypeScript style object notation.
     """
-    return re.sub(r'"(\w+)"\s*:', r'\1:', ts_object_str)
+    return re.sub(r'"(\w+)"\s*:', r"\1:", ts_object_str)
 
 
 def generate_typescript_field_overrides(entity_name, overrides):
@@ -84,14 +85,9 @@ def generate_full_typescript_file(entity_names, system_overrides):
     Generates the entire TypeScript file as a string, including all entity field overrides
     and the final `ENTITY_FIELD_OVERRIDES` export.
     """
-    entity_overrides_blocks = "\n\n".join(
-        generate_typescript_field_overrides(name, system_overrides.get(name, {}))
-        for name in entity_names
-    )
+    entity_overrides_blocks = "\n\n".join(generate_typescript_field_overrides(name, system_overrides.get(name, {})) for name in entity_names)
 
-    entity_overrides_list = "\n".join(
-        f"    {name}: {name}FieldOverrides," for name in entity_names
-    )
+    entity_overrides_list = "\n".join(f"    {name}: {name}FieldOverrides," for name in entity_names)
 
     entity_overrides_export = f"""
 export const ENTITY_FIELD_OVERRIDES: AllEntityFieldOverrides = {{
@@ -105,13 +101,7 @@ export const ENTITY_FIELD_OVERRIDES: AllEntityFieldOverrides = {{
 # Example Usage
 if __name__ == "__main__":
     SYSTEM_OVERRIDES_FIELDS = {
-        "dataInputComponent": {
-            "options": {
-                "componentProps": {
-                    "subComponent": "optionsManager"
-                }
-            }
-        },
+        "dataInputComponent": {"options": {"componentProps": {"subComponent": "optionsManager"}}},
         "aiSettings": {
             "temperature": {
                 "defaultComponent": "SPECIAL",
@@ -121,8 +111,8 @@ if __name__ == "__main__":
                     "min": 0,
                     "max": 2,
                     "step": 0.01,
-                    "numberType": "real"
-                }
+                    "numberType": "real",
+                },
             }
         },
         "messageTemplate": {
@@ -131,8 +121,8 @@ if __name__ == "__main__":
             }""",
             "type": """{
                 isDisplayField: false
-            }"""
-        }
+            }""",
+        },
     }
 
     entity_names = [
@@ -140,7 +130,7 @@ if __name__ == "__main__":
         "aiSettings",
         "messageTemplate",
         "broker",  # No overrides, should generate an empty object
-        "unknownEntity"  # Completely unknown entity, should generate an empty object
+        "unknownEntity",  # Completely unknown entity, should generate an empty object
     ]
 
     ts_code = generate_full_typescript_file(entity_names, SYSTEM_OVERRIDES_FIELDS)

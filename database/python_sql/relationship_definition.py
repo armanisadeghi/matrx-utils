@@ -1,28 +1,29 @@
 import re
 import json
-from core.settings import TEMP_DIR
+from aidream.settings import TEMP_DIR
 import os
 
-from database.python_sql.table_detailed_relationships import get_table_relationships, analyze_junction_tables, \
-    analyze_relationships
+from database.python_sql.table_detailed_relationships import (
+    get_table_relationships,
+    analyze_junction_tables,
+    analyze_relationships,
+)
 
 
 def snake_to_camel(snake_str):
     """
     Convert a snake_case string to camelCase.
     """
-    components = snake_str.split('_')
-    return components[0] + ''.join(x.capitalize() for x in components[1:])
+    components = snake_str.split("_")
+    return components[0] + "".join(x.capitalize() for x in components[1:])
+
 
 def convert_keys_to_camel_case(data):
     """
     Recursively convert all keys and string values in a dictionary or list from snake_case to camelCase.
     """
     if isinstance(data, dict):
-        return {
-            snake_to_camel(key): convert_keys_to_camel_case(value)
-            for key, value in data.items()
-        }
+        return {snake_to_camel(key): convert_keys_to_camel_case(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [convert_keys_to_camel_case(item) for item in data]
     elif isinstance(data, str):
@@ -30,51 +31,51 @@ def convert_keys_to_camel_case(data):
     else:
         return data
 
+
 def get_relationship_definitions(all_relationships_list):
     # First pass - group relationships by joining table
     joined_relationships = {}
     for relationship in all_relationships_list:
-        joining_table = relationship['table']
+        joining_table = relationship["table"]
 
         if joining_table not in joined_relationships:
             # Initialize the entry for this joining table
             joined_relationships[joining_table] = {
-                'joiningEntity': {
-                    'tableName': joining_table,
-                    'primaryKeyFields': relationship['table_pks'],
-                    'additionalFields': relationship['table_additional_fields'],
-                    'referenceFields': {}  # Dictionary to store field mappings
+                "joiningEntity": {
+                    "tableName": joining_table,
+                    "primaryKeyFields": relationship["table_pks"],
+                    "additionalFields": relationship["table_additional_fields"],
+                    "referenceFields": {},  # Dictionary to store field mappings
                 },
-                'relatedEntities': {}  # Dictionary to store related entities
+                "relatedEntities": {},  # Dictionary to store related entities
             }
 
         # Generate a unique index for this relationship
-        rel_index = len(joined_relationships[joining_table]['relatedEntities']) + 1
+        rel_index = len(joined_relationships[joining_table]["relatedEntities"]) + 1
 
         # Add this relationship's info
-        joined_relationships[joining_table]['relatedEntities'][f'rel_{rel_index}'] = {
-            'tableName': relationship['related_table'],
-            'referenceField': relationship['referenced_column'],
-            'primaryKeyFields': relationship['related_pks']
+        joined_relationships[joining_table]["relatedEntities"][f"rel_{rel_index}"] = {
+            "tableName": relationship["related_table"],
+            "referenceField": relationship["referenced_column"],
+            "primaryKeyFields": relationship["related_pks"],
         }
         # Store the reference field with the same index
-        joined_relationships[joining_table]['joiningEntity']['referenceFields'][f'rel_{rel_index}_field'] = \
-        relationship['connecting_column']
+        joined_relationships[joining_table]["joiningEntity"]["referenceFields"][f"rel_{rel_index}_field"] = relationship["connecting_column"]
 
     # Convert to final format with dynamic number of relationships
     final_relationships = []
     for joining_table, data in joined_relationships.items():
-        relationship_count = len(data['relatedEntities'])
+        relationship_count = len(data["relatedEntities"])
 
         final_rel = {
-            'joiningEntity': {
-                'tableName': data['joiningEntity']['tableName'],
-                'referenceFields': data['joiningEntity']['referenceFields'],
-                'relationshipCount': relationship_count,
-                'primaryKeyFields': data['joiningEntity']['primaryKeyFields'],
-                'additionalFields': data['joiningEntity']['additionalFields'],
+            "joiningEntity": {
+                "tableName": data["joiningEntity"]["tableName"],
+                "referenceFields": data["joiningEntity"]["referenceFields"],
+                "relationshipCount": relationship_count,
+                "primaryKeyFields": data["joiningEntity"]["primaryKeyFields"],
+                "additionalFields": data["joiningEntity"]["additionalFields"],
             },
-            'relationships': data['relatedEntities'],
+            "relationships": data["relatedEntities"],
         }
         final_relationships.append(final_rel)
 
@@ -90,40 +91,34 @@ def flatten_relationships(relationships):
     Flatten the nested relationships structure into a flat dictionary format,
     replacing numeric suffixes with words (One, Two, etc.).
     """
-    suffix_mapping = {
-        1: "One",
-        2: "Two",
-        3: "Three",
-        4: "Four",
-        5: "Five"
-    }
+    suffix_mapping = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five"}
 
     flat_structure = []
 
     for relationship in relationships:
-        joining_entity = relationship['joiningEntity']
-        relationships_data = relationship['relationships']
+        joining_entity = relationship["joiningEntity"]
+        relationships_data = relationship["relationships"]
 
         # Base structure with joining table details
         flat_entry = {
-            "joiningTable": joining_entity['tableName'],
-            "relationshipCount": joining_entity['relationshipCount'],
-            "additionalFields": joining_entity['additionalFields'],
-            "joiningTablePks": joining_entity['primaryKeyFields'],
+            "joiningTable": joining_entity["tableName"],
+            "relationshipCount": joining_entity["relationshipCount"],
+            "additionalFields": joining_entity["additionalFields"],
+            "joiningTablePks": joining_entity["primaryKeyFields"],
         }
 
         # Add fields for each relationship dynamically
-        for idx in range(1, int(joining_entity['relationshipCount']) + 1):
+        for idx in range(1, int(joining_entity["relationshipCount"]) + 1):
             # Determine the suffix (One, Two, etc.) or fallback to a number
             suffix = suffix_mapping.get(idx, str(idx))
             rel_key = f"rel{idx}"  # Original relationship key
             ref_field_key = f"rel{idx}Field"  # Original reference field key
 
             # Create keys using the suffix
-            flat_entry[f"ReferenceField{suffix}"] = joining_entity['referenceFields'][ref_field_key]
-            flat_entry[f"entity{suffix}"] = relationships_data[rel_key]['tableName']
-            flat_entry[f"entity{suffix}Field"] = relationships_data[rel_key]['referenceField']
-            flat_entry[f"entity{suffix}Pks"] = relationships_data[rel_key]['primaryKeyFields']
+            flat_entry[f"ReferenceField{suffix}"] = joining_entity["referenceFields"][ref_field_key]
+            flat_entry[f"entity{suffix}"] = relationships_data[rel_key]["tableName"]
+            flat_entry[f"entity{suffix}Field"] = relationships_data[rel_key]["referenceField"]
+            flat_entry[f"entity{suffix}Pks"] = relationships_data[rel_key]["primaryKeyFields"]
 
         flat_structure.append(flat_entry)
 
@@ -134,7 +129,7 @@ def get_relationship_definition_type():
     """
     Returns the TypeScript type definition as a string.
     """
-    return '''import { EntityAnyFieldKey, EntityKeys } from "@/types";
+    return """import { EntityAnyFieldKey, EntityKeys } from "@/types";
 
 export type RelationshipDefinition = {
     joiningTable: EntityKeys;
@@ -157,7 +152,7 @@ export type RelationshipDefinition = {
     entityFour?: EntityKeys;
     entityFourField?: EntityAnyFieldKey<EntityKeys>;
     entityFourPks?: EntityAnyFieldKey<EntityKeys>[];
-};'''
+};"""
 
 
 def convert_to_typescript(data):
@@ -188,7 +183,7 @@ def convert_to_typescript(data):
                 value_str = str(value)  # Leave other values as-is
 
             # Append each field in "key: value" format
-            ts_object_fields.append(f'    {key}: {value_str}')
+            ts_object_fields.append(f"    {key}: {value_str}")
 
         # Combine all fields into a single TypeScript object
         ts_object = "{\n" + ",\n".join(ts_object_fields) + "\n}"
@@ -214,35 +209,71 @@ def save_to_file(content, relative_path):
     print_link(file_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from common import vcprint, print_link
 
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
-    additional_schemas = ['auth']
+    schema = "public"
+    database_project = "supabase_automation_matrix"
+    additional_schemas = ["auth"]
 
     relationships = get_table_relationships(schema=schema, database_project=database_project)
     junction_analysis, all_relationships_list = analyze_junction_tables(
         schema=schema,
         database_project=database_project,
-        additional_schemas=additional_schemas
+        additional_schemas=additional_schemas,
     )
 
-    vcprint(data=relationships, title='Table Relationships', pretty=True, verbose=True, color='green')
+    vcprint(
+        data=relationships,
+        title="Table Relationships",
+        pretty=True,
+        verbose=True,
+        color="green",
+    )
 
     # New analysis output
     analysis = analyze_relationships(relationships)
-    vcprint(data=analysis, title='Relationship Analysis', pretty=True, verbose=True, color='yellow')
+    vcprint(
+        data=analysis,
+        title="Relationship Analysis",
+        pretty=True,
+        verbose=True,
+        color="yellow",
+    )
 
-    vcprint(data=junction_analysis, title='Junction Table Analysis', pretty=True, verbose=True, color='green')
+    vcprint(
+        data=junction_analysis,
+        title="Junction Table Analysis",
+        pretty=True,
+        verbose=True,
+        color="green",
+    )
 
-    vcprint(data=all_relationships_list, title='All Relationships List', pretty=True, verbose=True, color='blue')
+    vcprint(
+        data=all_relationships_list,
+        title="All Relationships List",
+        pretty=True,
+        verbose=True,
+        color="blue",
+    )
 
     many_to_many_relationships = get_relationship_definitions(all_relationships_list)
-    vcprint(data=many_to_many_relationships, title='Many-to-Many Relationships', pretty=True, verbose=True, color='yellow')
+    vcprint(
+        data=many_to_many_relationships,
+        title="Many-to-Many Relationships",
+        pretty=True,
+        verbose=True,
+        color="yellow",
+    )
 
     flat_relationships = flatten_relationships(many_to_many_relationships)
-    vcprint(data=flat_relationships, title='Flat Relationships', pretty=True, verbose=True, color='green')
+    vcprint(
+        data=flat_relationships,
+        title="Flat Relationships",
+        pretty=True,
+        verbose=True,
+        color="green",
+    )
 
     ts_content = convert_to_typescript(flat_relationships)
 

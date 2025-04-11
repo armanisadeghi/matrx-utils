@@ -73,17 +73,13 @@ def get_table_columns(schema, table_name, is_view):
     return execute_sql_query(query, (is_view, schema, table_name))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from common import vcprint
 
-    schema = 'public'
-    table = 'registered_function'
+    schema = "public"
+    table = "registered_function"
     is_view = False
 
-    results = get_table_columns(
-        schema=schema,
-        table_name=table,
-        is_view=is_view
-    )
+    results = get_table_columns(schema=schema, table_name=table, is_view=is_view)
 
-    vcprint(data=results, title='Table Columns', pretty=True, verbose=True, color='blue')
+    vcprint(data=results, title="Table Columns", pretty=True, verbose=True, color="blue")

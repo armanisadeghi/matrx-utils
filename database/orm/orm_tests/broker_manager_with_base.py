@@ -1,4 +1,4 @@
-from database.models import (
+from database.orm.models import (
     DataBroker,
     MessageTemplate,
 )
@@ -7,7 +7,7 @@ import asyncio
 from database.orm.core.relations import ForeignKeyReference
 
 info = True
-debug = True
+debug = False
 verbose = False
 
 
@@ -16,11 +16,7 @@ class BaseManager:
         self.primary_model = primary_model
 
         self.foreign_keys = self.primary_model._meta.foreign_keys
-        self.foreign_key_references = {
-            name: field
-            for name, field in self.primary_model._fields.items()
-            if isinstance(field, ForeignKeyReference)
-        }
+        self.foreign_key_references = {name: field for name, field in self.primary_model._fields.items() if isinstance(field, ForeignKeyReference)}
         self.inverse_foreign_keys = self.primary_model._meta.inverse_foreign_keys
         self.all_relationships = {
             **self.foreign_keys,
@@ -111,9 +107,7 @@ class BaseManager:
         return [item.to_dict() for item in items if item]
 
     async def get_active_items(self):
-        items = await asyncio.gather(
-            *(self.primary_model.get(id=item_id) for item_id in self._active_items)
-        )
+        items = await asyncio.gather(*(self.primary_model.get(id=item_id) for item_id in self._active_items))
         for item in items:
             if item:
                 await item.fetch_related()
@@ -233,12 +227,8 @@ class BaseManager:
 
         return await related_model.filter(**{related_field: item_id}).all()
 
-    async def get_related_through_inverse(
-        self, item_id, through_relationship, target_field, target_model
-    ):
-        intermediary_objects = await self.get_inverse_related_objects(
-            item_id, through_relationship
-        )
+    async def get_related_through_inverse(self, item_id, through_relationship, target_field, target_model):
+        intermediary_objects = await self.get_inverse_related_objects(item_id, through_relationship)
         target_ids = [getattr(obj, target_field) for obj in intermediary_objects]
         return await target_model.filter(id__in=target_ids).all()
 
@@ -249,30 +239,16 @@ class BaseManager:
     async def get_active_related_data(self):
         related_data = {}
         for item_id in self._active_items:
-            related_data[item_id] = {
-                model: await self.get_related_objects_dict(item_id, model)
-                for model in self.related_models
-            }
+            related_data[item_id] = {model: await self.get_related_objects_dict(item_id, model) for model in self.related_models}
         return related_data
 
-    async def get_through_relationship(
-        self, item_id, through_model, from_field, to_field, target_model
-    ):
+    async def get_through_relationship(self, item_id, through_model, from_field, to_field, target_model):
         related_items = await through_model.filter(**{from_field: item_id}).all()
         target_ids = [getattr(item, to_field) for item in related_items]
         return await target_model.filter(id__in=target_ids).all()
 
-    async def get_active_through_relationship(
-        self, through_model, from_field, to_field, target_model
-    ):
-        all_related = await asyncio.gather(
-            *(
-                self.get_through_relationship(
-                    item_id, through_model, from_field, to_field, target_model
-                )
-                for item_id in self._active_items
-            )
-        )
+    async def get_active_through_relationship(self, through_model, from_field, to_field, target_model):
+        all_related = await asyncio.gather(*(self.get_through_relationship(item_id, through_model, from_field, to_field, target_model) for item_id in self._active_items))
         return [item for sublist in all_related for item in sublist]
 
     @property
@@ -322,52 +298,34 @@ class BrokerManager(BaseManager):
         return component.to_dict() if component else None
 
     async def get_active_input_components(self):
-        return await asyncio.gather(
-            *(self.get_input_component(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_input_component(bid) for bid in self._active_items))
 
     async def get_active_input_components_dict(self):
-        return await asyncio.gather(
-            *(self.get_input_component_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_input_component_dict(bid) for bid in self._active_items))
 
     async def get_message_brokers(self, id):
-        return await self.get_inverse_related_objects(
-            id, "message_brokers_inverse"
-        )
+        return await self.get_inverse_related_objects(id, "message_brokers_inverse")
 
     async def get_message_brokers_dict(self, id):
-        return [
-            broker.to_dict() for broker in await self.get_message_brokers(id)
-        ]
+        return [broker.to_dict() for broker in await self.get_message_brokers(id)]
 
     async def get_active_message_brokers(self):
-        return await asyncio.gather(
-            *(self.get_message_brokers(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_message_brokers(bid) for bid in self._active_items))
 
     async def get_active_message_brokers_dict(self):
-        return await asyncio.gather(
-            *(self.get_message_brokers_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_message_brokers_dict(bid) for bid in self._active_items))
 
     async def get_messages(self, id):
-        return await self.get_related_through_inverse(
-            id, "message_brokers_inverse", "message_id", MessageTemplate
-        )
+        return await self.get_related_through_inverse(id, "message_brokers_inverse", "message_id", MessageTemplate)
 
     async def get_messages_dict(self, id):
         return [msg.to_dict() for msg in await self.get_messages(id)]
 
     async def get_active_messages(self):
-        return await asyncio.gather(
-            *(self.get_messages(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_messages(bid) for bid in self._active_items))
 
     async def get_active_messages_dict(self):
-        return await asyncio.gather(
-            *(self.get_messages_dict(bid) for bid in self._active_items)
-        )
+        return await asyncio.gather(*(self.get_messages_dict(bid) for bid in self._active_items))
 
     async def get_active_related_data(self):
         return {

@@ -1,5 +1,6 @@
 import json
 from common import vcprint
+from database.schema_builder.helpers.configs import MANAGER_CONFIG_OVERRIDES
 from database.schema_builder.helpers.manager_dto_creator import generate_manager_class
 from database.schema_builder.individual_managers.columns import Column
 from database.schema_builder.individual_managers.common import (
@@ -14,27 +15,27 @@ from database.schema_builder.helpers.manager_helpers import generate_dto_and_man
 
 class Table:
     def __init__(
-            self,
-            oid,
-            database_project,
-            unique_table_id,
-            name,
-            type_,
-            schema,
-            database,
-            owner,
-            size_bytes,
-            index_size_bytes,
-            rows,
-            last_vacuum,
-            last_analyze,
-            description,
-            estimated_row_count,
-            total_bytes,
-            has_primary_key,
-            index_count,
-            table_columns=None,
-            junction_analysis_ts=None,
+        self,
+        oid,
+        database_project,
+        unique_table_id,
+        name,
+        type_,
+        schema,
+        database,
+        owner,
+        size_bytes,
+        index_size_bytes,
+        rows,
+        last_vacuum,
+        last_analyze,
+        description,
+        estimated_row_count,
+        total_bytes,
+        has_primary_key,
+        index_count,
+        table_columns=None,
+        junction_analysis_ts=None,
     ):
         self.utils = schema_builder_utils
 
@@ -78,8 +79,12 @@ class Table:
         self.referenced_by_relationships = []
         self.many_to_many_relationships = []
 
-        self.schema_structure = {"defaultFetchStrategy": "simple", "foreignKeys": [], "inverseForeignKeys": [],
-                                 "manyToMany": []}
+        self.schema_structure = {
+            "defaultFetchStrategy": "simple",
+            "foreignKeys": [],
+            "inverseForeignKeys": [],
+            "manyToMany": [],
+        }
 
         self.display_field_metadata = None
 
@@ -111,7 +116,13 @@ class Table:
         self.pre_initialize()
 
         vcprint(self.junction_analysis_ts, pretty=True, verbose=self.verbose, color="blue")
-        vcprint(self.to_dict(), title="Table initialized", pretty=True, verbose=self.verbose, color="cyan")
+        vcprint(
+            self.to_dict(),
+            title="Table initialized",
+            pretty=True,
+            verbose=self.verbose,
+            color="cyan",
+        )
 
     def pre_initialize(self):
         if self.pre_initialized:
@@ -141,7 +152,13 @@ class Table:
         # Define the layers of matching logic
         exact_priority_names = ["name", "title", "label"]
         containment_keywords = ["name", "title", "label"]
-        extended_candidates = ["description", "full_name", "username", "display_name", "subject"]
+        extended_candidates = [
+            "description",
+            "full_name",
+            "username",
+            "display_name",
+            "subject",
+        ]
         last_resort_candidates = ["matrx", "broker", "type"]
 
         # Layer 1: Exact match with priority names
@@ -213,31 +230,35 @@ class Table:
         # Maintain existing behavior
         self.foreign_keys[target_table] = relationship
         self.schema_structure["foreignKeys"].append(
-            {"column": relationship.column, "relatedTable": target_table, "relatedColumn": relationship.foreign_column}
+            {
+                "column": relationship.column,
+                "relatedTable": target_table,
+                "relatedColumn": relationship.foreign_column,
+            }
         )
         # Add to new collection
         self.foreign_key_relationships.append(relationship)
         self._update_fetch_strategy()
 
     def get_relationship_mapping(self):
-        return {relationship.target_table: relationship.foreign_column for relationship in
-                self.foreign_key_relationships}
+        return {relationship.target_table: relationship.foreign_column for relationship in self.foreign_key_relationships}
 
     def add_referenced_by(self, source_table, relationship):
         # Maintain existing behavior
         self.referenced_by[source_table] = relationship
-        self.schema_structure["inverseForeignKeys"].append(
-            {"relatedTable": source_table, "relatedColumn": relationship.column})
+        self.schema_structure["inverseForeignKeys"].append({"relatedTable": source_table, "relatedColumn": relationship.column})
         # Add to new collection
         self.referenced_by_relationships.append(relationship)
         self._update_fetch_strategy()
 
     def add_many_to_many(self, junction_table, related_table):
         # Maintain existing behavior
-        many_to_many_entry = {"junction_table": junction_table, "related_table": related_table}
+        many_to_many_entry = {
+            "junction_table": junction_table,
+            "related_table": related_table,
+        }
         self.many_to_many.append(many_to_many_entry)
-        self.schema_structure["manyToMany"].append(
-            {"junctionTable": junction_table.name, "relatedTable": related_table.name})
+        self.schema_structure["manyToMany"].append({"junctionTable": junction_table.name, "relatedTable": related_table.name})
         # Add to new collection
         self.many_to_many_relationships.append(many_to_many_entry)
         self._update_fetch_strategy()
@@ -296,13 +317,13 @@ class Table:
 
     def get_all_referenced_by(self):
         return self.referenced_by
-    
+
     def get_all_relations(self):
         fks = self.foreign_keys
         ifks = self.referenced_by
         relations = {**fks, **ifks}
         return relations
-    
+
     def get_all_relations_list(self):
         relations = self.get_all_relations()
         return list(relations.keys())
@@ -347,10 +368,8 @@ class Table:
 
     def get_fieldNames_in_groups(self):
         self.Field_name_groups["nativeFields"] = [column.name_camel for column in self.columns]
-        self.Field_name_groups["primaryKeyFields"] = [column.name_camel for column in self.columns if
-                                                      column.is_primary_key]
-        self.Field_name_groups["nativeFieldsNoPk"] = [column.name_camel for column in self.columns if
-                                                      not column.is_primary_key]
+        self.Field_name_groups["primaryKeyFields"] = [column.name_camel for column in self.columns if column.is_primary_key]
+        self.Field_name_groups["nativeFieldsNoPk"] = [column.name_camel for column in self.columns if not column.is_primary_key]
         return self.Field_name_groups
 
     def get_primary_key_fields_list(self):
@@ -391,7 +410,12 @@ class Table:
         ]
 
         if not primary_key_columns:
-            return {"type": "none", "fields": [], "database_fields": [], "where_template": {}}
+            return {
+                "type": "none",
+                "fields": [],
+                "database_fields": [],
+                "where_template": {},
+            }
 
         # Create the where clause template with database field names
         where_template = {col["database_name"]: None for col in primary_key_columns}
@@ -405,8 +429,7 @@ class Table:
 
     def generate_unique_name_lookups(self):
         name_variations = set(self.name_variations.values())
-        formatted_unique_names = {f'"{name}"' if " " in name or "-" in name else name: self.name_camel for name in
-                                  name_variations}
+        formatted_unique_names = {f'"{name}"' if " " in name or "-" in name else name: self.name_camel for name in name_variations}
         self.unique_name_lookups = formatted_unique_names
 
     def generate_unique_field_types(self):
@@ -680,16 +703,19 @@ class Table:
         return entries
 
     def to_typescript_type_entry(self):
-        self.ts_type_entry = (
-            f"export type {self.name_pascal} = {{\n" + "\n".join([column.to_typescript_type_entry() for column in self.columns]) + "\n}\n"
-        )
+        self.ts_type_entry = f"export type {self.name_pascal} = {{\n" + "\n".join([column.to_typescript_type_entry() for column in self.columns]) + "\n}\n"
         return self.ts_type_entry
 
     def to_json_foreign_keys(self):
         entries = []
         for fk in self.schema_structure["foreignKeys"]:
             entries.append(
-                {"column": fk["column"], "relatedTable": fk["relatedTable"], "relatedColumn": fk["relatedColumn"]})
+                {
+                    "column": fk["column"],
+                    "relatedTable": fk["relatedTable"],
+                    "relatedColumn": fk["relatedColumn"],
+                }
+            )
         return entries
 
     def to_json_many_to_many(self):
@@ -1016,7 +1042,7 @@ class Table:
 
         if py_enum_classes:
             enum_string = "\n\n".join(py_enum_classes)
-            enum_entry = f'\n\n{enum_string}\n\n'
+            enum_entry = f"\n\n{enum_string}\n\n"
         else:
             enum_entry = ""
 
@@ -1027,24 +1053,33 @@ class Table:
         return py_structure
 
     def to_python_manager_string(self):
-    
-        relations = self.get_all_relations_list()        
+        relations = self.get_all_relations_list()
         filter_fields = [column.name for column in self.columns if column.is_default_filter_field]
-        
-        self.base_class_auto_config = {
+
+        # Default configuration with all options explicitly set
+        base_config = {
             "model_pascal": self.python_model_name,
             "model_name": self.name,
             "model_name_plural": self.name_plural,
+            "model_name_snake": self.name_snake,
             "relations": relations,
             "filter_fields": filter_fields,
-            "include_to_dict": False,
-            "include_active_methods": False
+            "include_core_relations": True,
+            "include_active_relations": False,
+            "include_filter_fields": True,
+            "include_active_methods": False,
+            "include_or_not_methods": False,
+            "include_to_dict_methods": False,
+            "include_to_dict_relations": False,
         }
-        
-        
-            
-        self.model_base_class_str = generate_manager_class(**self.base_class_auto_config)
 
+        # Apply overrides if they exist
+        if self.name in MANAGER_CONFIG_OVERRIDES:
+            model_overrides = MANAGER_CONFIG_OVERRIDES[self.name]
+            base_config.update(model_overrides)
+
+        self.base_class_auto_config = base_config
+        self.model_base_class_str = generate_manager_class(**self.base_class_auto_config)
 
         return generate_dto_and_manager(self.name, self.python_model_name)
 

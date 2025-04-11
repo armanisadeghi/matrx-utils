@@ -1,5 +1,3 @@
-
-
 # Add the table you want to MOVE UP in the file.
 # Use TABLE NAME, not the "Model" name. (Lowercase snake case)
 
@@ -8,40 +6,33 @@ TABLE_ORDER_OVERRIDES = {
     "data_input_component": 1,
     "data_output_component": 2,
     "projects": 1,
-    }
+    "scrape_job": 3,
+    "scrape_cache_policy": 3,
+    "scrape_cycle_tracker": 1,
+    "scrape_path_pattern": 1,
+    "scrape_path_pattern_cache_policy": 2,
 
+}
 
 
 SYSTEM_OVERRIDES_ENTITIES = {
     "recipe": {
         "defaultFetchStrategy": '"fkAndIfk"',
     },
-    "broker":{
+    "broker": {
         "displayFieldMetadata": '{ fieldName: "displayName", databaseFieldName: "display_name" }',
     },
-    "aiModel":{
+    "aiModel": {
         "displayFieldMetadata": '{ fieldName: "commonName", databaseFieldName: "common_name" }',
     },
-    "messageTemplate":{
+    "messageTemplate": {
         "displayFieldMetadata": '{ fieldName: "role", databaseFieldName: "role" }',
-    }
+    },
 }
 
-recipe_field_overrides = {
-    "tags": {
-        "componentProps": {
-            "subComponent": "tagsManager"
-        }
-    }
-}
+recipe_field_overrides = {"tags": {"componentProps": {"subComponent": "tagsManager"}}}
 
-data_input_component_field_overrides = {
-    "options": {
-        "componentProps": {
-            "subComponent": "optionsManager"
-        }
-    }
-}
+data_input_component_field_overrides = {"options": {"componentProps": {"subComponent": "optionsManager"}}}
 
 broker_field_overrides = {
     "name": """{
@@ -71,7 +62,7 @@ broker_field_overrides = {
         foreignKeyReference: null,
         description: null,
         fieldNameFormats: null
-    }"""
+    }""",
 }
 
 message_template_field_overrides = {
@@ -80,7 +71,7 @@ message_template_field_overrides = {
     }""",
     "type": """{
         isDisplayField: false
-    }"""
+    }""",
 }
 
 ai_settings_field_overrides = {
@@ -92,8 +83,8 @@ ai_settings_field_overrides = {
             "min": 0,
             "max": 2,
             "step": 0.01,
-            "numberType": "real"
-        }
+            "numberType": "real",
+        },
     },
     "maxTokens": {
         "defaultComponent": "SPECIAL",
@@ -103,8 +94,8 @@ ai_settings_field_overrides = {
             "min": 0,
             "max": 5000,
             "step": 1,
-            "numberType": "smallint"
-        }
+            "numberType": "smallint",
+        },
     },
     "stream": {
         "defaultComponent": "SPECIAL",
@@ -113,11 +104,8 @@ ai_settings_field_overrides = {
             "variant": "geometric",
             "width": "w-28",
             "height": "h-7",
-            "labels": {
-                "on": "Steam",
-                "off": "Direct"
-            }
-        }
+            "labels": {"on": "Steam", "off": "Direct"},
+        },
     },
     "responseFormat": {
         "defaultComponent": "SPECIAL",
@@ -127,8 +115,8 @@ ai_settings_field_overrides = {
             "preset": "RESPONSE_FORMATS",
             "width": "w-24",
             "height": "h-7",
-            "rows": 5
-        }
+            "rows": 5,
+        },
     },
     "tools": {
         "defaultComponent": "SPECIAL",
@@ -139,9 +127,9 @@ ai_settings_field_overrides = {
             "width": "w-48",
             "height": "h-7",
             "primaryControlOptions": "toolAssistOptions",
-            "toolOptions": "aiTools"
-        }
-    }
+            "toolOptions": "aiTools",
+        },
+    },
 }
 
 # Combining all into SYSTEM_OVERRIDES_FIELDS

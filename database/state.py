@@ -3,12 +3,15 @@
 from datetime import datetime, timedelta
 from enum import Enum
 import asyncio
-
 from common import vcprint
 from database.orm.exceptions import (
-    ValidationError, DoesNotExist, 
-    ConfigurationError, StateError, CacheError
+    ValidationError,
+    DoesNotExist,
+    ConfigurationError,
+    StateError,
+    CacheError,
 )
+
 
 class CachePolicy(Enum):
     PERMANENT = "permanent"
@@ -16,13 +19,14 @@ class CachePolicy(Enum):
     SHORT_TERM = "short_term"
     INSTANT = "instant"
 
+
 class ModelState:
     def __init__(self, model_class):
         try:
             self.model_class = model_class
-            self.policy = getattr(model_class, '_cache_policy', CachePolicy.SHORT_TERM)
-            self.timeout = getattr(model_class, '_cache_timeout', None)
-            self.realtime = getattr(model_class, '_realtime_updates', False)
+            self.policy = getattr(model_class, "_cache_policy", CachePolicy.SHORT_TERM)
+            self.timeout = getattr(model_class, "_cache_timeout", None)
+            self.realtime = getattr(model_class, "_realtime_updates", False)
             self._cache = {}
             self._cache_times = {}
             self._subscriptions = set()
@@ -31,7 +35,7 @@ class ModelState:
             raise ConfigurationError(
                 model=model_class,
                 config_key="model_state",
-                reason=f"Failed to initialize model state: {str(e)}"
+                reason=f"Failed to initialize model state: {str(e)}",
             )
 
     def _get_cache_key(self, **kwargs):
@@ -44,8 +48,8 @@ class ModelState:
             raise CacheError(
                 model=self.model_class,
                 operation="get_cache_key",
-                details={'kwargs': kwargs},
-                original_error=e
+                details={"kwargs": kwargs},
+                original_error=e,
             )
 
     def _get_record_cache_key(self, record):
@@ -54,13 +58,13 @@ class ModelState:
     async def get(self, **kwargs):
         """
         Get a record from cache with proper error handling.
-        
+
         Args:
             **kwargs: Filter criteria for finding the record
-            
+
         Returns:
             Record if found in cache and not stale, None otherwise
-            
+
         Raises:
             CacheError: If there's an error accessing the cache
             ValidationError: If the lookup criteria are invalid
@@ -68,13 +72,13 @@ class ModelState:
         if not kwargs:
             raise ValidationError(
                 model=self.model_class,  # Use self.model_class here
-                reason="No lookup criteria provided"
+                reason="No lookup criteria provided",
             )
 
         try:
             # Get cache key and validate
             cache_key = self._get_cache_key(**kwargs)
-            
+
             # Initialize lock if needed
             if cache_key not in self._locks:
                 try:
@@ -83,8 +87,8 @@ class ModelState:
                     raise CacheError(
                         model=self.model_class,  # Use self.model_class here
                         operation="create_lock",
-                        details={'cache_key': cache_key},
-                        original_error=e
+                        details={"cache_key": cache_key},
+                        original_error=e,
                     )
 
             # Use lock for thread safety
@@ -94,31 +98,37 @@ class ModelState:
                     record = self._cache[cache_key]
                     try:
                         if not self._is_stale(record):
-                            vcprint(f"[MODEL STATE {self.model_class.__name__}]✅  Returning cache key: {cache_key}", color="pink")
+                            vcprint(
+                                f"[MODEL STATE {self.model_class.__name__}]✅  Returning cache key: {cache_key}",
+                                color="pink",
+                            )
                             return record
                     except Exception as e:
                         raise CacheError(
                             model=self.model_class,  # Use self.model_class here
                             operation="check_staleness",
                             details={
-                                'cache_key': cache_key,
-                                'record_id': getattr(record, 'id', None)
+                                "cache_key": cache_key,
+                                "record_id": getattr(record, "id", None),
                             },
-                            original_error=e
+                            original_error=e,
                         )
 
                 # Try finding by criteria if direct lookup fails
                 try:
                     cached_record = self._find_in_cache(**kwargs)
                     if cached_record and not self._is_stale(cached_record):
-                        vcprint(f"[MODEL STATE {self.model_class.__name__} ]✅  Returning cached record for kwargs: {kwargs}", color="pink")
+                        vcprint(
+                            f"[MODEL STATE {self.model_class.__name__} ]✅  Returning cached record for kwargs: {kwargs}",
+                            color="pink",
+                        )
                         return cached_record
                 except Exception as e:
                     raise CacheError(
                         model=self.model_class,  # Use self.model_class here
                         operation="find_in_cache",
-                        details={'kwargs': kwargs},
-                        original_error=e
+                        details={"kwargs": kwargs},
+                        original_error=e,
                     )
 
                 return None
@@ -131,19 +141,16 @@ class ModelState:
             raise CacheError(
                 model=self.model_class,  # Use self.model_class here
                 operation="get",
-                details={'kwargs': kwargs},
-                reason="Operation cancelled"
+                details={"kwargs": kwargs},
+                reason="Operation cancelled",
             )
         except Exception as e:
             # Catch all other exceptions
             raise CacheError(
                 model=self.model_class,  # Use self.model_class here
                 operation="get",
-                details={
-                    'kwargs': kwargs,
-                    'error_type': type(e).__name__
-                },
-                original_error=e
+                details={"kwargs": kwargs, "error_type": type(e).__name__},
+                original_error=e,
             )
 
     def _find_in_cache(self, **kwargs):
@@ -176,22 +183,22 @@ class ModelState:
         """Cache a record with proper error handling."""
         try:
             if not record:
-                raise ValidationError(
-                    model=self.model_class,
-                    reason="Cannot cache None record"
-                )
+                raise ValidationError(model=self.model_class, reason="Cannot cache None record")
 
             cache_key = self._get_record_cache_key(record)
             if not cache_key:
                 raise ValidationError(
                     model=self.model_class,
-                    reason="Could not generate cache key for record"
+                    reason="Could not generate cache key for record",
                 )
 
             self._cache[cache_key] = record
             self._cache_times[cache_key] = datetime.now()
 
-            if self.realtime and self.policy in (CachePolicy.PERMANENT, CachePolicy.LONG_TERM):
+            if self.realtime and self.policy in (
+                CachePolicy.PERMANENT,
+                CachePolicy.LONG_TERM,
+            ):
                 await self._ensure_subscription(record)
         except (ValidationError, CacheError):
             raise
@@ -199,8 +206,8 @@ class ModelState:
             raise CacheError(
                 model=self.model_class,
                 operation="cache",
-                details={'record_id': getattr(record, 'id', None)},
-                original_error=e
+                details={"record_id": getattr(record, "id", None)},
+                original_error=e,
             )
 
     async def remove(self, record):
@@ -250,7 +257,7 @@ class StateManager:
             raise ConfigurationError(
                 model=model_class,
                 config_key="state_registration",
-                reason=f"Failed to register model: {str(e)}"
+                reason=f"Failed to register model: {str(e)}",
             )
 
     @classmethod
@@ -261,7 +268,7 @@ class StateManager:
                 raise StateError(
                     model=model_class,
                     operation="get",
-                    reason="Model not registered with StateManager"
+                    reason="Model not registered with StateManager",
                 )
 
             state = cls._states[model_class.__name__]
@@ -280,8 +287,8 @@ class StateManager:
                 raise CacheError(
                     model=model_class,
                     operation="database_fetch",
-                    details={'kwargs': kwargs},
-                    original_error=e
+                    details={"kwargs": kwargs},
+                    original_error=e,
                 )
 
             # Cache the record
@@ -295,8 +302,8 @@ class StateManager:
             raise StateError(
                 model=model_class,
                 operation="get",
-                details={'kwargs': kwargs},
-                original_error=e
+                details={"kwargs": kwargs},
+                original_error=e,
             )
 
     @classmethod
@@ -310,7 +317,7 @@ class StateManager:
                 raise StateError(
                     model=model_class,
                     operation="get_or_none",
-                    reason="Model not registered with StateManager"
+                    reason="Model not registered with StateManager",
                 )
 
             state = cls._states[model_class.__name__]
@@ -334,13 +341,19 @@ class StateManager:
             except DoesNotExist:
                 return None
             except Exception as e:
-                vcprint(f"Database error in get_or_none for {model_class.__name__}: {str(e)}", color="red")
+                vcprint(
+                    f"Database error in get_or_none for {model_class.__name__}: {str(e)}",
+                    color="red",
+                )
                 return None
 
         except StateError:
             return None
         except Exception as e:
-            vcprint(f"Unexpected error in get_or_none for {model_class.__name__}: {str(e)}", color="red")
+            vcprint(
+                f"Unexpected error in get_or_none for {model_class.__name__}: {str(e)}",
+                color="red",
+            )
             return None
 
     @classmethod
@@ -349,12 +362,12 @@ class StateManager:
         state = cls._states[model_class.__name__]
 
         # Step 1: Try getting cached records with the given filter
-        cached_records = [
-            record for record in state.get_all_cached()
-            if all(getattr(record, key) == value for key, value in kwargs.items())
-        ]
+        cached_records = [record for record in state.get_all_cached() if all(getattr(record, key) == value for key, value in kwargs.items())]
         if cached_records:
-            vcprint(f"[STATE MANAGER {model_class.__name__}] ✅ Returning {len(cached_records)} cached records", color="pink")
+            vcprint(
+                f"[STATE MANAGER {model_class.__name__}] ✅ Returning {len(cached_records)} cached records",
+                color="pink",
+            )
             return cached_records
 
         # Step 2: Fetch from the database
@@ -384,12 +397,12 @@ class StateManager:
                 raise StateError(
                     model=model_class,
                     operation="cache_bulk",
-                    reason="Model not registered with StateManager"
+                    reason="Model not registered with StateManager",
                 )
 
             for record in records:
                 try:
-                    if not await state.get(id=getattr(record, 'id', None)):
+                    if not await state.get(id=getattr(record, "id", None)):
                         await state.cache(record)
                 except Exception as e:
                     vcprint(f"Failed to cache record: {str(e)}", color="yellow")
@@ -400,8 +413,8 @@ class StateManager:
             raise StateError(
                 model=model_class,
                 operation="cache_bulk",
-                details={'record_count': len(records)},
-                original_error=e
+                details={"record_count": len(records)},
+                original_error=e,
             )
 
     @classmethod

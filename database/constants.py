@@ -1,4 +1,3 @@
-
 def get_default_component_props():
     return {
         "subComponent": "default",
@@ -24,6 +23,7 @@ def get_default_component_props():
         "numberType": "default",
         "options": "default",
     }
+
 
 # Method to generate the AutomationSchema
 def generate_automation_schema():  # TODO: Currently not used.
@@ -76,10 +76,11 @@ def generate_automation_schema():  # TODO: Currently not used.
         "            junctionTable: string | null;",
         "        }>;",
         "    };",
-        "};"
+        "};",
     ]
 
     return "\n".join(lines)
+
 
 def get_relationship_data_model_types():
     ts_code_content = """

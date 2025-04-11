@@ -3,7 +3,13 @@
 from common import vcprint
 from database.orm.error_handling import handle_orm_operation
 from ..query.executor import QueryExecutor
-from ..exceptions import DatabaseError, DoesNotExist, MultipleObjectsReturned, QueryError, ValidationError
+from ..exceptions import (
+    DatabaseError,
+    DoesNotExist,
+    MultipleObjectsReturned,
+    QueryError,
+    ValidationError,
+)
 from ...state import StateManager
 
 
@@ -107,34 +113,23 @@ class QueryBuilder:
             executor = self._get_executor()
             results = await executor.all()
             await StateManager.cache_bulk(self.model, results)
-            vcprint(f"[BUILDER: QUERY_BUILDER] all method]🛢️  Cached {len(results)} records for {self.model.__name__}", color="bright_gold")
+            vcprint(
+                f"[BUILDER: QUERY_BUILDER] all method]🛢️  Cached {len(results)} records for {self.model.__name__}",
+                color="bright_gold",
+            )
 
             return results
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="all",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="all", original_error=e)
         except Exception as e:
-            raise QueryError(
-                model=self.model,
-                details={
-                    'operation': 'all',
-                    'error': str(e)
-                }
-            )
+            raise QueryError(model=self.model, details={"operation": "all", "error": str(e)})
 
     async def first(self):
         """Get the first matching record."""
         try:
             return await self._get_executor().first()
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="first",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="first", original_error=e)
 
     async def last(self):
         """Order by primary key descending and fetch the first record."""
@@ -146,24 +141,28 @@ class QueryBuilder:
         """
         Retrieves exactly one object matching the criteria.
         """
-        async with handle_orm_operation("[BUILDER: QUERY_BUILDER] get method", model=self.model, filters=self._merge_filters_excludes()):
+        async with handle_orm_operation(
+            "[BUILDER: QUERY_BUILDER] get method",
+            model=self.model,
+            filters=self._merge_filters_excludes(),
+        ):
             executor = self._get_executor()
             results = await executor.all()
-            vcprint(f"[BUILDER: QUERY_BUILDER] get method]🛢️  Returning {len(results)} results", color="bright_gold")
+            vcprint(
+                f"[BUILDER: QUERY_BUILDER] get method]🛢️  Returning {len(results)} results",
+                color="bright_gold",
+            )
 
             if not results:
-                raise DoesNotExist(
-                    model=self.model,
-                    filters=self._merge_filters_excludes()
-                )
-                
+                raise DoesNotExist(model=self.model, filters=self._merge_filters_excludes())
+
             if len(results) > 1:
                 raise MultipleObjectsReturned(
                     model=self.model,
                     count=len(results),
-                    filters=self._merge_filters_excludes()
+                    filters=self._merge_filters_excludes(),
                 )
-                
+
             return results[0]
 
     async def get_or_none(self):
@@ -179,57 +178,37 @@ class QueryBuilder:
             vcprint(f"Error in QueryBuilder.get_or_none: {str(e)}", color="red")
             return None
 
-
     async def update(self, **kwargs):
         """Update matching records."""
         try:
             if not kwargs:
-                raise ValidationError(
-                    model=self.model,
-                    reason="No update data provided"
-                )
+                raise ValidationError(model=self.model, reason="No update data provided")
             return await self._get_executor().update(**kwargs)
         except ValidationError:
             raise
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="update",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="update", original_error=e)
 
     async def delete(self):
         """Delete matching records."""
         try:
             return await self._get_executor().delete()
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="delete",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="delete", original_error=e)
 
     async def count(self):
         """Count matching records."""
         try:
             return await self._get_executor().count()
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="count",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="count", original_error=e)
 
     async def exists(self):
         """Check if matching records exist."""
         try:
             return await self._get_executor().exists()
         except DatabaseError as e:
-            raise DatabaseError(
-                model=self.model,
-                operation="exists",
-                original_error=e
-            )
+            raise DatabaseError(model=self.model, operation="exists", original_error=e)
 
     async def values(self, *fields):
         exec_ = self._get_executor()

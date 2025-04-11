@@ -52,7 +52,12 @@ class TableAnalysis:
 
 
 class DatabaseAnalyzer:
-    def __init__(self, schema: str, database_project: str, additional_schemas: Optional[List[str]] = None):
+    def __init__(
+        self,
+        schema: str,
+        database_project: str,
+        additional_schemas: Optional[List[str]] = None,
+    ):
         self.schema = schema
         self.database_project = database_project
         self.schemas = [schema]
@@ -86,11 +91,8 @@ class DatabaseAnalyzer:
         results = execute_sql_query(query, (self.schemas,), self.database_project)
 
         for row in results:
-            table_name = row['table_name']
-            self.analysis[table_name] = TableAnalysis(
-                schema=row['table_schema'],
-                name=table_name
-            )
+            table_name = row["table_name"]
+            self.analysis[table_name] = TableAnalysis(schema=row["table_schema"], name=table_name)
 
     def _analyze_columns(self):
         """
@@ -138,17 +140,17 @@ class DatabaseAnalyzer:
         results = execute_sql_query(query, (self.schemas,), self.database_project)
 
         for row in results:
-            table_name = row['table_name']
+            table_name = row["table_name"]
             if table_name in self.analysis:
-                self.analysis[table_name].columns[row['column_name']] = ColumnInfo(
-                    name=row['column_name'],
-                    data_type=row['data_type'],
-                    is_nullable=row['is_nullable'],
-                    default_value=row['column_default'],
-                    description=row['description'],
-                    is_primary_key=row['is_primary_key'],
-                    is_foreign_key=row['is_foreign_key'],
-                    is_unique=row['is_unique']
+                self.analysis[table_name].columns[row["column_name"]] = ColumnInfo(
+                    name=row["column_name"],
+                    data_type=row["data_type"],
+                    is_nullable=row["is_nullable"],
+                    default_value=row["column_default"],
+                    description=row["description"],
+                    is_primary_key=row["is_primary_key"],
+                    is_foreign_key=row["is_foreign_key"],
+                    is_unique=row["is_unique"],
                 )
 
     def _analyze_relationships(self):
@@ -174,11 +176,7 @@ class DatabaseAnalyzer:
         pass
 
 
-def get_comprehensive_analysis(
-        schema: str,
-        database_project: str,
-        additional_schemas: Optional[List[str]] = None
-) -> Dict[str, TableAnalysis]:
+def get_comprehensive_analysis(schema: str, database_project: str, additional_schemas: Optional[List[str]] = None) -> Dict[str, TableAnalysis]:
     """
     Main function to get comprehensive analysis of all tables.
 
@@ -194,16 +192,16 @@ def get_comprehensive_analysis(
     return analyzer.analyze_all()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # For testing purposes only
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
-    additional_schemas = ['auth']
+    schema = "public"
+    database_project = "supabase_automation_matrix"
+    additional_schemas = ["auth"]
 
     analysis = get_comprehensive_analysis(
         schema=schema,
         database_project=database_project,
-        additional_schemas=additional_schemas
+        additional_schemas=additional_schemas,
     )
 
-    vcprint(data=analysis, title='Comprehensive Table Analysis', pretty=True, verbose=True)
+    vcprint(data=analysis, title="Comprehensive Table Analysis", pretty=True, verbose=True)

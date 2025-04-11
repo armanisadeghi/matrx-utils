@@ -1,7 +1,6 @@
 import os
 
 
-
 main_hook_imports = """
 import {
     BrokerValueData,
@@ -184,7 +183,15 @@ def generate_all_entity_main_hooks(entity_names):
 if __name__ == "__main__":
     os.system("cls")
 
-    entity_names = ["ai_model", "ai_endpoint", "ai_model_endpoint", "ai_settings", "ai_agent", "conversation", "message"]
+    entity_names = [
+        "ai_model",
+        "ai_endpoint",
+        "ai_model_endpoint",
+        "ai_settings",
+        "ai_agent",
+        "conversation",
+        "message",
+    ]
 
     result = generate_all_entity_main_hooks(entity_names)
     print(result)

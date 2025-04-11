@@ -36,6 +36,7 @@ class MiddlewareManager:
 
 # Example middleware implementations
 
+
 class QueryLoggingMiddleware(BaseMiddleware):
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
         print(f"Executing query: {query}")
@@ -53,8 +54,8 @@ class CachingMiddleware(BaseMiddleware):
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
         cache_key = str(query)
         if cache_key in self.cache:
-            query['use_cache'] = True
-            query['cached_result'] = self.cache[cache_key]
+            query["use_cache"] = True
+            query["cached_result"] = self.cache[cache_key]
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -65,9 +66,9 @@ class CachingMiddleware(BaseMiddleware):
 
 class SoftDeleteMiddleware(BaseMiddleware):
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        if 'where' not in query:
-            query['where'] = {}
-        query['where']['deleted_at'] = None
+        if "where" not in query:
+            query["where"] = {}
+        query["where"]["deleted_at"] = None
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -80,9 +81,9 @@ class TenantIsolationMiddleware(BaseMiddleware):
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
         tenant_id = self.get_current_tenant_id()
-        if 'where' not in query:
-            query['where'] = {}
-        query['where']['tenant_id'] = tenant_id
+        if "where" not in query:
+            query["where"] = {}
+        query["where"]["tenant_id"] = tenant_id
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -90,16 +91,21 @@ class TenantIsolationMiddleware(BaseMiddleware):
 
 
 class EncryptionMiddleware(BaseMiddleware):
-    def __init__(self, encrypt_func: Callable[[Any], Any], decrypt_func: Callable[[Any], Any], sensitive_fields: List[str]):
+    def __init__(
+        self,
+        encrypt_func: Callable[[Any], Any],
+        decrypt_func: Callable[[Any], Any],
+        sensitive_fields: List[str],
+    ):
         self.encrypt_func = encrypt_func
         self.decrypt_func = decrypt_func
         self.sensitive_fields = sensitive_fields
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        if 'values' in query:
+        if "values" in query:
             for field in self.sensitive_fields:
-                if field in query['values']:
-                    query['values'][field] = self.encrypt_func(query['values'][field])
+                if field in query["values"]:
+                    query["values"][field] = self.encrypt_func(query["values"][field])
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -120,10 +126,10 @@ class ValidationMiddleware(BaseMiddleware):
         self.validation_rules = validation_rules
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        if 'values' in query:
+        if "values" in query:
             for field, rule in self.validation_rules.items():
-                if field in query['values']:
-                    if not rule(query['values'][field]):
+                if field in query["values"]:
+                    if not rule(query["values"][field]):
                         raise ValueError(f"Validation failed for field {field}")
         return query
 
@@ -137,20 +143,22 @@ class PerformanceMonitoringMiddleware(BaseMiddleware):
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
         import time
-        query['start_time'] = time.time()
+
+        query["start_time"] = time.time()
         return query
 
     async def process_result(self, result: Any) -> Any:
         import time
+
         end_time = time.time()
-        query_time = end_time - result['start_time']
+        query_time = end_time - result["start_time"]
         print(f"Query executed in {query_time:.4f} seconds")
         return result
 
 
 class AuditingMiddleware(BaseMiddleware):
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        if query.get('operation') in ['insert', 'update', 'delete']:
+        if query.get("operation") in ["insert", "update", "delete"]:
             self.log_operation(query)
         return query
 
@@ -180,10 +188,10 @@ class DataTransformationMiddleware(BaseMiddleware):
         self.transformations = transformations
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        if 'values' in query:
+        if "values" in query:
             for field, transform in self.transformations.items():
-                if field in query['values']:
-                    query['values'][field] = transform(query['values'][field])
+                if field in query["values"]:
+                    query["values"][field] = transform(query["values"][field])
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -220,8 +228,8 @@ class DistributedTracingMiddleware(BaseMiddleware):
         self.tracer = tracer
 
     async def process_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
-        with self.tracer.start_span('database_query') as span:
-            span.set_tag('query', str(query))
+        with self.tracer.start_span("database_query") as span:
+            span.set_tag("query", str(query))
         return query
 
     async def process_result(self, result: Any) -> Any:
@@ -236,12 +244,7 @@ if __name__ == "__main__":
     middleware_manager.add_middleware(SoftDeleteMiddleware())
 
     # In your query executor
-    query = {
-        "table": "users",
-        "where": {
-            "age": 30
-        }
-    }
+    query = {"table": "users", "where": {"age": 30}}
 
     # Process the query
     processed_query = middleware_manager.process_query(query)  # Make sure to run this in an async context

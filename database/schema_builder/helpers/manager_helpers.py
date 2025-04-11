@@ -20,4 +20,3 @@ class {name_camel}Manager(BaseManager):
     async def _initialize_runtime_data(self, {name}):
         pass
     """
-

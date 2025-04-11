@@ -1,8 +1,10 @@
 from .update import update
 from ..query.builder import QueryBuilder
 
+
 async def delete(model, **kwargs):
     return await QueryBuilder(model).filter(**kwargs).delete()
+
 
 async def bulk_delete(model, objects):
     if not objects:
@@ -10,15 +12,20 @@ async def bulk_delete(model, objects):
     ids = [obj.id for obj in objects if obj.id is not None]
     return await delete(model, id__in=ids)
 
+
 async def soft_delete(model, **kwargs):
     from datetime import datetime
+
     return await update(model, deleted_at=datetime.now(), **kwargs)
+
 
 async def restore(model, **kwargs):
     return await update(model, deleted_at=None, **kwargs)
 
+
 async def purge(model, **kwargs):
     return await delete(model, deleted_at__isnull=False, **kwargs)
+
 
 async def delete_instance(instance):
     model_class = instance.__class__

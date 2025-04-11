@@ -4,8 +4,8 @@ import json
 from datetime import datetime
 import os
 
-from common.file_management.specific_handlers.code import CodeHandler
-from data_handling import DataTransformer
+from common.utils.file_handlers.code_hanlder import CodeHandler
+from common.utils.data_handlers.data_transformer import DataTransformer
 from database.constants import (
     get_default_component_props,
     get_relationship_data_model_types,
@@ -41,16 +41,8 @@ class Relationship:
         self.source_table = source_table  # Inverse foreign key source table
         self.frontend_column = self.utils.to_camel_case(self.column)
         self.frontend_foreign_column = self.utils.to_camel_case(self.foreign_column)
-        self.frontend_target_table = (
-            self.utils.to_camel_case(target_table.name)
-            if target_table is not None
-            else None
-        )
-        self.frontend_source_table = (
-            self.utils.to_camel_case(source_table.name)
-            if source_table is not None
-            else None
-        )
+        self.frontend_target_table = self.utils.to_camel_case(target_table.name) if target_table is not None else None
+        self.frontend_source_table = self.utils.to_camel_case(source_table.name) if source_table is not None else None
 
         self.verbose = verbose
         self.debug = debug
@@ -187,9 +179,7 @@ class Column:
 
         if self.enum_labels:
             self.has_enum_labels = True
-            vcprint(
-                f"Enum Labels: {self.enum_labels}", verbose=self.verbose, color="yellow"
-            )
+            vcprint(f"Enum Labels: {self.enum_labels}", verbose=self.verbose, color="yellow")
 
     # Potential Additions: https://claude.ai/chat/e26ff11e-0cd5-46a5-b281-cfa359ed1fcd
 
@@ -205,9 +195,7 @@ class Column:
         self.get_is_primary_key()
 
         self.clean_default = self.parse_default_value()
-        self.typescript_type = self.utils.to_typescript_type_enums_to_string(
-            self.base_type, self.has_enum_labels
-        )
+        self.typescript_type = self.utils.to_typescript_type_enums_to_string(self.base_type, self.has_enum_labels)
         self.matrx_schema_type = self.utils.to_matrx_schema_type(self.base_type)
         self.calc_default_value = self.get_default_value()
         self.calc_validation_functions = self.get_validation_functions()
@@ -241,14 +229,7 @@ class Column:
 
         unique_names = set(name_variations)
         self.unique_name_lookups = {name: self.name_camel for name in unique_names}
-        self.column_lookup_string = ",\n".join(
-            [
-                f'"{key}": "{value}"'
-                if " " in key or "-" in key
-                else f'{key}: "{value}"'
-                for key, value in self.unique_name_lookups.items()
-            ]
-        )
+        self.column_lookup_string = ",\n".join([f'"{key}": "{value}"' if " " in key or "-" in key else f'{key}: "{value}"' for key, value in self.unique_name_lookups.items()])
 
     def update_prop(self, prop, value, priority=0):
         if prop not in self.component_props_priorities:
@@ -287,9 +268,7 @@ class Column:
 
             select_options = []
             for label in self.enum_labels:
-                select_options.append(
-                    {"label": self.utils.to_title_case(label), "value": label}
-                )
+                select_options.append({"label": self.utils.to_title_case(label), "value": label})
 
             self.update_component(component="SELECT", priority=10)
 
@@ -306,23 +285,11 @@ class Column:
             self.description_frontend = self.comment
             self.description_backend = self.comment
         else:
-            requirement_statement = (
-                "This is a required field."
-                if not self.nullable
-                else "This is an optional field."
-            )
-            data_type_statement = (
-                f"Your entry must be an {self.matrx_schema_type} data type."
-            )
+            requirement_statement = "This is a required field." if not self.nullable else "This is an optional field."
+            data_type_statement = f"Your entry must be an {self.matrx_schema_type} data type."
 
-            array_statement = (
-                "You can enter one or more entries." if self.is_array else ""
-            )
-            max_length_statement = (
-                f"Maximum Length: {self.character_maximum_length}"
-                if self.character_maximum_length
-                else ""
-            )
+            array_statement = "You can enter one or more entries." if self.is_array else ""
+            max_length_statement = f"Maximum Length: {self.character_maximum_length}" if self.character_maximum_length else ""
             unique_statement = "This must be a unique value." if self.is_unique else ""
 
             frontend_relation_statement = ""
@@ -331,14 +298,10 @@ class Column:
             if self.foreign_key_reference:
                 related_entity = self.foreign_key_reference["entity"]
                 related_table = self.foreign_key_reference["table"]
-                frontend_relation_statement = (
-                    f"This field is a reference to a {related_entity}."
-                )
+                frontend_relation_statement = f"This field is a reference to a {related_entity}."
                 backend_relation_statement = f"This field is a foreign key reference to the {related_table} table."
 
-                if (
-                    self.name == "user_id"
-                ):  # This is to avoid errors because "users" is not an entity at this time.
+                if self.name == "user_id":  # This is to avoid errors because "users" is not an entity at this time.
                     self.update_component(component="UUID_FIELD", priority=10)
                 else:
                     self.update_component(component="FK_SELECT", priority=10)
@@ -362,12 +325,8 @@ class Column:
                 backend_relation_statement,
             ]
 
-            self.description_frontend = " ".join(
-                part for part in frontend_description_parts if part
-            )
-            self.description_backend = " ".join(
-                part for part in backend_description_parts if part
-            )
+            self.description_frontend = " ".join(part for part in frontend_description_parts if part)
+            self.description_backend = " ".join(part for part in backend_description_parts if part)
 
         self.description = {
             "frontend": self.description_frontend,
@@ -673,9 +632,7 @@ class Column:
 
         callable_outcomes = {
             "::smallint": lambda value: {
-                "blank": str(
-                    int(value.split("'")[1].strip())
-                ),  # Extract smallint value
+                "blank": str(int(value.split("'")[1].strip())),  # Extract smallint value
                 "generator": "",
             },
             "::integer": lambda value: {
@@ -691,9 +648,7 @@ class Column:
                 "generator": "",
             },
             "::double precision": lambda value: {
-                "blank": str(
-                    float(value.split("'")[1].strip())
-                ),  # Extract double value
+                "blank": str(float(value.split("'")[1].strip())),  # Extract double value
                 "generator": "",
             },
             "::numeric": lambda value: {
@@ -729,9 +684,7 @@ class Column:
                 "generator": "formatTimestamptz()",
             },
             "::uuid": lambda uuid_value: {
-                "blank": uuid_value.split("'")[1].strip()
-                if "'" in uuid_value
-                else uuid_value.strip(),
+                "blank": uuid_value.split("'")[1].strip() if "'" in uuid_value else uuid_value.strip(),
                 "generator": "",
             },
             "::jsonb": lambda value: {
@@ -787,9 +740,7 @@ class Column:
                     vcprint(data=value, verbose=self.verbose, color="blue")
                     vcprint(data=self.base_type, verbose=self.verbose, color="yellow")
 
-                return outcomes[value].get(
-                    context, callable_outcomes[self.base_type](value)
-                )
+                return outcomes[value].get(context, callable_outcomes[self.base_type](value))
 
             # Handle specific cases with static entries
             elif value == "null":
@@ -808,9 +759,7 @@ class Column:
             # Handle nextval (PostgreSQL sequence values)
             elif value.startswith("nextval("):
                 sequence_name = value.split("'")[1]  # Extract the sequence name
-                return callable_outcomes.get("nextval", callable_outcomes["default"])(
-                    sequence_name
-                )
+                return callable_outcomes.get("nextval", callable_outcomes["default"])(sequence_name)
 
             # Explicit handling for PostgreSQL types
             if value.endswith("::smallint"):
@@ -857,9 +806,7 @@ class Column:
                 return callable_outcomes["::timestamp with time zone"](value)
 
             if value.endswith("::uuid"):
-                uuid_value = value.split("::")[0].strip(
-                    "'"
-                )  # Extract UUID without validation
+                uuid_value = value.split("::")[0].strip("'")  # Extract UUID without validation
                 return callable_outcomes["::uuid"](uuid_value)
 
             if value.endswith("::jsonb"):
@@ -925,10 +872,7 @@ class Column:
 
     def get_type_reference(self):
         if self.enum_labels:
-            ts_type_reference = (
-                " | ".join([f'"{label}"' for label in self.enum_labels])
-                + " | undefined"
-            )
+            ts_type_reference = " | ".join([f'"{label}"' for label in self.enum_labels]) + " | undefined"
             json_type_reference = self.enum_labels
         else:
             ts_type_reference = self.typescript_type
@@ -1031,11 +975,7 @@ class Column:
         return self.calc_exclusion_rules
 
     def get_max_field_length(self):
-        self.calc_max_length = (
-            self.character_maximum_length
-            if self.character_maximum_length is not None
-            else "null"
-        )
+        self.calc_max_length = self.character_maximum_length if self.character_maximum_length is not None else "null"
         return self.calc_max_length
 
     def to_python_model_field(self):
@@ -1047,23 +987,17 @@ class Column:
         if self.clean_default is not None:
             python_default = self.clean_default["python"]
             if python_default:
-                if isinstance(
-                    python_default, (dict, list)
-                ):  # Proper JSON-like structure
+                if isinstance(python_default, (dict, list)):  # Proper JSON-like structure
                     field_options.append(f"default={python_default}")  # No quotes!
                 elif isinstance(python_default, str):
                     try:
                         parsed_default = ast.literal_eval(python_default)
-                        if isinstance(
-                            parsed_default, (dict, list)
-                        ):  # Confirm it's valid JSON-like structure
+                        if isinstance(parsed_default, (dict, list)):  # Confirm it's valid JSON-like structure
                             field_options.append(f"default={parsed_default}")
                         else:
                             field_options.append(f"default='{python_default}'")
                     except (ValueError, SyntaxError):
-                        field_options.append(
-                            f"default='{python_default}'"
-                        )  # Keep as string if parsing fails
+                        field_options.append(f"default='{python_default}'")  # Keep as string if parsing fails
 
         if self.character_maximum_length:
             field_options.append(f"max_length={self.character_maximum_length}")
@@ -1073,9 +1007,7 @@ class Column:
         options_str = ", ".join(field_options)
 
         if self.foreign_key_reference:
-            related_model = self.utils.to_pascal_case(
-                self.foreign_key_reference["table"]
-            )
+            related_model = self.utils.to_pascal_case(self.foreign_key_reference["table"])
             if related_model == self.utils.to_pascal_case(self.table_name):
                 field_def = f"{self.name} = ForeignKey(to_model='{related_model}', to_column='{self.foreign_key_reference['column']}', {options_str})"
             else:
@@ -1199,9 +1131,7 @@ class Table:
         self.column_rel_entries = {}  # Temp solution to get fk/ifk for reverse field lookup
         self.Field_name_groups = {}
 
-        vcprint(
-            self.junction_analysis_ts, pretty=True, verbose=self.verbose, color="blue"
-        )
+        vcprint(self.junction_analysis_ts, pretty=True, verbose=self.verbose, color="blue")
         vcprint(
             self.to_dict(),
             title="Table initialized",
@@ -1291,10 +1221,7 @@ class Table:
             field_name = self.display_field_metadata["fieldName"]
             database_field_name = self.display_field_metadata["databaseFieldName"]
 
-            self.display_ts_field_metadata = (
-                f"{{ fieldName: '{field_name}', "
-                f"databaseFieldName: '{database_field_name}' }}"
-            )
+            self.display_ts_field_metadata = f"{{ fieldName: '{field_name}', " f"databaseFieldName: '{database_field_name}' }}"
 
             self.display_json_field_metadata = {
                 "fieldName": field_name,
@@ -1316,17 +1243,12 @@ class Table:
         self._update_fetch_strategy()
 
     def get_relationship_mapping(self):
-        return {
-            relationship.target_table: relationship.foreign_column
-            for relationship in self.foreign_key_relationships
-        }
+        return {relationship.target_table: relationship.foreign_column for relationship in self.foreign_key_relationships}
 
     def add_referenced_by(self, source_table, relationship):
         # Maintain existing behavior
         self.referenced_by[source_table] = relationship
-        self.schema_structure["inverseForeignKeys"].append(
-            {"relatedTable": source_table, "relatedColumn": relationship.column}
-        )
+        self.schema_structure["inverseForeignKeys"].append({"relatedTable": source_table, "relatedColumn": relationship.column})
         # Add to new collection
         self.referenced_by_relationships.append(relationship)
         self._update_fetch_strategy()
@@ -1338,9 +1260,7 @@ class Table:
             "related_table": related_table,
         }
         self.many_to_many.append(many_to_many_entry)
-        self.schema_structure["manyToMany"].append(
-            {"junctionTable": junction_table.name, "relatedTable": related_table.name}
-        )
+        self.schema_structure["manyToMany"].append({"junctionTable": junction_table.name, "relatedTable": related_table.name})
         # Add to new collection
         self.many_to_many_relationships.append(many_to_many_entry)
         self._update_fetch_strategy()
@@ -1429,9 +1349,7 @@ class Table:
         self.initialized = True
 
     def get_primary_key_field(self) -> str:
-        primary_key_columns = [
-            column.name_camel for column in self.columns if column.is_primary_key
-        ]
+        primary_key_columns = [column.name_camel for column in self.columns if column.is_primary_key]
 
         if len(primary_key_columns) == 1:
             return primary_key_columns[0]
@@ -1441,15 +1359,9 @@ class Table:
         return "null"
 
     def get_fieldNames_in_groups(self):
-        self.Field_name_groups["nativeFields"] = [
-            column.name_camel for column in self.columns
-        ]
-        self.Field_name_groups["primaryKeyFields"] = [
-            column.name_camel for column in self.columns if column.is_primary_key
-        ]
-        self.Field_name_groups["nativeFieldsNoPk"] = [
-            column.name_camel for column in self.columns if not column.is_primary_key
-        ]
+        self.Field_name_groups["nativeFields"] = [column.name_camel for column in self.columns]
+        self.Field_name_groups["primaryKeyFields"] = [column.name_camel for column in self.columns if column.is_primary_key]
+        self.Field_name_groups["nativeFieldsNoPk"] = [column.name_camel for column in self.columns if not column.is_primary_key]
         return self.Field_name_groups
 
     def get_primary_key_fields_list(self):
@@ -1467,9 +1379,7 @@ class Table:
         return pk_entry
 
     def get_column_default_components(self):
-        self.column_default_components = [
-            column.calc_default_component for column in self.columns
-        ]
+        self.column_default_components = [column.calc_default_component for column in self.columns]
         return self.column_default_components
 
     def get_primary_key_metadata(self) -> dict:
@@ -1511,10 +1421,7 @@ class Table:
 
     def generate_unique_name_lookups(self):
         name_variations = set(self.name_variations.values())
-        formatted_unique_names = {
-            f'"{name}"' if " " in name or "-" in name else name: self.name_camel
-            for name in name_variations
-        }
+        formatted_unique_names = {f'"{name}"' if " " in name or "-" in name else name: self.name_camel for name in name_variations}
         self.unique_name_lookups = formatted_unique_names
 
     def generate_unique_field_types(self):
@@ -1566,9 +1473,7 @@ class Table:
         frontend_name = f"{self.utils.to_camel_case(target_table)}Reference"
         entityName = f"{self.utils.to_camel_case(target_table)}"
 
-        uniqueColumnId = (
-            f"{self.database_project}:{target_table}:{self.get_primary_key_field()}"
-        )
+        uniqueColumnId = f"{self.database_project}:{target_table}:{self.get_primary_key_field()}"
         uniqueFieldId = f"{self.database_project}:{entityName}:{self.utils.to_camel_case(self.get_primary_key_field())}"
 
         vcprint(uniqueFieldId, verbose=self.verbose, color="yellow")
@@ -1813,13 +1718,9 @@ class Table:
 
             # Loop through the foreign keys in the junction table
             for fk in junction_table.foreign_keys.values():
-                if (
-                    fk.target_table == self.name
-                ):  # Check if the target_table is the main table (Table 1)
+                if fk.target_table == self.name:  # Check if the target_table is the main table (Table 1)
                     main_table_column = fk.column
-                elif (
-                    fk.target_table == related_table.name
-                ):  # Check if the target_table is the related table (Table 3)
+                elif fk.target_table == related_table.name:  # Check if the target_table is the related table (Table 3)
                     related_table_column = fk.column
 
             if main_table_column and related_table_column:
@@ -1871,13 +1772,9 @@ class Table:
 
             # Loop through the foreign keys in the junction table
             for fk in junction_table.foreign_keys.values():
-                if (
-                    fk.target_table == self.name
-                ):  # Check if the target_table is the main table (Table 1)
+                if fk.target_table == self.name:  # Check if the target_table is the main table (Table 1)
                     main_table_column = fk.column
-                elif (
-                    fk.target_table == related_table.name
-                ):  # Check if the target_table is the related table (Table 3)
+                elif fk.target_table == related_table.name:  # Check if the target_table is the related table (Table 3)
                     related_table_column = fk.column
 
             if main_table_column and related_table_column:
@@ -1975,14 +1872,10 @@ class Table:
         self.reverse_field_name_lookup = {self.name_camel: {}}
 
         for column in self.columns:
-            self.reverse_field_name_lookup[self.name_camel].update(
-                column.reverse_column_lookup
-            )
+            self.reverse_field_name_lookup[self.name_camel].update(column.reverse_column_lookup)
 
         if self.column_rel_entries:
-            self.reverse_field_name_lookup[self.name_camel].update(
-                self.column_rel_entries
-            )
+            self.reverse_field_name_lookup[self.name_camel].update(self.column_rel_entries)
 
         return self.reverse_field_name_lookup
 
@@ -2004,9 +1897,7 @@ class Table:
             json_fields.update(json_fk)
 
         for source_table, relationship in self.get_all_referenced_by().items():
-            ts_ifk, json_ifk, const_ts_ifk = self.to_inverse_foreign_key_entry(
-                source_table
-            )
+            ts_ifk, json_ifk, const_ts_ifk = self.to_inverse_foreign_key_entry(source_table)
             ts_fields.append(ts_ifk)
             const_ts_fields.append(const_ts_ifk)
             json_fields.update(json_ifk)
@@ -2016,9 +1907,7 @@ class Table:
 
         relationship_ts, relationship_json = self.to_schema_structure_entry()
         name_variations = json.dumps(self.generate_name_variations(), indent=4)
-        component_props = json.dumps(
-            self.generate_component_props(), indent=4
-        )  # TODO: Needs update
+        component_props = json.dumps(self.generate_component_props(), indent=4)  # TODO: Needs update
 
         primary_key_info = self.get_primary_key_metadata()
         primary_key_json = json.dumps(primary_key_info, indent=4)
@@ -2062,15 +1951,9 @@ class Table:
             f"        ],\n"
         )
 
-        self.ts_structure = (
-            f"    {self.name_camel}: {{\n" f"{entity_structure}" f"    }}"
-        )
+        self.ts_structure = f"    {self.name_camel}: {{\n" f"{entity_structure}" f"    }}"
 
-        self.const_ts_structure = (
-            f"export const {self.name_camel} = {{\n"
-            f"{const_entity_structure}"
-            f"    }} as const;"
-        )
+        self.const_ts_structure = f"export const {self.name_camel} = {{\n" f"{const_entity_structure}" f"    }} as const;"
 
         self.json_structure = {
             self.name_camel: {
@@ -2129,9 +2012,7 @@ class Table:
         # Process inverse foreign keys and collect them
         inverse_foreign_keys = {}
         for source_table, relationship in self.get_all_referenced_by().items():
-            ifk_field = self.to_python_inverse_foreign_key_field(
-                source_table, relationship
-            )
+            ifk_field = self.to_python_inverse_foreign_key_field(source_table, relationship)
             inverse_foreign_keys.update(ifk_field)
 
         # Add _inverse_foreign_keys to the model fields
@@ -2240,10 +2121,7 @@ class View:
 
         unique_names = set(name_variations)
 
-        formatted_unique_names = {
-            f'"{name}"' if " " in name or "-" in name else name: self.name_camel
-            for name in unique_names
-        }
+        formatted_unique_names = {f'"{name}"' if " " in name or "-" in name else name: self.name_camel for name in unique_names}
 
         self.unique_name_lookups = formatted_unique_names
 
@@ -2289,9 +2167,7 @@ class Schema:
     def add_all_table_instances(self):
         """Assigns each table an instance of every other table in the schema."""
         for table in self.tables.values():
-            table.all_table_instances = {
-                name: tbl for name, tbl in self.tables.items() if name != table.name
-            }
+            table.all_table_instances = {name: tbl for name, tbl in self.tables.items() if name != table.name}
 
     def add_view(self, view):
         self.views[view.name] = view
@@ -2416,16 +2292,8 @@ class Schema:
         ts_entities.extend(ts_tables)
         ts_entities.extend(ts_views)
 
-        ts_tables_type = (
-            "export type AutomationTableName =\n    '"
-            + "'\n    | '".join(ts_tables)
-            + "';"
-        )
-        ts_views_type = (
-            "export type AutomationViewName =\n    '"
-            + "'\n    | '".join(ts_views)
-            + "';"
-        )
+        ts_tables_type = "export type AutomationTableName =\n    '" + "'\n    | '".join(ts_tables) + "';"
+        ts_views_type = "export type AutomationViewName =\n    '" + "'\n    | '".join(ts_views) + "';"
         ts_entities_type = (
             "export type AutomationEntityName = AutomationTableName | AutomationViewName;\n\n"
             "// export type ProcessedSchema = ReturnType<typeof initializeTableSchema>;\n\n// export type UnifiedSchemaCache = ReturnType<typeof initializeSchemaSystem>\n\n"
@@ -2441,24 +2309,15 @@ class Schema:
         result = "export const primaryKeys = {\n"
 
         for table in self.tables.values():
-            table_name = (
-                table.name_camel
-            )  # Assuming `name_camel` gives the camelCase table name
-            pk_entry = (
-                table.get_primary_key_fields_list()
-            )  # Dictionary with frontend and database fields
+            table_name = table.name_camel  # Assuming `name_camel` gives the camelCase table name
+            pk_entry = table.get_primary_key_fields_list()  # Dictionary with frontend and database fields
 
             # Formatting the frontend and database fields
             frontend_keys = ", ".join(f"'{key}'" for key in pk_entry["frontend_name"])
             database_keys = ", ".join(f"'{key}'" for key in pk_entry["database_name"])
 
             # Adding the formatted entry for this table
-            result += (
-                f"  {table_name}: {{\n"
-                f"    frontendFields: [{frontend_keys}],\n"
-                f"    databaseColumns: [{database_keys}],\n"
-                f"  }},\n"
-            )
+            result += f"  {table_name}: {{\n" f"    frontendFields: [{frontend_keys}],\n" f"    databaseColumns: [{database_keys}],\n" f"  }},\n"
 
         result += "};\n"
 
@@ -2503,12 +2362,7 @@ class Schema:
             ]
 
         # Generating the TypeScript type definition using the list
-        return (
-            "export type FieldDataOptionsType =\n"
-            + "    | '"
-            + "'\n    | '".join(data_types)
-            + "';"
-        )
+        return "export type FieldDataOptionsType =\n" + "    | '" + "'\n    | '".join(data_types) + "';"
 
     def generate_data_structure(self, data_structures=None):
         # Default list of values for DataStructure
@@ -2523,12 +2377,7 @@ class Schema:
             ]
 
         # Generating the TypeScript type definition using the list
-        return (
-            "export type DataStructure =\n"
-            + "    | '"
-            + "'\n    | '".join(data_structures)
-            + "';"
-        )
+        return "export type DataStructure =\n" + "    | '" + "'\n    | '".join(data_structures) + "';"
 
     def generate_fetch_strategy(self, fetch_strategies=None):
         # Default list of values for FetchStrategy
@@ -2546,12 +2395,7 @@ class Schema:
             ]
 
         # Generating the TypeScript type definition using the list
-        return (
-            "export type FetchStrategy =\n"
-            + "    | '"
-            + "'\n    | '".join(fetch_strategies)
-            + "';"
-        )
+        return "export type FetchStrategy =\n" + "    | '" + "'\n    | '".join(fetch_strategies) + "';"
 
     def generate_name_formats(self):
         return (
@@ -2586,12 +2430,7 @@ class Schema:
             ]
 
         # Generating the TypeScript type definition using the list
-        return (
-            "export type AutomationDynamicName =\n"
-            + "    | '"
-            + "'\n    | '".join(dynamic_names)
-            + "';"
-        )
+        return "export type AutomationDynamicName =\n" + "    | '" + "'\n    | '".join(dynamic_names) + "';"
 
     def generate_automation_custom_name(self, custom_names=None):
         # Default list of values for AutomationCustomName
@@ -2599,12 +2438,7 @@ class Schema:
             custom_names = ["flashcard", "mathTutor", "scraper"]
 
         # Generating the TypeScript type definition using the list
-        return (
-            "export type AutomationCustomName =\n"
-            + "    | '"
-            + "'\n    | '".join(custom_names)
-            + "';"
-        )
+        return "export type AutomationCustomName =\n" + "    | '" + "'\n    | '".join(custom_names) + "';"
 
     def generate_static_ts_Initial_table_schema(self):
         ts_structure = (
@@ -2685,21 +2519,11 @@ class Schema:
         ts_reverse_field_name_lookup = []
         ts_view_name_lookup = []
 
-        ts_table_name_lookup_line_1 = (
-            "export const entityNameToCanonical: EntityNameToCanonicalMap = {"
-        )
-        ts_field_name_lookup_line_1 = (
-            "export const fieldNameToCanonical: FieldNameToCanonicalMap = {"
-        )
-        ts_reverse_table_name_lookup_line_1 = (
-            "export const entityNameFormats: EntityNameFormatMap = {"
-        )
-        ts_reverse_field_name_lookup_line_1 = (
-            "export const fieldNameFormats: FieldNameFormatMap = {"
-        )
-        ts_view_name_lookup_line_1 = (
-            "export const viewNameLookup: Record<string, string> = {"
-        )
+        ts_table_name_lookup_line_1 = "export const entityNameToCanonical: EntityNameToCanonicalMap = {"
+        ts_field_name_lookup_line_1 = "export const fieldNameToCanonical: FieldNameToCanonicalMap = {"
+        ts_reverse_table_name_lookup_line_1 = "export const entityNameFormats: EntityNameFormatMap = {"
+        ts_reverse_field_name_lookup_line_1 = "export const fieldNameFormats: FieldNameFormatMap = {"
+        ts_view_name_lookup_line_1 = "export const viewNameLookup: Record<string, string> = {"
 
         ts_common_close = "};"
 
@@ -2707,39 +2531,19 @@ class Schema:
             for key, value in table.unique_name_lookups.items():
                 ts_table_name_lookup.append(f'    {key}: "{value}",')
 
-            ts_field_name_lookup.append(
-                f"    {table.name_camel}: {table.field_name_lookup_structure},"
-            )
-            ts_reverse_table_name_lookup.append(
-                f"    {table.name_camel}: {json.dumps(table.reverse_table_lookup[table.name_camel], indent=4)},"
-            )
-            ts_reverse_field_name_lookup.append(
-                f"    {table.name_camel}: {json.dumps(table.reverse_field_name_lookup[table.name_camel], indent=4)},"
-            )
+            ts_field_name_lookup.append(f"    {table.name_camel}: {table.field_name_lookup_structure},")
+            ts_reverse_table_name_lookup.append(f"    {table.name_camel}: {json.dumps(table.reverse_table_lookup[table.name_camel], indent=4)},")
+            ts_reverse_field_name_lookup.append(f"    {table.name_camel}: {json.dumps(table.reverse_field_name_lookup[table.name_camel], indent=4)},")
 
         for view in self.views.values():
             for key, value in view.unique_name_lookups.items():
                 ts_view_name_lookup.append(f'    {key}: "{value}",')
 
-        ts_table_name_lookup_code = "\n".join(
-            [ts_table_name_lookup_line_1] + ts_table_name_lookup + [ts_common_close]
-        )
-        ts_field_name_lookup_code = "\n".join(
-            [ts_field_name_lookup_line_1] + ts_field_name_lookup + [ts_common_close]
-        )
-        ts_reverse_table_name_lookup_code = "\n".join(
-            [ts_reverse_table_name_lookup_line_1]
-            + ts_reverse_table_name_lookup
-            + [ts_common_close]
-        )
-        ts_reverse_field_name_lookup_code = "\n".join(
-            [ts_reverse_field_name_lookup_line_1]
-            + ts_reverse_field_name_lookup
-            + [ts_common_close]
-        )
-        ts_view_name_lookup_code = "\n".join(
-            [ts_view_name_lookup_line_1] + ts_view_name_lookup + [ts_common_close]
-        )
+        ts_table_name_lookup_code = "\n".join([ts_table_name_lookup_line_1] + ts_table_name_lookup + [ts_common_close])
+        ts_field_name_lookup_code = "\n".join([ts_field_name_lookup_line_1] + ts_field_name_lookup + [ts_common_close])
+        ts_reverse_table_name_lookup_code = "\n".join([ts_reverse_table_name_lookup_line_1] + ts_reverse_table_name_lookup + [ts_common_close])
+        ts_reverse_field_name_lookup_code = "\n".join([ts_reverse_field_name_lookup_line_1] + ts_reverse_field_name_lookup + [ts_common_close])
+        ts_view_name_lookup_code = "\n".join([ts_view_name_lookup_line_1] + ts_view_name_lookup + [ts_common_close])
 
         ts_code_content = (
             f"{import_lines}\n\n"
@@ -2765,18 +2569,9 @@ class Schema:
         table_schema_structure = self.generate_static_ts_Initial_table_schema()
 
         # Combine everything into the final schema file content
-        ts_code_content = (
-            f"{file_location}\n\n"
-            f"{import_line_1}\n\n"
-            f"{ts_structure}\n\n"
-            f"{table_schema_structure}\n\n"
-        )
+        ts_code_content = f"{file_location}\n\n" f"{import_line_1}\n\n" f"{ts_structure}\n\n" f"{table_schema_structure}\n\n"
 
-        ts_code_const = (
-            f"{ts_individual_file_location}\n\n"
-            f"{ts_individual_import_line_1}\n\n"
-            f"{const_structure}\n\n"
-        )
+        ts_code_const = f"{ts_individual_file_location}\n\n" f"{ts_individual_import_line_1}\n\n" f"{const_structure}\n\n"
 
         # Save the schema file
         self.code_handler.save_code_file(ts_schema_code_temp_path, ts_code_content)
@@ -2789,9 +2584,7 @@ class Schema:
         # Get all the components for the types file
         file_location = self.get_file_location("types_file")
         import_line_1 = self.get_import_statements("types_file")
-        ts_tables_type, ts_views_type, ts_entities_type = (
-            self.generate_typescript_list_tables_and_views()
-        )
+        ts_tables_type, ts_views_type, ts_entities_type = self.generate_typescript_list_tables_and_views()
         data_type_entry = self.generate_data_type()
         data_structure_entry = self.generate_data_structure()
         fetch_strategy_entry = self.generate_fetch_strategy()
@@ -2850,9 +2643,7 @@ class Schema:
 
         for table in self.tables.values():
             entity_name = table.name_camel
-            vcprint(
-                f"Processing entity: {entity_name}", verbose=self.verbose, color="blue"
-            )
+            vcprint(f"Processing entity: {entity_name}", verbose=self.verbose, color="blue")
             entity_field_names[entity_name] = table.Field_name_groups
             vcprint(
                 f"Field names: {entity_field_names[entity_name]}",
@@ -2870,15 +2661,11 @@ class Schema:
             "    nativeFieldsNoPk: EntityAnyFieldKey<EntityKeys>[];\n"
             "};\n\n"
             "export type EntityFieldNameGroupsType = Record<EntityKeys, FieldGroups>;\n\n"
-            "export const entityFieldNameGroups: EntityFieldNameGroupsType = "
-            + self.convert_to_typescript(entity_field_names)
-            + ";"
+            "export const entityFieldNameGroups: EntityFieldNameGroupsType = " + self.convert_to_typescript(entity_field_names) + ";"
         )
 
         # Save the TypeScript file
-        self.code_handler.save_code_file(
-            ts_entity_field_temp_path, entity_field_names_ts
-        )
+        self.code_handler.save_code_file(ts_entity_field_temp_path, entity_field_names_ts)
 
         return entity_field_names
 
@@ -2905,8 +2692,7 @@ class Schema:
         file_location = "# File: database/orm/models.py"
         import_lines = [
             "from database.orm.core.fields import (CharField, TextField, IntegerField, FloatField, BooleanField, DateTimeField, UUIDField, JSONField, DecimalField, BigIntegerField, SmallIntegerField, JSONBField, UUIDArrayField, JSONBArrayField, ForeignKey)",
-            "from database.orm.core.registry import model_registry"
-            "from database.orm.core.base import Model",
+            "from database.orm.core.registry import model_registry" "from database.orm.core.base import Model",
         ]
 
         reference_count = defaultdict(int)
@@ -2956,11 +2742,7 @@ class Schema:
         all_models.append("Users")  # Always include the Users model
 
         # Join the models into a string with appropriate formatting
-        model_registry_string = (
-            "\nmodel_registry.register_all(\n[\n        "
-            + ",\n        ".join(all_models)
-            + "\n    ]\n)"
-        )
+        model_registry_string = "\nmodel_registry.register_all(\n[\n        " + ",\n        ".join(all_models) + "\n    ]\n)"
 
         return model_registry_string
 
@@ -3052,9 +2834,7 @@ class SchemaManager:
         # Ensure utils and Schema are properly imported or defined
         self.utils = utils  # Define or import `utils` properly
         self.database = database
-        self.schema = Schema(
-            name=schema, database_project=database_project
-        )  # Define or import `Schema`
+        self.schema = Schema(name=schema, database_project=database_project)  # Define or import `Schema`
         self.additional_schemas = additional_schemas
         self.database_project = database_project
         self.processed_objects = None
@@ -3191,9 +2971,7 @@ class SchemaManager:
             if table:
                 # Process foreign keys
                 if table_data["foreign_keys"] and table_data["foreign_keys"] != "None":
-                    for target_table_name, fk_data in table_data[
-                        "foreign_keys"
-                    ].items():
+                    for target_table_name, fk_data in table_data["foreign_keys"].items():
                         target_table_instance = self.schema.get_table(target_table_name)
                         relationship = Relationship(
                             fk_data["constraint_name"],
@@ -3206,13 +2984,8 @@ class SchemaManager:
                         table.add_foreign_key(target_table_name, relationship)
 
                 # Process referenced_by
-                if (
-                    table_data["referenced_by"]
-                    and table_data["referenced_by"] != "None"
-                ):
-                    for source_table_name, ref_data in table_data[
-                        "referenced_by"
-                    ].items():
+                if table_data["referenced_by"] and table_data["referenced_by"] != "None":
+                    for source_table_name, ref_data in table_data["referenced_by"].items():
                         source_table_instance = self.schema.get_table(source_table_name)
                         relationship = Relationship(
                             ref_data["constraint_name"],
@@ -3240,11 +3013,7 @@ class SchemaManager:
                 for related_table_name in related_tables:
                     related_table = self.schema.get_table(related_table_name)
                     if related_table:
-                        other_table = self.schema.get_table(
-                            related_tables[1]
-                            if related_tables[0] == related_table_name
-                            else related_tables[0]
-                        )
+                        other_table = self.schema.get_table(related_tables[1] if related_tables[0] == related_table_name else related_tables[0])
                         if other_table:
                             related_table.add_many_to_many(table, other_table)
                             table.add_many_to_many(table, other_table)
@@ -3252,21 +3021,11 @@ class SchemaManager:
     def analyze_relationships(self):
         """Analyzes relationships in the schema."""
         analysis = {
-            "tables_with_foreign_keys": sum(
-                1 for table in self.schema.tables.values() if table.foreign_keys
-            ),
-            "tables_referenced_by_others": sum(
-                1 for table in self.schema.tables.values() if table.referenced_by
-            ),
-            "many_to_many_relationships": sum(
-                len(table.many_to_many) for table in self.schema.tables.values()
-            )
-            // 2,
+            "tables_with_foreign_keys": sum(1 for table in self.schema.tables.values() if table.foreign_keys),
+            "tables_referenced_by_others": sum(1 for table in self.schema.tables.values() if table.referenced_by),
+            "many_to_many_relationships": sum(len(table.many_to_many) for table in self.schema.tables.values()) // 2,
             "most_referenced_tables": sorted(
-                [
-                    (table.name, len(table.referenced_by))
-                    for table in self.schema.tables.values()
-                ],
+                [(table.name, len(table.referenced_by)) for table in self.schema.tables.values()],
                 key=lambda x: x[1],
                 reverse=True,
             )[:5],
@@ -3325,9 +3084,7 @@ class SchemaManager:
             # Fetch strategy analysis
             strategy = table.schema_structure.get("defaultFetchStrategy", "simple")
             if strategy == "simple":
-                table_fetch_strategy["simple"] = (
-                    table_fetch_strategy.get("simple", 0) + 1
-                )
+                table_fetch_strategy["simple"] = table_fetch_strategy.get("simple", 0) + 1
             else:
                 if strategy not in table_fetch_strategy:
                     table_fetch_strategy[strategy] = []
@@ -3366,27 +3123,19 @@ class SchemaManager:
                 unique_column_types.add(col_type)
 
                 if column.default_component:
-                    default_component_count[column.default_component] = (
-                        default_component_count.get(column.default_component, 0) + 1
-                    )
+                    default_component_count[column.default_component] = default_component_count.get(column.default_component, 0) + 1
 
                 if "typescript" in column.calc_validation_functions:
                     validation_function = column.calc_validation_functions["typescript"]
-                    calc_validation_functions_count[validation_function] = (
-                        calc_validation_functions_count.get(validation_function, 0) + 1
-                    )
+                    calc_validation_functions_count[validation_function] = calc_validation_functions_count.get(validation_function, 0) + 1
 
                 if "typescript" in column.calc_exclusion_rules:
                     exclusion_rule = column.calc_exclusion_rules["typescript"]
-                    calc_exclusion_rules_count[exclusion_rule] = (
-                        calc_exclusion_rules_count.get(exclusion_rule, 0) + 1
-                    )
+                    calc_exclusion_rules_count[exclusion_rule] = calc_exclusion_rules_count.get(exclusion_rule, 0) + 1
 
                 if "sub_component" in column.component_props:
                     sub_component = column.component_props["sub_component"]
-                    sub_component_props_count[sub_component] = (
-                        sub_component_props_count.get(sub_component, 0) + 1
-                    )
+                    sub_component_props_count[sub_component] = sub_component_props_count.get(sub_component, 0) + 1
 
         # General analysis summary
         analysis = {
@@ -3396,24 +3145,12 @@ class SchemaManager:
             "tables_with_primary_key": primary_key_count,
             "tables_without_primary_key": len(no_primary_key_tables),
             "no_primary_key_tables": no_primary_key_tables,
-            "total_columns": sum(
-                len(table.columns) for table in self.schema.tables.values()
-            ),
-            "unique_column_types": list(
-                unique_column_types - set(self.all_enum_base_types)
-            ),  # Exclude enums
-            "most_common_column_types": dict(
-                sorted(
-                    column_type_count.items(), key=lambda item: item[1], reverse=True
-                )[:10]
-            ),
+            "total_columns": sum(len(table.columns) for table in self.schema.tables.values()),
+            "unique_column_types": list(unique_column_types - set(self.all_enum_base_types)),  # Exclude enums
+            "most_common_column_types": dict(sorted(column_type_count.items(), key=lambda item: item[1], reverse=True)[:10]),
             "all_enum_base_types": list(self.all_enum_base_types),
-            "tables_by_size": sorted(
-                self.schema.tables.values(), key=lambda t: t.size_bytes, reverse=True
-            )[:5],
-            "views_by_size": sorted(
-                self.schema.views.values(), key=lambda v: v.size_bytes, reverse=True
-            )[:5],
+            "tables_by_size": sorted(self.schema.tables.values(), key=lambda t: t.size_bytes, reverse=True)[:5],
+            "views_by_size": sorted(self.schema.views.values(), key=lambda v: v.size_bytes, reverse=True)[:5],
             "fetch_strategies": table_fetch_strategy,
             "tables_with_foreign_keys": tables_with_fk,
             "tables_with_inverse_foreign_keys": tables_with_ifk,
@@ -3422,15 +3159,11 @@ class SchemaManager:
             "calc_validation_functions_count": calc_validation_functions_count,
             "calc_exclusion_rules_count": calc_exclusion_rules_count,
             "sub_component_props_count": sub_component_props_count,
-            "estimated_row_counts": dict(
-                sorted(estimated_row_counts.items(), key=lambda x: x[1], reverse=True)
-            ),
+            "estimated_row_counts": dict(sorted(estimated_row_counts.items(), key=lambda x: x[1], reverse=True)),
             "foreign_key_relationships_total": foreign_key_relationships_total,
             "referenced_by_relationships_total": referenced_by_relationships_total,
             "many_to_many_relationships_total": many_to_many_relationships_total,
-            "database_table_names": [
-                table.name for table in self.schema.tables.values()
-            ],
+            "database_table_names": [table.name for table in self.schema.tables.values()],
             "database_view_names": [view.name for view in self.schema.views.values()],
             "allEntities": [table.name_camel for table in self.schema.tables.values()],
         }
@@ -3438,40 +3171,24 @@ class SchemaManager:
         return analysis
 
     def get_table_instance(self, table_name):
-        return (
-            self.schema.tables[table_name] if table_name in self.schema.tables else None
-        )
+        return self.schema.tables[table_name] if table_name in self.schema.tables else None
 
     def get_view_instance(self, view_name):
         return self.schema.views[view_name] if view_name in self.schema.views else None
 
     def get_column_instance(self, table_name, column_name):
-        return (
-            self.schema.tables[table_name].columns[column_name]
-            if table_name in self.schema.tables
-            and column_name in self.schema.tables[table_name].columns
-            else None
-        )
+        return self.schema.tables[table_name].columns[column_name] if table_name in self.schema.tables and column_name in self.schema.tables[table_name].columns else None
 
     def get_table_frontend_name(self, table_name):
-        return (
-            self.get_table_instance(table_name).name_camel
-            if table_name in self.schema.tables
-            else table_name
-        )
+        return self.get_table_instance(table_name).name_camel if table_name in self.schema.tables else table_name
 
     def get_view_frontend_name(self, view_name):
-        return (
-            self.get_view_instance(view_name).name_camel
-            if view_name in self.schema.views
-            else view_name
-        )
+        return self.get_view_instance(view_name).name_camel if view_name in self.schema.views else view_name
 
     def get_column_frontend_name(self, table_name, column_name):
         return (
             self.get_column_instance(table_name, column_name).name_camel
-            if table_name in self.schema.tables
-            and column_name in self.schema.tables[table_name].columns
+            if table_name in self.schema.tables and column_name in self.schema.tables[table_name].columns
             else self.utils.to_camel_case(column_name)
         )
 
@@ -3484,12 +3201,8 @@ class SchemaManager:
                 "foreign_table": key,
                 "foreign_entity": self.get_table_frontend_name(key),
                 "column": fk_data["column"],
-                "fieldName": self.get_column_frontend_name(
-                    main_table_name, fk_data["column"]
-                ),
-                "foreign_field": self.get_column_frontend_name(
-                    key, fk_data["foreign_column"]
-                ),
+                "fieldName": self.get_column_frontend_name(main_table_name, fk_data["column"]),
+                "foreign_field": self.get_column_frontend_name(key, fk_data["foreign_column"]),
                 "foreign_column": fk_data["foreign_column"],
                 "relationship_type": fk_data["relationship_type"],
                 "constraint_name": fk_data["constraint_name"],
@@ -3514,9 +3227,7 @@ class SchemaManager:
                 "foreign_entity": self.get_table_frontend_name(key),
                 "field": self.get_column_frontend_name(key, ref_data["column"]),
                 "column": ref_data["column"],
-                "foreign_field": self.get_column_frontend_name(
-                    table_name, ref_data["foreign_column"]
-                ),
+                "foreign_field": self.get_column_frontend_name(table_name, ref_data["foreign_column"]),
                 "foreign_column": ref_data["foreign_column"],
                 "constraint_name": ref_data["constraint_name"],
             }
@@ -3529,12 +3240,8 @@ class SchemaManager:
             database_table = info_object["table_name"]
             entity_name = self.get_table_frontend_name(database_table)
 
-            transformed_foreign_keys = self.transform_foreign_keys(
-                database_table, info_object
-            )
-            transformed_referenced_by = self.transform_referenced_by(
-                database_table, info_object
-            )
+            transformed_foreign_keys = self.transform_foreign_keys(database_table, info_object)
+            transformed_referenced_by = self.transform_referenced_by(database_table, info_object)
 
             updated_relationship = {
                 "entityName": entity_name,
@@ -3555,9 +3262,7 @@ class SchemaManager:
 
     def get_full_relationship_analysis(self):
         frontend_relationships = self.get_frontend_full_relationships()
-        relationship_details = {
-            rel["table_name"]: rel for rel in frontend_relationships
-        }
+        relationship_details = {rel["table_name"]: rel for rel in frontend_relationships}
 
         self.full_relationship_analysis = {}
 
@@ -3565,41 +3270,19 @@ class SchemaManager:
             frontend_name = self.get_table_frontend_name(table_name)
 
             transformed_analysis = {
-                "selfReferential": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["self-referential"]
-                ],
-                "manyToMany": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["many-to-many"]
-                ],
-                "oneToOne": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["one-to-one"]
-                ],
-                "manyToOne": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["many-to-one"]
-                ],
-                "oneToMany": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["one-to-many"]
-                ],
-                "undefined": [
-                    self.get_table_frontend_name(name) for name in analysis["undefined"]
-                ],
-                "inverseReferences": [
-                    self.get_table_frontend_name(name)
-                    for name in analysis["inverse_references"]
-                ],
+                "selfReferential": [self.get_table_frontend_name(name) for name in analysis["self-referential"]],
+                "manyToMany": [self.get_table_frontend_name(name) for name in analysis["many-to-many"]],
+                "oneToOne": [self.get_table_frontend_name(name) for name in analysis["one-to-one"]],
+                "manyToOne": [self.get_table_frontend_name(name) for name in analysis["many-to-one"]],
+                "oneToMany": [self.get_table_frontend_name(name) for name in analysis["one-to-many"]],
+                "undefined": [self.get_table_frontend_name(name) for name in analysis["undefined"]],
+                "inverseReferences": [self.get_table_frontend_name(name) for name in analysis["inverse_references"]],
                 "relationshipDetails": relationship_details.get(table_name, {}),
             }
 
             self.full_relationship_analysis[frontend_name] = transformed_analysis
 
-        self.schema.save_frontend_full_relationships_json(
-            self.full_relationship_analysis
-        )
+        self.schema.save_frontend_full_relationships_json(self.full_relationship_analysis)
 
         ts_types_string = get_relationship_data_model_types()
 
@@ -3642,33 +3325,19 @@ class SchemaManager:
                 updated_table["connectedTables"].append(
                     {
                         "schema": connected_table["schema"],
-                        "entity": connected_instance.name_camel
-                        if connected_instance
-                        else connected_table["table"],
-                        "connectingColumn": self.schema.tables[table_key]
-                        .columns[connected_table["connecting_column"]]
-                        .name_camel
-                        if table_instance
-                        and connected_table["connecting_column"]
-                        in table_instance.columns
+                        "entity": connected_instance.name_camel if connected_instance else connected_table["table"],
+                        "connectingColumn": self.schema.tables[table_key].columns[connected_table["connecting_column"]].name_camel
+                        if table_instance and connected_table["connecting_column"] in table_instance.columns
                         else connected_table["connecting_column"],
-                        "referencedColumn": connected_instance.columns[
-                            connected_table["referenced_column"]
-                        ].name_camel
-                        if connected_instance
-                        and connected_table["referenced_column"]
-                        in connected_instance.columns
+                        "referencedColumn": connected_instance.columns[connected_table["referenced_column"]].name_camel
+                        if connected_instance and connected_table["referenced_column"] in connected_instance.columns
                         else connected_table["referenced_column"],
                     }
                 )
 
             for field in table_value["additional_fields"]:
-                field_instance = (
-                    table_instance.columns.get(field) if table_instance else None
-                )
-                updated_table["additionalFields"].append(
-                    field_instance.name_camel if field_instance else field
-                )
+                field_instance = table_instance.columns.get(field) if table_instance else None
+                updated_table["additionalFields"].append(field_instance.name_camel if field_instance else field)
 
             frontend_junction_analysis[entity_name] = updated_table
 
@@ -3727,15 +3396,9 @@ def generate_schema_structure(schema_manager, table_name):
             schema_structure["manyToMany"].append(
                 {
                     "relatedTable": mm["related_table"],  # The related table
-                    "junctionTable": mm[
-                        "junction_table"
-                    ],  # The junction table that joins the two tables
-                    "localColumn": mm[
-                        "local_column"
-                    ],  # Column in the junction table for the current table
-                    "relatedColumn": mm[
-                        "related_column"
-                    ],  # Column in the junction table for the related table
+                    "junctionTable": mm["junction_table"],  # The junction table that joins the two tables
+                    "localColumn": mm["local_column"],  # Column in the junction table for the current table
+                    "relatedColumn": mm["related_column"],  # Column in the junction table for the related table
                 }
             )
 
@@ -3749,9 +3412,7 @@ def generate_schema_structure(schema_manager, table_name):
     elif schema_structure["inverseForeignKeys"]:
         schema_structure["defaultFetchStrategy"] = "ifk"
     else:
-        schema_structure["defaultFetchStrategy"] = (
-            "simple"  # No relationships, basic fetch
-        )
+        schema_structure["defaultFetchStrategy"] = "simple"  # No relationships, basic fetch
 
     return schema_structure
 
@@ -3780,9 +3441,7 @@ def example_usage(schema_manager):
         color="cyan",
     )
 
-    example_view = schema_manager.get_view(
-        "view_registered_function_all_rels"
-    ).to_dict()
+    example_view = schema_manager.get_view("view_registered_function_all_rels").to_dict()
     vcprint(
         example_view,
         title="Full Registered Function View",

@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Union, Tuple
 from types import TracebackType
 from typing import Type, Optional
 
+
 class BaseAdapter(ABC):
     @abstractmethod
     async def execute_query(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -63,7 +64,6 @@ class BaseAdapter(ABC):
         self,
         exc_type: Optional[Type[BaseException]],
         exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType]
+        exc_tb: Optional[TracebackType],
     ):
         await self.close()
-

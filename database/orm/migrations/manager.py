@@ -3,9 +3,10 @@ import importlib
 import inspect
 from datetime import datetime
 from typing import List, Type, Union
-from ..core.config import get_orm_config
-from ..core.base import Model
-from ..adapters.base_adapter import BaseAdapter
+from database.orm.core.config import get_database_config
+from database.orm.core.base import Model
+from database.orm.adapters.base_adapter import BaseAdapter
+from database.orm.core.relations import ForeignKey
 
 
 class Migration:
@@ -15,11 +16,11 @@ class Migration:
 
     def up(self, adapter: BaseAdapter):
         for operation in self.operations:
-            getattr(self, f"_up_{operation['type']}")(adapter, **operation['params'])
+            getattr(self, f"_up_{operation['type']}")(adapter, **operation["params"])
 
     def down(self, adapter: BaseAdapter):
         for operation in reversed(self.operations):
-            getattr(self, f"_down_{operation['type']}")(adapter, **operation['params'])
+            getattr(self, f"_down_{operation['type']}")(adapter, **operation["params"])
 
     def _up_create_table(self, adapter: BaseAdapter, table_name: str, fields: dict):
         adapter.execute_raw(f"CREATE TABLE {table_name} ({', '.join([f'{name} {spec}' for name, spec in fields.items()])})")
@@ -45,33 +46,61 @@ class Migration:
     def _down_alter_column(self, adapter: BaseAdapter, table_name: str, column_name: str, old_type: str):
         adapter.execute_raw(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE {old_type}")
 
-    def _up_add_index(self, adapter: BaseAdapter, table_name: str, column_names: List[str], index_name: str = None):
+    def _up_add_index(
+        self,
+        adapter: BaseAdapter,
+        table_name: str,
+        column_names: List[str],
+        index_name: str = None,
+    ):
         index_name = index_name or f"idx_{table_name}_{'_'.join(column_names)}"
         adapter.execute_raw(f"CREATE INDEX {index_name} ON {table_name} ({', '.join(column_names)})")
 
-    def _down_add_index(self, adapter: BaseAdapter, table_name: str, column_names: List[str], index_name: str = None):
+    def _down_add_index(
+        self,
+        adapter: BaseAdapter,
+        table_name: str,
+        column_names: List[str],
+        index_name: str = None,
+    ):
         index_name = index_name or f"idx_{table_name}_{'_'.join(column_names)}"
         adapter.execute_raw(f"DROP INDEX {index_name}")
 
-    def _up_add_foreign_key(self, adapter: BaseAdapter, table_name: str, column_name: str, reference_table: str, reference_column: str):
+    def _up_add_foreign_key(
+        self,
+        adapter: BaseAdapter,
+        table_name: str,
+        column_name: str,
+        reference_table: str,
+        reference_column: str,
+    ):
         adapter.execute_raw(f"ALTER TABLE {table_name} ADD CONSTRAINT fk_{table_name}_{column_name} FOREIGN KEY ({column_name}) REFERENCES {reference_table}({reference_column})")
 
-    def _down_add_foreign_key(self, adapter: BaseAdapter, table_name: str, column_name: str, reference_table: str, reference_column: str):
+    def _down_add_foreign_key(
+        self,
+        adapter: BaseAdapter,
+        table_name: str,
+        column_name: str,
+        reference_table: str,
+        reference_column: str,
+    ):
         adapter.execute_raw(f"ALTER TABLE {table_name} DROP CONSTRAINT fk_{table_name}_{column_name}")
 
 
 class MigrationManager:
     def __init__(self):
-        self.config = get_orm_config()
+        self.config = get_database_config()
         self.adapter = self._get_adapter()
-        self.migrations_dir = os.path.join(os.getcwd(), 'migrations')
+        self.migrations_dir = os.path.join(os.getcwd(), "migrations")
         self._ensure_migrations_table()
 
     def _get_adapter(self) -> BaseAdapter:
         if self.config.use_supabase:
             from ..adapters.supabase import SupabaseAdapter
+
             return SupabaseAdapter()
         from ..adapters.postgresql import PostgreSQLAdapter
+
         return PostgreSQLAdapter()
 
     def _ensure_migrations_table(self):
@@ -88,8 +117,9 @@ class MigrationManager:
         filename = f"{timestamp}_{name}.py"
         filepath = os.path.join(self.migrations_dir, filename)
 
-        with open(filepath, 'w') as f:
-            f.write("""from ..migrations.manager import Migration
+        with open(filepath, "w") as f:
+            f.write(
+                """from ..migrations.manager import Migration
 
 class {0}(Migration):
     def __init__(self):
@@ -100,7 +130,8 @@ class {0}(Migration):
         ])
 
 # Don't forget to define the 'down' operations for each 'up' operation
-""".format(name.title().replace("_", "")))
+""".format(name.title().replace("_", ""))
+            )
 
         print(f"Created migration: {filename}")
 
@@ -130,12 +161,12 @@ class {0}(Migration):
 
     def _get_applied_migrations(self) -> List[str]:
         result = self.adapter.execute_raw("SELECT name FROM migrations ORDER BY applied_at")
-        return [row['name'] for row in result]
+        return [row["name"] for row in result]
 
     def _get_available_migrations(self) -> List[Migration]:
         migrations = []
         for filename in sorted(os.listdir(self.migrations_dir)):
-            if filename.endswith('.py') and not filename.startswith('__'):
+            if filename.endswith(".py") and not filename.startswith("__"):
                 module_name = filename[:-3]
                 module = importlib.import_module(f"migrations.{module_name}")
                 for name, obj in inspect.getmembers(module):
@@ -154,33 +185,35 @@ class {0}(Migration):
             for field_name, field in model._fields.items():
                 fields[field_name] = field.db_type
 
-            operations.append({
-                'type': 'create_table',
-                'params': {
-                    'table_name': table_name,
-                    'fields': fields}
-            })
+            operations.append(
+                {
+                    "type": "create_table",
+                    "params": {"table_name": table_name, "fields": fields},
+                }
+            )
 
             for field_name, field in model._fields.items():
                 if isinstance(field, ForeignKey):
-                    operations.append({
-                        'type': 'add_foreign_key',
-                        'params': {
-                            'table_name': table_name,
-                            'column_name': field_name,
-                            'reference_table': field.to_model.__tablename__,
-                            'reference_column': 'id'
+                    operations.append(
+                        {
+                            "type": "add_foreign_key",
+                            "params": {
+                                "table_name": table_name,
+                                "column_name": field_name,
+                                "reference_table": field.to_model.__tablename__,
+                                "reference_column": "id",
+                            },
                         }
-                    })
+                    )
 
         self.create_migration(migration_name)
         migration_file = os.path.join(self.migrations_dir, f"{timestamp}_{migration_name}.py")
-        with open(migration_file, 'r') as f:
+        with open(migration_file, "r") as f:
             content = f.read()
 
         content = content.replace("# Define your operations here", f"operations = {operations}")
 
-        with open(migration_file, 'w') as f:
+        with open(migration_file, "w") as f:
             f.write(content)
 
         print(f"Generated migration from models: {migration_name}")
@@ -198,7 +231,8 @@ migration_manager.apply_migrations()
 # Rollback the last migration
 migration_manager.rollback_migrations(1)
 
-# Generate migration from models
-from myapp.models import User, Post
+# # Generate migration from models
+# from database.orm.core.fields import ForeignKey
+# from myapp.models import User, Post
 
-migration_manager.generate_migration_from_models([User, Post])
+# migration_manager.generate_migration_from_models([User, Post])

@@ -1,11 +1,8 @@
 from database.client.postgres_connection import execute_sql_query
 
 
-def get_table_relationships(schema,database_project):
-
+def get_table_relationships(schema, database_project):
     print("get_table_relationships called with", database_project)
-
-
 
     query = """
     WITH fk_info AS (
@@ -61,12 +58,18 @@ def get_table_relationships(schema,database_project):
     return execute_sql_query(query, (schema, schema), database_project)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from common import vcprint
 
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
+    schema = "public"
+    database_project = "supabase_automation_matrix"
 
     results = get_table_relationships(schema=schema, database_project=database_project)
 
-    vcprint(data=results, title='Table Relationships', pretty=True, verbose=True, color='blue')
+    vcprint(
+        data=results,
+        title="Table Relationships",
+        pretty=True,
+        verbose=True,
+        color="blue",
+    )

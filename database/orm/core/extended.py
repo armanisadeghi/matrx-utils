@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Optional, Set
 from enum import Enum
-from common.prints.fancy_prints import vcprint
+from common import vcprint
 from database.orm.core.base import RuntimeContainer
 from database.orm.extended.app_error_handler import AppError, handle_errors
 from uuid import UUID
@@ -9,8 +9,6 @@ from uuid import UUID
 info = True
 debug = False
 verbose = False
-
-
 
 
 class BaseDTO:
@@ -30,7 +28,7 @@ class BaseDTO:
     async def _initialize_dto(self, model):
         pass
 
-    def _get_error_context(self) -> dict:
+    def _get_error_context(self):
         return {
             "dto": self.__class__.__name__,
             "id": self.id if hasattr(self, "id") else "Unknown",
@@ -38,7 +36,12 @@ class BaseDTO:
         }
 
     def _report_error(self, message: str, error_type: str = "GenericError", client_visible: str = None):
-        return AppError(message=message, error_type=error_type, client_visible=client_visible, context=self._get_error_context())
+        return AppError(
+            message=message,
+            error_type=error_type,
+            client_visible=client_visible,
+            context=self._get_error_context(),
+        )
 
     def __getattr__(self, name):
         if self._model and hasattr(self._model, name):
@@ -86,7 +89,6 @@ class BaseDTO:
         return result
 
     def _serialize_value(self, value: Any, visited: Set[int]) -> Any:
-
         if value is None:
             return None
 
@@ -132,16 +134,27 @@ class BaseDTO:
                 if value is not None:
                     base_dict[key] = self._serialize_value(value, visited.copy())
 
-        if self._model and hasattr(self._model, "runtime"):
-            base_dict["runtime"] = self._serialize_value(self._model.runtime, visited.copy())
-
         return base_dict
 
+    def print_keys(self):
+        print(f"\n{self.__class__.__name__} Keys:")
+        for key in self.__annotations__.keys():
+            data_type = self.__annotations__[key]
+            print(f"-> {key}: {data_type.__name__ if hasattr(data_type, '__name__') else str(data_type)}")
+        print()
+
     def __repr__(self) -> str:
-        return str(self.to_dict())    
-    
+        return str(self.to_dict())
+
+
 class BaseManager:
-    def __init__(self, model, dto_class=None, fetch_on_init_limit: int = 0, FETCH_ON_INIT_WITH_WARNINGS_OFF: Optional[str] = None):
+    def __init__(
+        self,
+        model,
+        dto_class=None,
+        fetch_on_init_limit: int = 0,
+        FETCH_ON_INIT_WITH_WARNINGS_OFF: Optional[str] = None,
+    ):
         self.model = model
         self.dto_class = dto_class
         self.fetch_on_init_limit = fetch_on_init_limit
@@ -156,6 +169,7 @@ class BaseManager:
         if self.fetch_on_init_limit > 0:
             # Run the auto-fetch in an async context if possible, but since __init__ is sync,
             # we'll defer to an async method and warn if not handled properly elsewhere
+            vcprint("Auto-fetching on init", verbose=info, color="yellow")
 
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -168,10 +182,18 @@ class BaseManager:
                 )
 
     def _get_error_context(self) -> dict:
-        return {"manager": self.__class__.__name__, "model": self.model.__name__ if self.model else "Unknown"}
+        return {
+            "manager": self.__class__.__name__,
+            "model": self.model.__name__ if self.model else "Unknown",
+        }
 
     def _report_error(self, message: str, error_type: str = "GenericError", client_visible: str = None):
-        return AppError(message=message, error_type=error_type, client_visible=client_visible, context=self._get_error_context())
+        return AppError(
+            message=message,
+            error_type=error_type,
+            client_visible=client_visible,
+            context=self._get_error_context(),
+        )
 
     async def _initialize_dto_runtime(self, dto, item):
         """Hook for subclasses to add runtime data to DTO"""
@@ -189,8 +211,6 @@ class BaseManager:
             item.dto = dto  # Direct shortcut
         return item
 
-
-    
     def add_computed_field(self, field):
         self.computed_fields.add(field)
 
@@ -209,7 +229,11 @@ class BaseManager:
         """Fetch a single item from the model and raise"""
         item = await self.model.get(use_cache=use_cache, **kwargs)
         if not item:
-            raise AppError(message="Item not found", error_type="NotFoundError", client_visible="The requested item could not be found.")
+            raise AppError(
+                message="Item not found",
+                error_type="NotFoundError",
+                client_visible="The requested item could not be found.",
+            )
         return await self._initialize_item_runtime(item)
 
     @handle_errors
@@ -225,15 +249,37 @@ class BaseManager:
         """Fetch a single item from the model with retry."""
         item = await self.model.get_or_none(use_cache=use_cache, **kwargs)
         if not item:
-            vcprint(f"[BASE MANAGER _get_item_with_retry] FIRST ATTEMPT FAILED! Item not found for {kwargs}. Trying again...", verbose=info, color="yellow")
+            vcprint(
+                f"[BASE MANAGER _get_item_with_retry] FIRST ATTEMPT FAILED! Item not found for {kwargs}. Trying again...",
+                verbose=info,
+                color="yellow",
+            )
             return await self._get_item_or_raise(use_cache=use_cache, **kwargs)
         return await self._initialize_item_runtime(item)
 
     @handle_errors
-    async def _get_items(self, **kwargs):
+    async def _get_items(self, order_by: str = None, **kwargs):
         """Fetch multiple items from the model with filters."""
-        items = await self.model.filter(**kwargs).all()
+        if order_by:
+            items = await self.model.filter(**kwargs).order_by(order_by).all()
+        else:
+            items = await self.model.filter(**kwargs).all()
         return [await self._initialize_item_runtime(item) for item in items]
+
+    @handle_errors
+    async def _get_first_item(self, order_by: str = None, **kwargs):
+        """Fetch first item from the model with filters."""
+        if order_by:
+            item = await self.model.filter(**kwargs).order_by(order_by).first()
+        else:
+            item = await self.model.filter(**kwargs).first()
+        return await self._process_item(item)
+
+    @handle_errors
+    async def _get_last_item(self, order_by: str = None, **kwargs):
+        """Fetch last item from the model with filters."""
+        item = await self.model.filter(**kwargs).order_by(order_by).last()
+        return await self._process_item(item)
 
     @handle_errors
     async def _create_item(self, **data):
@@ -244,11 +290,11 @@ class BaseManager:
     @handle_errors
     async def _create_items(self, items_data):
         """Create multiple items at once.
-        
+
         Args:
             items_data: A list of dictionaries, where each dictionary contains
                         the data for a single item to be created.
-        
+
         Returns:
             A list of created and initialized items.
         """
@@ -256,9 +302,9 @@ class BaseManager:
         for item_data in items_data:
             created_item = await self._create_item(**item_data)
             created_items.append(created_item)
-        
+
         return created_items
-    
+
     @handle_errors
     async def _update_item(self, item, **updates):
         """Update an existing item."""
@@ -306,7 +352,13 @@ class BaseManager:
                 client_visible="The item could not be found.",
             )
         related = await item.fetch_one_relation(relation_name)
-        vcprint(related, "[BASE MANAGER _fetch_related] Related", verbose=debug, pretty=True, color="yellow")
+        vcprint(
+            related,
+            "[BASE MANAGER _fetch_related] Related",
+            verbose=debug,
+            pretty=True,
+            color="yellow",
+        )
         return related
 
     @handle_errors
@@ -324,6 +376,11 @@ class BaseManager:
     async def load_item(self, use_cache=True, **kwargs):
         """Load and initialize a single item."""
         return await self._get_item_or_raise(use_cache=use_cache, **kwargs)
+    
+    @handle_errors
+    async def load_item_or_none(self, use_cache=True, **kwargs):
+        """Load and initialize a single item or None."""
+        return await self._get_item_or_none(use_cache=use_cache, **kwargs)
 
     @handle_errors
     async def load_item_with_retry(self, use_cache=True, **kwargs):
@@ -346,7 +403,7 @@ class BaseManager:
 
     async def load_items_by_ids(self, item_ids):
         """Load multiple items by IDs."""
-        #TODO: FAULTY METHOD : Does not work.
+        # TODO: FAULTY METHOD : Does not work.
 
         return await self.load_items(id__in=item_ids)
 
@@ -357,7 +414,7 @@ class BaseManager:
 
     async def add_active_by_ids(self, item_ids):
         """Add multiple items to active set."""
-        #TODO: FAULTY METHOD USED: load_items_by_ids
+        # TODO: FAULTY METHOD USED: load_items_by_ids
         for item_id in item_ids:
             self._add_to_active(item_id)
         return await self.load_items_by_ids(item_ids)
@@ -419,6 +476,32 @@ class BaseManager:
             return item.runtime.dto.to_dict()
         return item.to_dict()
 
+    def _print_item_keys(self, item):
+        if not item:
+            return
+
+        # Print item keys first
+        print(f"\n{item.__class__.__name__} Item Keys:")
+        if hasattr(item, "__annotations__"):
+            for key in item.__annotations__.keys():
+                data_type = item.__annotations__[key]
+                print(f"-> {key}: {data_type.__name__ if hasattr(data_type, '__name__') else str(data_type)}")
+        elif hasattr(item, "to_dict"):
+            # If no annotations but has to_dict, try getting keys from that
+            item_dict = item.to_dict()
+            for key in item_dict.keys():
+                value = item_dict[key]
+                print(f"-> {key}: {type(value).__name__}")
+        else:
+            print("No keys available to display")
+
+        # Print DTO keys if available
+        if hasattr(item, "runtime") and hasattr(item.runtime, "dto"):
+            print("\nDTO Keys:")
+            item.runtime.dto.print_keys()
+
+        print()
+
     async def get_item_dict(self, item_id):
         """Get an item's dict by ID."""
         item = await self.load_by_id(item_id)
@@ -447,20 +530,44 @@ class BaseManager:
     async def get_item_with_related(self, item_id, relation_name):
         """Get an item with a specific relationship."""
         item = await self.load_by_id(item_id)
-        vcprint(item, "[BASE MANAGER get_item_with_related] Item", verbose=debug, pretty=True, color="yellow")
+        vcprint(
+            item,
+            "[BASE MANAGER get_item_with_related] Item",
+            verbose=debug,
+            pretty=True,
+            color="yellow",
+        )
         if item:
             related_items = await self._fetch_related(item, relation_name)
-            vcprint(related_items, "[BASE MANAGER get_item_with_related ] Related", verbose=debug, pretty=True, color="yellow")
+            vcprint(
+                related_items,
+                "[BASE MANAGER get_item_with_related ] Related",
+                verbose=debug,
+                pretty=True,
+                color="yellow",
+            )
             return item, related_items
         return item, None
 
-    async def get_item_with_related_with_retry(self, item_id, relation_name): # here
+    async def get_item_with_related_with_retry(self, item_id, relation_name):  # here
         """Get an item with a specific relationship with retry."""
         item = await self.load_by_id_with_retry(item_id)
-        vcprint(item, "[BASE MANAGER get_item_with_related] Item", verbose=debug, pretty=True, color="yellow")
+        vcprint(
+            item,
+            "[BASE MANAGER get_item_with_related] Item",
+            verbose=debug,
+            pretty=True,
+            color="yellow",
+        )
         if item:
             related_items = await self._fetch_related(item, relation_name)
-            vcprint(related_items, "[BASE MANAGER get_item_with_related ] Related", verbose=debug, pretty=True, color="yellow")
+            vcprint(
+                related_items,
+                "[BASE MANAGER get_item_with_related ] Related",
+                verbose=debug,
+                pretty=True,
+                color="yellow",
+            )
             return item, related_items
         return item, None
 
@@ -559,7 +666,7 @@ class BaseManager:
 
     async def get_active_item(self, item_id):
         """Get an active item by ID."""
-        #TODO: Doesnt look for whether item is currently active.
+        # TODO: Doesnt look for whether item is currently active.
         item = await self._get_item_or_raise(id=item_id)
         return await self._process_item(item)
 
@@ -575,7 +682,7 @@ class BaseManager:
 
     async def load_items_by_ids_get_dict(self, item_ids):
         """Load items by IDs and return their dicts."""
-        #TODO: FAULTY METHOD USED: load_items_by_ids
+        # TODO: FAULTY METHOD USED: load_items_by_ids
         items = await self.load_items_by_ids(item_ids)
         return [item.to_dict() for item in items if item]
 
@@ -765,8 +872,14 @@ class BaseManager:
         # Always print fetched items immediately in red
         if not self._FETCH_ON_INIT_WITH_WARNINGS_OFF:
             vcprint(initialized_items, "FETCHED ITEMS:", color="red", pretty=True)
-        
-        vcprint(count, "AUTOMATED FETCH ON INIT RESULTED IN THIS MANY ITEMS", color="red", background="yellow", style="bold")
+
+        vcprint(
+            count,
+            "AUTOMATED FETCH ON INIT RESULTED IN THIS MANY ITEMS",
+            color="red",
+            background="yellow",
+            style="bold",
+        )
 
         # Parse the warning suppression argument
         warnings_suppressed = False
@@ -775,13 +888,13 @@ class BaseManager:
             suppression_prefix = "YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_"
             if self._FETCH_ON_INIT_WITH_WARNINGS_OFF.startswith(suppression_prefix):
                 try:
-                    warning_limit_threshold = int(self._FETCH_ON_INIT_WITH_WARNINGS_OFF[len(suppression_prefix):])
-                    warnings_suppressed = (warning_limit_threshold >= self.fetch_on_init_limit)
+                    warning_limit_threshold = int(self._FETCH_ON_INIT_WITH_WARNINGS_OFF[len(suppression_prefix) :])
+                    warnings_suppressed = warning_limit_threshold >= self.fetch_on_init_limit
                 except ValueError:
                     vcprint(
                         f"Invalid FETCH_ON_INIT_WITH_WARNINGS_OFF format: {self._FETCH_ON_INIT_WITH_WARNINGS_OFF}",
                         "[ERROR] Expected format: YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_<number>",
-                        color="red"
+                        color="red",
                     )
 
         # Check if count approaches or hits the limit (within 5)
@@ -805,9 +918,14 @@ class BaseManager:
                 f"AUTOFETCH COUNT: {count}",
                 f"[WARNING!!!!] INIT method for model {self.model.__name__} fetched {count} items (>{warning_limit_threshold})! "
                 f"To suppress, set FETCH_ON_INIT_WITH_WARNINGS_OFF='YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_{self.fetch_on_init_limit}'",
-                color="red"
+                color="red",
             )
-            vcprint(items, "FETCHED ITEMS (LOOK AT WHAT YOU DID):", color="yellow", pretty=True)
+            vcprint(
+                items,
+                "FETCHED ITEMS (LOOK AT WHAT YOU DID):",
+                color="yellow",
+                pretty=True,
+            )
         elif count <= 1000:
             # Big, screen-filling warning
             warning_lines = [
@@ -852,8 +970,14 @@ class BaseManager:
         ]
         vcprint("\n".join(warning_lines), color="magenta")
         vcprint(items, pretty=True, color="yellow")
-        
+
     def _validation_error(self, class_name, data, field, message):
-        vcprint(data, f"[{class_name} ERROR!] Invalid or missing '{field}' field. You provided", verbose=True, pretty=True, color="red")
+        vcprint(
+            data,
+            f"[{class_name} ERROR!] Invalid or missing '{field}' field. You provided",
+            verbose=True,
+            pretty=True,
+            color="red",
+        )
         vcprint("Sorry. Here comes the ugly part:\n", verbose=True, color="yellow")
         raise ValueError(message)

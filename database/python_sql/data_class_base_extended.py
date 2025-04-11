@@ -1,9 +1,13 @@
 # Get the base data first
-from database.python_sql.complete_relationship_analysis_pandas import get_comprehensive_analysis, ColumnBase, TableBase
+from database.python_sql.complete_relationship_analysis_pandas import (
+    get_comprehensive_analysis,
+    ColumnBase,
+    TableBase,
+)
 import json
 
-from common.file_management.specific_handlers.code import CodeHandler
-from data_handling import DataTransformer
+from common.utils.file_handlers.code_hanlder import CodeHandler
+from common.utils.data_handlers.data_transformer import DataTransformer
 from common import vcprint
 from database.python_sql.db_objects import get_db_objects
 from database.python_sql.table_relationships import get_table_relationships
@@ -40,10 +44,7 @@ def get_default_component_props():
     }
 
 
-analysis_results = get_comprehensive_analysis(
-    schema="public",
-    database_project="supabase_automation_matrix"
-)
+analysis_results = get_comprehensive_analysis(schema="public", database_project="supabase_automation_matrix")
 
 
 # Now your custom classes can extend and use this data:
@@ -64,9 +65,7 @@ class Table(TableBase):
         self.__dict__.update(base_table.__dict__)
 
         # Convert the base columns to your custom Column class
-        self.columns = {
-            name: Column(col) for name, col in base_table.columns.items()
-        }
+        self.columns = {name: Column(col) for name, col in base_table.columns.items()}
 
         # Add your custom initialization
         self.utils = utils
@@ -76,22 +75,24 @@ class Table(TableBase):
 
 # Update SchemaManager to use the analysis results:
 class SchemaManager:
-    def __init__(self, database="postgres", schema="public", database_project="supabase_automation_matrix"):
+    def __init__(
+        self,
+        database="postgres",
+        schema="public",
+        database_project="supabase_automation_matrix",
+    ):
         self.utils = utils
         self.database = database
         self.database_project = database_project
 
         # Get the base analysis first
-        self.base_analysis = get_comprehensive_analysis(
-            schema=schema,
-            database_project=database_project
-        )
+        self.base_analysis = get_comprehensive_analysis(schema=schema, database_project=database_project)
 
         # Create your schema with the analyzed data
         self.schema = Schema(name=schema, database_project=database_project)
         self.initialized = False
         self.verbose = True
-        self.debug = True
+        self.debug = False
 
     def initialize(self):
         """Orchestrates the initialization of the SchemaManager."""

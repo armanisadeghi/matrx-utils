@@ -6,7 +6,13 @@ DEFAULT_CLIENT_MESSAGE = "Oops. Something went wrong. Please reload the page and
 
 
 class AppError(Exception):
-    def __init__(self, message: str, error_type: str = "GenericError", client_visible: str = None, context: dict = None):
+    def __init__(
+        self,
+        message: str,
+        error_type: str = "GenericError",
+        client_visible: str = None,
+        context: dict = None,
+    ):
         self.error = {
             "status": "error",
             "type": error_type,
@@ -36,7 +42,10 @@ def handle_errors(func):
                 if isinstance(cls_or_self, type):  # Class method case
                     context = {"class": cls_or_self.__name__}
                     app_error = AppError(
-                        message=str(e), error_type=e.__class__.__name__, client_visible=DEFAULT_CLIENT_MESSAGE, context=context
+                        message=str(e),
+                        error_type=e.__class__.__name__,
+                        client_visible=DEFAULT_CLIENT_MESSAGE,
+                        context=context,
                     )
                 else:  # Instance method case
                     # Safely check if _report_error exists and is callable
@@ -51,13 +60,19 @@ def handle_errors(func):
                                 pass
 
                         app_error = AppError(
-                            message=str(e), error_type=e.__class__.__name__, client_visible=DEFAULT_CLIENT_MESSAGE, context=context
+                            message=str(e),
+                            error_type=e.__class__.__name__,
+                            client_visible=DEFAULT_CLIENT_MESSAGE,
+                            context=context,
                         )
                     else:
                         # Fallback if _report_error doesn't exist
                         context = {"class": cls_or_self.__class__.__name__}
                         app_error = AppError(
-                            message=str(e), error_type=e.__class__.__name__, client_visible=DEFAULT_CLIENT_MESSAGE, context=context
+                            message=str(e),
+                            error_type=e.__class__.__name__,
+                            client_visible=DEFAULT_CLIENT_MESSAGE,
+                            context=context,
                         )
 
                 # Print the original error for debugging
@@ -72,7 +87,10 @@ def handle_errors(func):
                     raise
                 else:
                     # If error handling itself failed, fall back to simplest case
-                    print(f"Error handler failed! Original error in {func.__name__}:", file=sys.stderr)
+                    print(
+                        f"Error handler failed! Original error in {func.__name__}:",
+                        file=sys.stderr,
+                    )
                     print(original_traceback, file=sys.stderr)
                     print("Error handling failed with:", file=sys.stderr)
                     print(traceback.format_exc(), file=sys.stderr)

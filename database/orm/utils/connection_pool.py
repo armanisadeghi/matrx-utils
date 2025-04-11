@@ -1,7 +1,8 @@
 import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 from threading import Lock
-from ..core.config import get_orm_config
+from database.orm.core.config import get_orm_config
+
 
 class ConnectionPool:
     _instance = None
@@ -24,7 +25,7 @@ class ConnectionPool:
             port=config.port,
             dbname=config.name,
             user=config.user,
-            password=config.password
+            password=config.password,
         )
 
     def get_connection(self):
@@ -35,6 +36,7 @@ class ConnectionPool:
 
     def close_all(self):
         self.pool.closeall()
+
 
 class PooledConnection:
     def __init__(self):
@@ -47,7 +49,6 @@ class PooledConnection:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.pool.return_connection(self.connection)
-
 
 
 # Usage

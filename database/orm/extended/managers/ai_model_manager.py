@@ -1,7 +1,5 @@
-
-
 from database.orm.extended.managers.ai_model_base import AiModelBase
-from matrix.ai_models.model_manager import update_data_in_code # TODO
+from matrix.ai_models.ai_model_manager import update_data_in_code
 import os
 import asyncio
 from common import vcprint
@@ -10,19 +8,19 @@ from common import vcprint
 class AiModelManager(AiModelBase):
     def __init__(self):
         super().__init__()
-        
+
     async def get_model(self, model_id: str):
         model = await self.load_by_id(model_id)
         return model
-    
+
     async def get_models(self):
         models = await self.load_ai_models()
         return models
-    
+
     async def load_model_by_name(self, model_name: str):
         model = await self.load_ai_models(name=model_name)
         return model
-    
+
     async def load_model_by_provider(self, provider: str):
         model = await self.load_ai_models(provider=provider)
         return model
@@ -59,17 +57,15 @@ async def local_test(test_type: str, **kwargs):
         data = await manager.list_unique_model_providers(update_data_in_code=update_data)
     else:
         raise ValueError(f"Invalid test type: {test_type}")
-    
+
     return data
 
 
 if __name__ == "__main__":
     os.system("cls")
 
-    test_type = "list_providers"  # ["id", "name", "provider", "all_models", "list_providers"]
-    
+    test_type = "name"  # ["id", "name", "provider", "all_models", "list_providers"]
+
     data = asyncio.run(local_test(test_type, update_data_in_code=True))
 
-    
     vcprint(data=data, title="AI Model", pretty=True, color="green")
-

@@ -1,4 +1,4 @@
-from database.models import (
+from database.orm.models import (
     DataBroker,
     DataInputComponent,
     MessageBroker,

@@ -11,26 +11,26 @@ class TypeConverter:
         if value is None:
             return None
 
-        if field_type == 'int':
+        if field_type == "int":
             return int(value)
-        elif field_type == 'float':
+        elif field_type == "float":
             return float(value)
-        elif field_type == 'bool':
+        elif field_type == "bool":
             return bool(value)
-        elif field_type == 'str':
+        elif field_type == "str":
             return str(value)
-        elif field_type == 'datetime':
+        elif field_type == "datetime":
             return datetime.fromisoformat(value) if isinstance(value, str) else value
-        elif field_type == 'date':
+        elif field_type == "date":
             return date.fromisoformat(value) if isinstance(value, str) else value
-        elif field_type == 'uuid':
+        elif field_type == "uuid":
             return UUID(value) if isinstance(value, str) else value
-        elif field_type == 'json':
+        elif field_type == "json":
             return json.loads(value) if isinstance(value, str) else value
-        elif field_type == 'decimal':
+        elif field_type == "decimal":
             return Decimal(value) if isinstance(value, (str, int, float)) else value
-        elif field_type.startswith('array'):
-            item_type = field_type.split(':')[1]
+        elif field_type.startswith("array"):
+            item_type = field_type.split(":")[1]
             return [TypeConverter.to_python(item, item_type) for item in value]
         else:
             return value
@@ -40,18 +40,18 @@ class TypeConverter:
         if value is None:
             return None
 
-        if field_type in ['int', 'float', 'bool', 'str']:
+        if field_type in ["int", "float", "bool", "str"]:
             return value
-        elif field_type in ['datetime', 'date']:
+        elif field_type in ["datetime", "date"]:
             return value.isoformat()
-        elif field_type == 'uuid':
+        elif field_type == "uuid":
             return str(value)
-        elif field_type == 'json':
+        elif field_type == "json":
             return json.dumps(value)
-        elif field_type == 'decimal':
+        elif field_type == "decimal":
             return str(value)
-        elif field_type.startswith('array'):
-            item_type = field_type.split(':')[1]
+        elif field_type.startswith("array"):
+            item_type = field_type.split(":")[1]
             return [TypeConverter.get_db_prep_value(item, item_type) for item in value]
         else:
             return value
@@ -76,12 +76,11 @@ class CustomTypeConverter(TypeConverter):
             return cls.custom_converters[field_type][0](value)
         return super().get_db_prep_value(value, field_type)
 
+
 # Usage
-CustomTypeConverter.register_converter(
-    'ipaddress',
-    lambda ip: str(ip),
-    lambda ip_str: ipaddress.ip_address(ip_str)
-)
+CustomTypeConverter.register_converter("ipaddress", lambda ip: str(ip), lambda ip_str: ipaddress.ip_address(ip_str))
+
+
 # Usage
 def convert_query_results(results, model):
     converted = []

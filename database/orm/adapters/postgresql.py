@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Union, Tuple
 import asyncpg
-from .base_adapter import BaseAdapter
-from ..core.config import get_orm_config
+from database.orm.adapters.base_adapter import BaseAdapter
+from database.orm.core.config import get_orm_config
 
 
 class PostgreSQLAdapter(BaseAdapter):
@@ -16,7 +16,7 @@ class PostgreSQLAdapter(BaseAdapter):
                 port=self.config.port,
                 database=self.config.name,
                 user=self.config.user,
-                password=self.config.password
+                password=self.config.password,
             )
         return self.connection
 
@@ -30,13 +30,13 @@ class PostgreSQLAdapter(BaseAdapter):
         sql, params = self._build_count_sql(query)
         connection = await self._get_connection()
         row = await connection.fetchrow(sql, *params)
-        return row['count']
+        return row["count"]
 
     async def exists(self, query: Dict[str, Any]) -> bool:
         sql, params = self._build_exists_sql(query)
         connection = await self._get_connection()
         row = await connection.fetchrow(sql, *params)
-        return row['exists']
+        return row["exists"]
 
     async def insert(self, query: Dict[str, Any]) -> Dict[str, Any]:
         sql, params = self._build_insert_sql(query)
@@ -102,7 +102,7 @@ class PostgreSQLAdapter(BaseAdapter):
         sql = f"SELECT * FROM {query['model'].__tablename__} WHERE "
         filters = []
         params = []
-        for field, value in query['filters'].items():
+        for field, value in query["filters"].items():
             filters.append(f"{field} = ${len(params) + 1}")
             params.append(value)
         sql += " AND ".join(filters)
@@ -112,7 +112,7 @@ class PostgreSQLAdapter(BaseAdapter):
         sql = f"SELECT COUNT(*) FROM {query['model'].__tablename__} WHERE "
         filters = []
         params = []
-        for field, value in query['filters'].items():
+        for field, value in query["filters"].items():
             filters.append(f"{field} = ${len(params) + 1}")
             params.append(value)
         sql += " AND ".join(filters)
@@ -122,24 +122,24 @@ class PostgreSQLAdapter(BaseAdapter):
         sql = f"SELECT EXISTS(SELECT 1 FROM {query['model'].__tablename__} WHERE "
         filters = []
         params = []
-        for field, value in query['filters'].items():
+        for field, value in query["filters"].items():
             filters.append(f"{field} = ${len(params) + 1}")
             params.append(value)
         sql += " AND ".join(filters) + ")"
         return sql, params
 
     def _build_insert_sql(self, query: Dict[str, Any]) -> Tuple[str, List[Any]]:
-        fields = ", ".join(query['data'].keys())
-        placeholders = ", ".join([f"${i + 1}" for i in range(len(query['data']))])
+        fields = ", ".join(query["data"].keys())
+        placeholders = ", ".join([f"${i + 1}" for i in range(len(query["data"]))])
         sql = f"INSERT INTO {query['model'].__tablename__} ({fields}) VALUES ({placeholders}) RETURNING *"
-        params = list(query['data'].values())
+        params = list(query["data"].values())
         return sql, params
 
     def _build_bulk_insert_sql(self, query: Dict[str, Any]) -> Tuple[str, List[Any]]:
-        fields = ", ".join(query['data'][0].keys())
-        placeholders = ", ".join([f"${i + 1}" for i in range(len(query['data'][0]))])
+        fields = ", ".join(query["data"][0].keys())
+        placeholders = ", ".join([f"${i + 1}" for i in range(len(query["data"][0]))])
         sql = f"INSERT INTO {query['model'].__tablename__} ({fields}) VALUES ({placeholders})"
-        params = [tuple(row.values()) for row in query['data']]
+        params = [tuple(row.values()) for row in query["data"]]
         return sql, params
 
     def _build_update_sql(self, query: Dict[str, Any], data: Dict[str, Any]) -> Tuple[str, List[Any]]:
@@ -147,7 +147,7 @@ class PostgreSQLAdapter(BaseAdapter):
         sql = f"UPDATE {query['model'].__tablename__} SET {set_clause} WHERE "
         filters = []
         params = list(data.values())
-        for field, value in query['filters'].items():
+        for field, value in query["filters"].items():
             filters.append(f"{field} = ${len(params) + 1}")
             params.append(value)
         sql += " AND ".join(filters)
@@ -161,7 +161,7 @@ class PostgreSQLAdapter(BaseAdapter):
         sql = f"DELETE FROM {query['model'].__tablename__} WHERE "
         filters = []
         params = []
-        for field, value in query['filters'].items():
+        for field, value in query["filters"].items():
             filters.append(f"{field} = ${len(params) + 1}")
             params.append(value)
         sql += " AND ".join(filters)

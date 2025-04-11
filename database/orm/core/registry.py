@@ -34,7 +34,9 @@ class ModelRegistry:
         cls._initialized = False
         vcprint("Cleared all registered models", color="yellow", inline=True)
 
+
 model_registry = ModelRegistry()
+
 
 def get_model_by_name(model_name):
     model = model_registry.get_model(model_name)

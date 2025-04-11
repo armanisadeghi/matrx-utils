@@ -3,10 +3,14 @@
 from contextlib import asynccontextmanager
 import traceback
 from database.orm.exceptions import (
-    ORMException, CacheError, DatabaseError, 
-    MultipleObjectsReturned, DoesNotExist
+    ORMException,
+    CacheError,
+    DatabaseError,
+    MultipleObjectsReturned,
+    DoesNotExist,
 )
 from common import vcprint
+
 
 @asynccontextmanager
 async def handle_orm_operation(operation_name, model=None, **context):
@@ -33,12 +37,11 @@ async def handle_orm_operation(operation_name, model=None, **context):
             vcprint(traceback.format_exc(), "Traceback", color="white")
             raise
         # Unexpected non-ORM exceptions
-        vcprint(f"Unexpected error in {operation_name}: {str(e)}", "UnexpectedError", color="red")
+        vcprint(
+            f"Unexpected error in {operation_name}: {str(e)}",
+            "UnexpectedError",
+            color="red",
+        )
         vcprint("Here is the traceback:", "TracebackHeader", color="yellow")
         vcprint(traceback.format_exc(), "Traceback", color="yellow")
-        raise CacheError(
-            model=model,
-            operation=operation_name,
-            details=context,
-            original_error=e
-        )
+        raise CacheError(model=model, operation=operation_name, details=context, original_error=e)

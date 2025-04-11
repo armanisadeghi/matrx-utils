@@ -1,10 +1,15 @@
 # database/orm/core/base.py
 
+import asyncio
 import re
 from dataclasses import dataclass
 from uuid import UUID
 from common import vcprint
-from database.orm.exceptions import DoesNotExist, MultipleObjectsReturned, ValidationError
+from database.orm.exceptions import (
+    DoesNotExist,
+    MultipleObjectsReturned,
+    ValidationError,
+)
 from .fields import Field, ForeignKey
 from .relations import ForeignKeyReference, InverseForeignKeyReference
 from database.orm.operations import create, update, delete
@@ -35,6 +40,7 @@ def formated_error(message, class_name=None, method_name=None, context=None):
 
 
 # https://grok.com/chat/f5581dd5-2684-445a-b2bd-40a2e7b63955 - DTO and eliminating the
+
 
 class RuntimeContainer:
     def __init__(self):
@@ -138,15 +144,15 @@ class ModelMeta(type):
             elif isinstance(value, InverseForeignKeyReference):
                 inverse_foreign_keys[key] = value
                 dynamic_fields.add(f"_{key}_relation")
-                
+
         if "_primary_keys" in attrs and attrs["_primary_keys"]:
             if primary_keys:
                 error_message = f"Model {name} cannot have both fields with primary_key=True " "and _primary_keys defined"
                 formated_error(error_message, class_name="Model", method_name="__new__")
                 raise ValueError(error_message)
-            
+
             primary_keys = attrs["_primary_keys"]
-            
+
             for pk in primary_keys:
                 if pk not in fields:
                     error_message = f"Primary key field '{pk}' not found in model {name}"
@@ -193,7 +199,7 @@ class ModelMeta(type):
             super(Model, self).__init__()
             for field_name, field in self._fields.items():
                 value = kwargs.get(field_name, field.get_default())
-                if hasattr(field, 'to_python'):  # Only change: apply to_python()
+                if hasattr(field, "to_python"):  # Only change: apply to_python()
                     value = field.to_python(value)
                 setattr(self, field_name, value)
             self._extra_data = {k: v for k, v in kwargs.items() if k not in self._fields}
@@ -240,6 +246,7 @@ class ModelMeta(type):
 
         return cls
 
+
 class Model(RuntimeMixin, metaclass=ModelMeta):
     DoesNotExist = DoesNotExist
     MultipleObjectsReturned = MultipleObjectsReturned
@@ -275,6 +282,28 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
             return await StateManager.get(cls, **kwargs)
         else:
             return await QueryBuilder(model=cls).filter(**kwargs).get()
+
+    @classmethod
+    def get_sync(cls, use_cache=True, **kwargs):
+        """
+        Synchronous wrapper for get(). Runs the async get() method in the current event loop.
+        Use this in synchronous contexts to avoid RuntimeWarning for unawaited coroutines.
+        """
+        # Check if there's an active event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're in an async context, warn the user to use async get
+            raise RuntimeError(
+                "Model.get_sync() called in an async context. Use await Model.get() instead."
+            )
+        except RuntimeError as e:
+            if "no running event loop" not in str(e):
+                raise  # Re-raise if it's not the expected "no running loop" error
+
+        # No running loop: safe to run synchronously
+        return asyncio.run(cls.get(use_cache=use_cache, **kwargs))
+
+
 
     @classmethod
     async def get_or_none(cls, use_cache=True, **kwargs):
@@ -322,6 +351,7 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
         # Validate fields
         invalid_fields = [k for k in kwargs if k not in self._fields]
         if invalid_fields:
+            vcprint(self._fields, "Model Fields", color="yellow")
             error_message = f"Invalid fields for {self.__class__.__name__}: {invalid_fields}"
             formated_error(error_message, class_name="Model", method_name="update", context=kwargs)
             raise ValueError(error_message)
@@ -346,7 +376,12 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
             else:
                 instance = await cls.filter(id=instance_or_id).first()
                 if instance is None:
-                    raise DoesNotExist(model=cls, filters={"id": instance_or_id}, class_name="Model", method_name="update_fields")
+                    raise DoesNotExist(
+                        model=cls,
+                        filters={"id": instance_or_id},
+                        class_name="Model",
+                        method_name="update_fields",
+                    )
 
             # Validate fields first
             invalid_fields = [k for k in kwargs if k not in cls._fields]
@@ -405,11 +440,11 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
             value = getattr(self, field_name, None)
             if value is not None:
                 data[field_name] = field.to_python(value)
-        
-        if hasattr(self, 'runtime'):
-            data['runtime'] = self.runtime.to_dict()
-        if hasattr(self, 'dto'):
-            data['dto'] = self.dto.to_dict()
+
+        if hasattr(self, "runtime"):
+            data["runtime"] = self.runtime.to_dict()
+        if hasattr(self, "dto"):
+            data["dto"] = self.dto.to_dict()
         return data
 
     def to_flat_dict(self):
@@ -418,15 +453,12 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
             value = getattr(self, field_name, None)
             if value is not None:
                 data[field_name] = field.to_python(value)
-        
-        runtime_data = self.runtime.to_dict() if hasattr(self, 'runtime') else {}
-        
-        dto_data = self.dto.to_dict() if hasattr(self, 'dto') else {}
-        
+
+        runtime_data = self.runtime.to_dict() if hasattr(self, "runtime") else {}
+
+        dto_data = self.dto.to_dict() if hasattr(self, "dto") else {}
+
         return {**data, **runtime_data, **dto_data}
-
-
-
 
     @classmethod
     def from_db_result(cls, data):
@@ -507,7 +539,7 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
         if value is not None:
             return await fk_ref.related_model.filter(**{fk_ref.to_column: value}, **kwargs).all()
         return []
-    
+
     async def filter_ifk(self, field_name, **kwargs):
         """Filter inverse foreign key relationships with additional criteria"""
         if field_name not in self._meta.inverse_foreign_keys:
@@ -549,7 +581,6 @@ class Model(RuntimeMixin, metaclass=ModelMeta):
         error_message = f"No related field for {field_name}"
         formated_error(error_message, class_name="Model", method_name="get_related")
         raise AttributeError(error_message)
-
 
     def has_related(self, field_name):
         """Check if related data is already loaded"""

@@ -2,31 +2,32 @@ import os
 from common import vcprint
 from database.client.postgres_connection import execute_sql_query
 
-def set_unified_rls_policy(table_name, schema='public', database_project=None):
+
+def set_unified_rls_policy(table_name, schema="public", database_project=None):
     """
     Apply consistent Row Level Security policies to a specified table using
     explicit transaction blocks.
-    
+
     Args:
         table_name (str): The name of the table to apply RLS policies to
         schema (str, optional): Database schema. Defaults to 'public'.
         database_project (str, optional): The database project identifier.
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
     # All of our tables use user_id as the owner column
-    owner_column = 'user_id'
-    
+    owner_column = "user_id"
+
     # Use the table name as the resource type name
     resource_type_name = table_name
-    
+
     # Standard insertion check
-    insertion_check = 'auth.uid() = user_id'
-    
+    insertion_check = "auth.uid() = user_id"
+
     # Use schema-qualified table name with quotes (Supabase style)
     full_table_name = f'"{schema}"."{table_name}"'
-    
+
     # Generate the SQL query with explicit transaction blocks
     query = f"""
 BEGIN;
@@ -117,11 +118,11 @@ COMMIT;
 -- Return a dummy result to avoid "no results to fetch" error
 SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
 """
-    
+
     try:
         # Execute the query using your existing function
         result = execute_sql_query(query, (), database_project)
-        
+
         # Verify the policies were created
         verification_query = f"""
         SELECT 
@@ -136,9 +137,9 @@ SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
         ORDER BY 
             policyname;
         """
-        
+
         policies = execute_sql_query(verification_query, (schema, table_name), database_project)
-        
+
         if policies and len(policies) >= 4:  # We expect at least 4 policies (SELECT, INSERT, UPDATE, DELETE)
             print(f"Successfully applied RLS policies to {full_table_name}")
             print(f"Verified {len(policies)} policies:")
@@ -157,8 +158,8 @@ SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
 
 
 if __name__ == "__main__":
-    os.system('cls')
+    os.system("cls")
     table_name = "scrape_domain"
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
+    schema = "public"
+    database_project = "supabase_automation_matrix"
     success = set_unified_rls_policy(table_name, schema=schema, database_project=database_project)

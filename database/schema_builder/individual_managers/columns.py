@@ -15,33 +15,33 @@ import re
 
 class Column:
     def __init__(
-            self,
-            database_project,
-            table_name,
-            unique_column_id,
-            name,
-            position,
-            full_type,
-            base_type,
-            domain_type,
-            enum_labels,
-            is_array,
-            nullable,
-            default,
-            character_maximum_length,
-            numeric_precision,
-            numeric_scale,
-            collation,
-            is_identity,
-            is_generated,
-            is_primary_key,
-            is_unique,
-            has_index,
-            check_constraints,
-            foreign_key_reference,
-            comment,
-            parent_table_instance,
-            is_display_field=False,
+        self,
+        database_project,
+        table_name,
+        unique_column_id,
+        name,
+        position,
+        full_type,
+        base_type,
+        domain_type,
+        enum_labels,
+        is_array,
+        nullable,
+        default,
+        character_maximum_length,
+        numeric_precision,
+        numeric_scale,
+        collation,
+        is_identity,
+        is_generated,
+        is_primary_key,
+        is_unique,
+        has_index,
+        check_constraints,
+        foreign_key_reference,
+        comment,
+        parent_table_instance,
+        is_display_field=False,
     ):
         self.utils = schema_builder_utils
         self.database_project = database_project
@@ -120,7 +120,13 @@ class Column:
 
         self.initialize_code_generation()
 
-        vcprint(self.to_dict(), title="Column initialized", pretty=True, verbose=self.verbose, color="cyan")
+        vcprint(
+            self.to_dict(),
+            title="Column initialized",
+            pretty=True,
+            verbose=self.verbose,
+            color="cyan",
+        )
 
         if self.enum_labels:
             self.has_enum_labels = True
@@ -177,9 +183,7 @@ class Column:
     def initialize_code_generation(self):
         self.initialization_attempts += 1
         if self.is_debug:
-            print(
-                f"---------------- Initializing Column Attempt {self.table_name} {self.name}: {self.initialization_attempts} ----------------"
-            )
+            print(f"---------------- Initializing Column Attempt {self.table_name} {self.name}: {self.initialization_attempts} ----------------")
 
         if self.initialized:
             return
@@ -199,7 +203,6 @@ class Column:
         self.type_reference = self.get_type_reference()
 
         self.python_field_type = self.utils.to_python_models_field(self.base_type)
-
 
         self.generate_unique_name_lookups()
         self.generate_name_variations()
@@ -225,10 +228,7 @@ class Column:
 
         unique_names = set(name_variations)
         self.unique_name_lookups = {name: self.name_camel for name in unique_names}
-        self.column_lookup_string = ",\n".join(
-            [f'"{key}": "{value}"' if " " in key or "-" in key else f'{key}: "{value}"' for key, value in
-             self.unique_name_lookups.items()]
-        )
+        self.column_lookup_string = ",\n".join([f'"{key}": "{value}"' if " " in key or "-" in key else f'{key}: "{value}"' for key, value in self.unique_name_lookups.items()])
 
     def update_prop(self, prop, value, priority=0):
         if prop not in self.component_props_priorities:
@@ -291,7 +291,6 @@ class Column:
         if self.is_array:
             self.is_default_filter_field = True
 
-
     def set_python_enum_entry(self):
         if self.enum_labels:
             type_name = self.utils.to_pascal_case(self.base_type)
@@ -299,7 +298,7 @@ class Column:
             py_enum_entries = []
             for label in self.enum_labels:
                 # Convert label to a valid Python identifier
-                valid_label = re.sub(r'\W+', '_', label)  # Replace non-alphanumeric chars with _
+                valid_label = re.sub(r"\W+", "_", label)  # Replace non-alphanumeric chars with _
                 valid_label = valid_label.upper()
 
                 # Prevent leading numbers
@@ -315,12 +314,11 @@ class Column:
 
             py_enum_entries_string = "\n    ".join(py_enum_entries)
 
-            self.py_enum_entry = f"class {type_name}(Enum):\n    {py_enum_entries_string}"
+            self.py_enum_entry = f"class {type_name}(str, Enum):\n    {py_enum_entries_string}"
         else:
             self.py_enum_entry = None
 
         return self.py_enum_entry
-
 
     def generate_description(self):
         if self.comment:
@@ -519,9 +517,24 @@ class Column:
                 return
             else:
                 self.update_component(component="INPUT", priority=1)
-                vcprint(data=self.full_type, title="Unrecognized field type", color="red", verbose=True)
-                vcprint(data=f" -Field: {self.name_camel}", color="red", verbose=True, inline=True)
-                vcprint(data=f" -Table: {self.table_name}", color="red", verbose=True, inline=True)
+                vcprint(
+                    data=self.full_type,
+                    title="Unrecognized field type",
+                    color="red",
+                    verbose=True,
+                )
+                vcprint(
+                    data=f" -Field: {self.name_camel}",
+                    color="red",
+                    verbose=True,
+                    inline=True,
+                )
+                vcprint(
+                    data=f" -Table: {self.table_name}",
+                    color="red",
+                    verbose=True,
+                    inline=True,
+                )
 
     def to_reverse_column_lookup_entry(self):
         self.reverse_column_lookup = {self.name_camel: self.name_variations}
@@ -722,18 +735,32 @@ class Column:
                 "blank": uuid_value.split("'")[1].strip() if "'" in uuid_value else uuid_value.strip(),
                 "generator": "",
             },
-            "::jsonb": lambda value: {"blank": json.loads(value.split("'")[1].strip().replace("'", '"')),
-                                      "generator": ""},
+            "::jsonb": lambda value: {
+                "blank": json.loads(value.split("'")[1].strip().replace("'", '"')),
+                "generator": "",
+            },
             "empty_jsonb": lambda value: {
                 "blank": "{}",  # Handle empty JSON object
                 "generator": "",
             },
             "enum": {
-                "default_enum": lambda enum_value: {"blank": enum_value, "generator": ""},
-                "prompt_enum": lambda readable_base_type: {"blank": f"Select {readable_base_type}", "generator": ""},
+                "default_enum": lambda enum_value: {
+                    "blank": enum_value,
+                    "generator": "",
+                },
+                "prompt_enum": lambda readable_base_type: {
+                    "blank": f"Select {readable_base_type}",
+                    "generator": "",
+                },
             },
-            "timestamptz": lambda value: {"blank": value.strip(), "generator": "formatTimestamptz()"},
-            "timestamp": lambda value: {"blank": value.strip(), "generator": "formatTimestamp()"},
+            "timestamptz": lambda value: {
+                "blank": value.strip(),
+                "generator": "formatTimestamptz()",
+            },
+            "timestamp": lambda value: {
+                "blank": value.strip(),
+                "generator": "formatTimestamp()",
+            },
             "date": lambda value: {"blank": value.strip(), "generator": "formatDate()"},
             "time": lambda value: {"blank": value.strip(), "generator": "formatTime()"},
             "default": lambda value: {"blank": value.strip(), "generator": ""},
@@ -748,7 +775,11 @@ class Column:
                 return outcomes[None]["default"]
 
             # Handle UUID special cases
-            if value in ["gen_random_uuid()", "uuid_generate_v4()", "extensions.uuid_generate_v4()"]:
+            if value in [
+                "gen_random_uuid()",
+                "uuid_generate_v4()",
+                "extensions.uuid_generate_v4()",
+            ]:
                 return outcomes[value].get(context, callable_outcomes["default"](value))
 
             # Handle UUID and timestamp special cases
@@ -838,15 +869,41 @@ class Column:
                     readable_base_type = self.base_type.replace("_", " ").title()
                     return callable_outcomes["enum"]["prompt_enum"](readable_base_type)
 
+
+            # Handle plain integer values for integer columns
+            if isinstance(value, (int, str)) and self.full_type in ["integer", "int4"]:
+                try:
+                    int_value = int(value)  # Ensure it's a valid integer
+                    return callable_outcomes["::integer"](f"'{int_value}'::integer")
+                except ValueError:
+                    pass  # Not a valid integer, fall through
+
             # Default case for unhandled values
-            vcprint(data=self.to_dict(), title=f"Default value not handled: {value}", pretty=True, verbose=True,
-                    color="red")
+            vcprint(f"Table Name: {self.table_name}", color="yellow")
+            vcprint(f"Value: {value}", color="yellow")
+            vcprint(
+                data=self.to_dict(),
+                title=f"Default value not handled: {value}",
+                pretty=True,
+                verbose=True,
+                color="red",
+            )
             return callable_outcomes["default"](value)
 
         # Handling the case where self.default is None
         if self.default is None:
-            self.clean_default = {"python": None, "database": "null", "json": "null", "typescript": ""}
-            self.calc_default_generator_functions = {"python": "", "database": "", "json": "", "typescript": ""}
+            self.clean_default = {
+                "python": None,
+                "database": "null",
+                "json": "null",
+                "typescript": "",
+            }
+            self.calc_default_generator_functions = {
+                "python": "",
+                "database": "",
+                "json": "",
+                "typescript": "",
+            }
             return
 
         # Parse the default value for each context and store them as strings
@@ -947,24 +1004,38 @@ class Column:
         return self.calc_is_primary_key
 
     def get_default_generator_function(self):
-        self.calc_default_generator_functions = {"python": None, "database": None, "json": None, "typescript": "null"}
+        self.calc_default_generator_functions = {
+            "python": None,
+            "database": None,
+            "json": None,
+            "typescript": "null",
+        }
 
         return self.calc_default_generator_functions
 
     def get_validation_functions(self):
-        self.calc_validation_functions = {"python": None, "database": None, "json": None, "typescript": "[]"}
+        self.calc_validation_functions = {
+            "python": None,
+            "database": None,
+            "json": None,
+            "typescript": "[]",
+        }
 
         return self.calc_validation_functions
 
     def get_exclusion_rules(self):
-        self.calc_exclusion_rules = {"python": None, "database": None, "json": None, "typescript": "[]"}
+        self.calc_exclusion_rules = {
+            "python": None,
+            "database": None,
+            "json": None,
+            "typescript": "[]",
+        }
 
         return self.calc_exclusion_rules
 
     def get_max_field_length(self):
         self.calc_max_length = self.character_maximum_length if self.character_maximum_length is not None else "null"
         return self.calc_max_length
-
 
     def to_python_model_field(self):
         field_options = []
@@ -978,14 +1049,19 @@ class Column:
                 if isinstance(python_default, (dict, list)):  # Proper JSON-like structure
                     field_options.append(f"default={python_default}")  # No quotes!
                 elif isinstance(python_default, str):
-                    try:
-                        parsed_default = ast.literal_eval(python_default)
-                        if isinstance(parsed_default, (dict, list)):  # Confirm it's valid JSON-like structure
-                            field_options.append(f"default={parsed_default}")
-                        else:
-                            field_options.append(f"default='{python_default}'")
-                    except (ValueError, SyntaxError):
-                        field_options.append(f"default='{python_default}'")  # Keep as string if parsing fails
+                    if python_default == "false":  # Existing fix for 'false'
+                        field_options.append("default=False")
+                    elif python_default == "true":  # New surgical fix for 'true'
+                        field_options.append("default=True")
+                    else:
+                        try:
+                            parsed_default = ast.literal_eval(python_default)
+                            if isinstance(parsed_default, (dict, list)):  # Confirm it's valid JSON-like structure
+                                field_options.append(f"default={parsed_default}")
+                            else:
+                                field_options.append(f"default='{python_default}'")
+                        except (ValueError, SyntaxError):
+                            field_options.append(f"default='{python_default}'")  # Keep as string if parsing fails
 
         if self.character_maximum_length:
             field_options.append(f"max_length={self.character_maximum_length}")
@@ -997,26 +1073,17 @@ class Column:
         if self.foreign_key_reference:
             related_model = self.utils.to_pascal_case(self.foreign_key_reference["table"])
             if related_model == self.utils.to_pascal_case(self.table_name):
-                field_def = (
-                    f"{self.name} = ForeignKey(to_model='{related_model}', to_column='{self.foreign_key_reference['column']}', {options_str})"
-                )
+                field_def = f"{self.name} = ForeignKey(to_model='{related_model}', to_column='{self.foreign_key_reference['column']}', {options_str})"
             else:
-                field_def = (
-                    f"{self.name} = ForeignKey(to_model={related_model}, to_column='{self.foreign_key_reference['column']}', {options_str})"
-                )
+                field_def = f"{self.name} = ForeignKey(to_model={related_model}, to_column='{self.foreign_key_reference['column']}', {options_str})"
         elif self.python_field_type == "ObjectField":
             field_def = f"{self.name} = ObjectField({options_str})"
-        
         elif self.has_enum_labels:
             enum_class = self.utils.to_pascal_case(self.base_type)
             field_def = f"{self.name} = EnumField(enum_class={enum_class}, {options_str})"
-
-            
         else:
             field_def = f"{self.name} = {self.python_field_type}({options_str})"
-
         return field_def
-
 
     def to_dict(self):
         return {

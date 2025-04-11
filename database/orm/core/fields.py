@@ -8,14 +8,17 @@ from enum import Enum as PythonEnum
 from typing import Union, List, Type
 
 
-
-
 class Field:
     CORE_ATTRS = {
-        'db_type', 'is_native', 'null', 'nullable', 
-        'unique', 'primary_key', 'index'
+        "db_type",
+        "is_native",
+        "null",
+        "nullable",
+        "unique",
+        "primary_key",
+        "index",
     }
-    
+
     def __init__(
         self,
         db_type: str,
@@ -42,7 +45,7 @@ class Field:
         self.name = None
         self.model = None
         self._order_direction = None
-        
+
     def contribute_to_class(self, model, name):
         """
         Hook for performing additional initialization when the field is added to a model.
@@ -78,58 +81,52 @@ class Field:
 
     def desc(self):
         """Mark this field for descending order."""
-        self._order_direction = 'DESC'
+        self._order_direction = "DESC"
         return self
 
     def asc(self):
         """Mark this field for ascending order (default)."""
-        self._order_direction = 'ASC'
+        self._order_direction = "ASC"
         return self
-    
+
     def to_dict(self) -> dict:
         """
         Convert the field configuration to a dictionary.
         Dynamically includes all field attributes, including those from subclasses.
-        
+
         Returns:
             dict: A dictionary containing all field options and attributes
         """
         # Get all instance attributes
         all_attrs = {
-            key: value for key, value in vars(self).items()
-            if not key.startswith('_') and value is not None  # Skip private attrs and None values
+            key: value
+            for key, value in vars(self).items()
+            if not key.startswith("_") and value is not None  # Skip private attrs and None values
         }
-        
+
         # Start with core attributes
-        result = {
-            key: all_attrs[key]
-            for key in self.CORE_ATTRS
-            if key in all_attrs
-        }
-        
+        result = {key: all_attrs[key] for key in self.CORE_ATTRS if key in all_attrs}
+
         # Special handling for default value
         if self.default is not None:
             if callable(self.default):
-                result['default'] = self.default.__name__
+                result["default"] = self.default.__name__
             else:
-                result['default'] = self.default
+                result["default"] = self.default
 
         # Special handling for validators
         if self.validators:
-            result['validators'] = [
-                getattr(validator, '__name__', str(validator))
-                for validator in self.validators
-            ]
+            result["validators"] = [getattr(validator, "__name__", str(validator)) for validator in self.validators]
 
         # Add name and model if set
         if self.name is not None:
-            result['name'] = self.name
+            result["name"] = self.name
         if self.model is not None:
-            result['model'] = self.model.__name__
+            result["model"] = self.model.__name__
 
         # Add remaining attributes (including subclass-specific ones)
         for key, value in all_attrs.items():
-            if key not in result and key != 'extra':
+            if key not in result and key != "extra":
                 # Special handling for various types
                 if isinstance(value, (str, int, float, bool)):
                     result[key] = value
@@ -142,25 +139,27 @@ class Field:
                     result[key] = str(value)
 
         # Add any extra kwargs
-        if hasattr(self, 'extra') and self.extra:
+        if hasattr(self, "extra") and self.extra:
             result.update(self.extra)
 
         return result
 
+
 class UUIDField(Field):
     def __init__(self, **kwargs):
-       super().__init__("text", **kwargs)  # Changed to text
+        super().__init__("text", **kwargs)  # Changed to text
 
     def get_default(self):
-       if self.default == "gen_random_uuid()":
-           return str(uuid.uuid4())
-       return self.default
+        if self.default == "gen_random_uuid()":
+            return str(uuid.uuid4())
+        return self.default
 
     def to_python(self, value):
-       return str(value) if value else None
+        return str(value) if value else None
 
     def from_db_value(self, value):
-       return str(value) if value else None
+        return str(value) if value else None
+
 
 class UUIDFieldREAL(Field):
     def __init__(self, **kwargs):
@@ -188,6 +187,7 @@ class UUIDFieldREAL(Field):
                 str(UUID(str(value)))
             except ValueError:
                 raise ValueError("Value must be a valid UUID format")
+
 
 class CharField(Field):
     def __init__(self, max_length: int = 255, **kwargs):
@@ -270,7 +270,64 @@ class BooleanField(Field):
     async def validate(self, value: bool) -> None:
         await super().validate(value)
         if value is not None and not isinstance(value, bool):
-            raise ValueError("Value must be a boolean")
+            raise ValueError("Value must be a boolean after conversion")
+
+    def to_python(self, value):
+        """Convert input value to Python bool."""
+        if value is None:
+            return None
+
+        # Handle boolean values directly
+        if isinstance(value, bool):
+            return value
+
+        # Convert common string and integer representations
+        if isinstance(value, (str, int)):
+            # Normalize strings to lowercase for consistency
+            if isinstance(value, str):
+                value = value.lower().strip()
+
+            # Explicitly map known true/false values
+            if value in (1, "1", "true", "True"):
+                return True
+            if value in (0, "0", "false", "False"):
+                return False
+
+            # Fall back to Python's bool() for other cases (e.g., non-empty string)
+            try:
+                return bool(value)
+            except ValueError:
+                pass
+
+        raise ValueError(f"Cannot convert {value} (type: {type(value)}) to boolean")
+
+    def get_db_prep_value(self, value):
+        """Prepare value for database, ensuring it's a bool."""
+        if value is None:
+            return None
+
+        # Convert the input to a Python bool using to_python
+        python_value = self.to_python(value)
+
+        # Ensure the result is a bool before sending to the database
+        if not isinstance(python_value, bool):
+            raise ValueError(f"Expected boolean, got {type(python_value)} after conversion")
+
+        return python_value
+
+    def get_db_prep_value(self, value):
+        """Prepare value for database, ensuring it's a bool."""
+        if value is None:
+            return None
+
+        # Convert the input to a Python bool using to_python
+        python_value = self.to_python(value)
+
+        # Ensure the result is a bool before sending to the database
+        if not isinstance(python_value, bool):
+            raise ValueError(f"[ORM BooleanField] Expected boolean, got {type(python_value)} after conversion")
+
+        return python_value
 
 
 class DateTimeField(Field):
@@ -289,6 +346,7 @@ class DateTimeField(Field):
             return value
         return value
 
+
 class TimeField(Field):
     def __init__(self, **kwargs):
         super().__init__("TIME", **kwargs)
@@ -303,6 +361,7 @@ class TimeField(Field):
             return value  # Fixed: Return time object
         return value
 
+
 class DateField(Field):
     def __init__(self, **kwargs):
         super().__init__("DATE", **kwargs)
@@ -316,6 +375,7 @@ class DateField(Field):
         if isinstance(value, date):
             return value  # Fixed: Return date object
         return value
+
 
 class JSONField(Field):
     def __init__(self, **kwargs):
@@ -332,6 +392,7 @@ class JSONField(Field):
         if value is not None:
             return json.dumps(value)
         return value
+
 
 class ArrayField(Field):
     def __init__(self, item_type: Field, **kwargs):
@@ -356,17 +417,18 @@ class ArrayField(Field):
             return value
         return [self.item_type.get_db_prep_value(item) for item in value]  # Fixed: Return list
 
+
 class EnumField(Field):
     def __init__(
-        self, 
+        self,
         enum_class: Type[PythonEnum] = None,
         choices: List[str] = None,
         max_length: int = 255,
-        **kwargs
+        **kwargs,
     ):
         """
         An Enum field that can work with either a Python Enum class or a list of string choices.
-        
+
         Args:
             enum_class: A Python Enum class to use for validation
             choices: A list of valid string values (alternative to enum_class)
@@ -381,7 +443,7 @@ class EnumField(Field):
         # Set db_type to VARCHAR with specified max_length
         super().__init__("VARCHAR", **kwargs)
         self.max_length = max_length
-        
+
         # Handle enum_class or choices
         if enum_class:
             if not issubclass(enum_class, PythonEnum):
@@ -418,23 +480,24 @@ class EnumField(Field):
         await super().validate(value)
         if value is None:
             return
-        
+
         # Convert enum to string value if needed
         check_value = value.value if self.enum_class and isinstance(value, self.enum_class) else value
-        
+
         if check_value not in self.choices:
             raise ValueError(f"Value '{check_value}' must be one of {self.choices}")
 
     def to_dict(self) -> dict:
         """Add enum-specific attributes to the field dictionary."""
         base_dict = super().to_dict()
-        base_dict.update({
-            'choices': self.choices,
-            'max_length': self.max_length,
-            'enum_class': self.enum_class.__name__ if self.enum_class else None
-        })
+        base_dict.update(
+            {
+                "choices": self.choices,
+                "max_length": self.max_length,
+                "enum_class": self.enum_class.__name__ if self.enum_class else None,
+            }
+        )
         return base_dict
-
 
 
 class IPv4Field(Field):

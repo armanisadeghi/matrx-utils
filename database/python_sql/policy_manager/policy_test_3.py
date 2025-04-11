@@ -8,7 +8,7 @@ def check_all_policies(database_project=None):
     FROM pg_policies 
     LIMIT 100;
     """
-    
+
     try:
         policies = execute_sql_query(query, (), database_project)
         print(f"Found {len(policies)} policies in the database:")
@@ -22,4 +22,3 @@ def check_all_policies(database_project=None):
 
 if __name__ == "__main__":
     check_all_policies(database_project="supabase_automation_matrix")
-

@@ -1,7 +1,7 @@
 import asyncio
 
 from common import vcprint
-from database.models import DataBroker
+from database.orm.models import DataBroker
 from database.state import StateManager
 
 
@@ -17,11 +17,11 @@ async def test_cache_management():
 
     # Verify it's gone
     cached_broker = await StateManager.get(DataBroker, id=broker.id)
-    vcprint(cached_broker is None,"Broker removed from cache",  color="blue")
+    vcprint(cached_broker is None, "Broker removed from cache", color="blue")
 
     # Fetch again - should hit database
     refetched_broker = await DataBroker.get(id=broker.id)
-    vcprint(refetched_broker is not None,"Broker refetched",  color="blue")
+    vcprint(refetched_broker is not None, "Broker refetched", color="blue")
 
 
 if __name__ == "__main__":

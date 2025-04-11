@@ -6,6 +6,7 @@ load_dotenv()
 
 class DatabaseConfigError(Exception):
     """Custom exception for database configuration errors"""
+
     pass
 
 
@@ -15,28 +16,28 @@ database_project = {
         "port": os.environ.get("SUPABASE_MATRIX_PORT"),
         "database_name": os.environ.get("SUPABASE_MATRIX_DATABASE_NAME"),
         "user": os.environ.get("SUPABASE_MATRIX_USER"),
-        "password": os.environ.get("SUPABASE_MATRIX_PASSWORD")
+        "password": os.environ.get("SUPABASE_MATRIX_PASSWORD"),
     },
     "supabase_ai-matrix": {
         "host": os.environ.get("SUPABASE_AI_MATRIX_HOST"),
         "port": os.environ.get("SUPABASE_AI_MATRIX_PORT"),
         "database_name": os.environ.get("SUPABASE_AI_MATRIX_DATABASE_NAME"),
         "user": os.environ.get("SUPABASE_AI_MATRIX_USER"),
-        "password": os.environ.get("SUPABASE_AI_MATRIX_PASSWORD")
+        "password": os.environ.get("SUPABASE_AI_MATRIX_PASSWORD"),
     },
     "supabase_sample_matrix": {
         "host": os.environ.get("SUPABASE_SAMPLE_MATRIX_HOST"),
         "port": os.environ.get("SUPABASE_SAMPLE_MATRIX_PORT"),
         "database_name": os.environ.get("SUPABASE_SAMPLE_MATRIX_DATABASE_NAME"),
         "user": os.environ.get("SUPABASE_SAMPLE_MATRIX_USER"),
-        "password": os.environ.get("SUPABASE_SAMPLE_MATRIX_PASSWORD")
+        "password": os.environ.get("SUPABASE_SAMPLE_MATRIX_PASSWORD"),
     },
     "supabase_matrix_django": {
         "host": os.environ.get("SUPABASE_MATRIX_DJANGO_HOST"),
         "port": os.environ.get("SUPABASE_MATRIX_DJANGO_PORT"),
         "database_name": os.environ.get("SUPABASE_MATRIX_DJANGO_DATABASE_NAME"),
         "user": os.environ.get("SUPABASE_MATRIX_DJANGO_USER"),
-        "password": os.environ.get("SUPABASE_MATRIX_DJANGO_PASSWORD")
+        "password": os.environ.get("SUPABASE_MATRIX_DJANGO_PASSWORD"),
     },
 }
 
@@ -51,10 +52,7 @@ def get_database_config(config_name: str) -> dict:
     missing_fields = [field for field in required_fields if not config.get(field)]
 
     if missing_fields:
-        raise DatabaseConfigError(
-            f"Missing required configuration fields for '{config_name}': "
-            f"{', '.join(missing_fields)}. Please check your environment variables."
-        )
+        raise DatabaseConfigError(f"Missing required configuration fields for '{config_name}': " f"{', '.join(missing_fields)}. Please check your environment variables.")
 
     return config
 

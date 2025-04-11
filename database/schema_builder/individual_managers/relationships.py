@@ -1,11 +1,22 @@
 from common import vcprint
 
-from database.schema_builder.individual_managers.common import schema_builder_verbose, schema_builder_debug, schema_builder_info, schema_builder_utils
-
+from database.schema_builder.individual_managers.common import (
+    schema_builder_verbose,
+    schema_builder_debug,
+    schema_builder_info,
+    schema_builder_utils,
+)
 
 
 class Relationship:
-    def __init__(self, constraint_name, column, foreign_column, target_table=None, source_table=None):
+    def __init__(
+        self,
+        constraint_name,
+        column,
+        foreign_column,
+        target_table=None,
+        source_table=None,
+    ):
         self.utils = schema_builder_utils
         self.constraint_name = constraint_name
         self.column = column
@@ -21,7 +32,13 @@ class Relationship:
         self.debug = schema_builder_debug
         self.info = schema_builder_info
 
-        vcprint(self.to_dict(), title="Relationship initialized", pretty=True, verbose=self.verbose, color="yellow")
+        vcprint(
+            self.to_dict(),
+            title="Relationship initialized",
+            pretty=True,
+            verbose=self.verbose,
+            color="yellow",
+        )
 
     def __repr__(self):
         return f"<Relationship {self.constraint_name}: {self.column} -> {self.foreign_column}>"
@@ -38,4 +55,3 @@ class Relationship:
             "frontend_target_table": self.frontend_target_table,
             "frontend_source_table": self.frontend_source_table,
         }
-

@@ -2,8 +2,12 @@ from datetime import datetime
 import os
 from common import vcprint
 
-from database.schema_builder.individual_managers.common import schema_builder_verbose, schema_builder_debug, \
-    schema_builder_info, schema_builder_utils
+from database.schema_builder.individual_managers.common import (
+    schema_builder_verbose,
+    schema_builder_debug,
+    schema_builder_info,
+    schema_builder_utils,
+)
 from database.schema_builder.individual_managers.schema import Schema
 from database.schema_builder.individual_managers.tables import Table
 from database.schema_builder.individual_managers.views import View
@@ -14,16 +18,21 @@ from database.python_sql.db_objects import get_db_objects
 
 
 class SchemaManager:
-    def __init__(self, database="postgres", schema="public", database_project="supabase_automation_matrix",
-                 additional_schemas=None, save_direct=False):
+    def __init__(
+        self,
+        database="postgres",
+        schema="public",
+        database_project="supabase_automation_matrix",
+        additional_schemas=None,
+        save_direct=False,
+    ):
         if additional_schemas is None:
             additional_schemas = ["auth"]
 
         # Ensure utils and Schema are properly imported or defined
         self.utils = schema_builder_utils  # Define or import `utils` properly
         self.database = database
-        self.schema = Schema(name=schema, database_project=database_project,
-                             save_direct=save_direct)  # Define or import `Schema`
+        self.schema = Schema(name=schema, database_project=database_project, save_direct=save_direct)  # Define or import `Schema`
         self.additional_schemas = additional_schemas
         self.database_project = database_project
         self.processed_objects = None
@@ -66,22 +75,45 @@ class SchemaManager:
         pass
 
     def set_all_schema_data(self):
-        (self.processed_objects, self.full_relationships, self.full_junction_analysis, self.all_enum_base_types,
-         self.overview_analysis) = (
-            get_db_objects(self.schema.name, self.database_project)
-        )
+        (
+            self.processed_objects,
+            self.full_relationships,
+            self.full_junction_analysis,
+            self.all_enum_base_types,
+            self.overview_analysis,
+        ) = get_db_objects(self.schema.name, self.database_project)
 
         self.utils.set_and_update_ts_enum_list(self.all_enum_base_types)
 
-        vcprint(self.full_relationships, title="Full relationships", pretty=True, verbose=self.verbose, color="yellow")
-        vcprint(self.processed_objects, title="Processed objects", pretty=True, verbose=self.verbose, color="green")
-        vcprint(self.overview_analysis, title="Relationship Overview analysis", pretty=True, verbose=self.verbose,
-                color="green")
+        vcprint(
+            self.full_relationships,
+            title="Full relationships",
+            pretty=True,
+            verbose=self.verbose,
+            color="yellow",
+        )
+        vcprint(
+            self.processed_objects,
+            title="Processed objects",
+            pretty=True,
+            verbose=self.verbose,
+            color="green",
+        )
+        vcprint(
+            self.overview_analysis,
+            title="Relationship Overview analysis",
+            pretty=True,
+            verbose=self.verbose,
+            color="green",
+        )
 
     def load_objects(self):
         """Loads all database objects (tables and views) into the schema."""
-        vcprint(f"Loaded {len(self.processed_objects)} objects from {self.database_project}.", verbose=self.verbose,
-                color="blue")
+        vcprint(
+            f"Loaded {len(self.processed_objects)} objects from {self.database_project}.",
+            verbose=self.verbose,
+            color="blue",
+        )
 
         for obj in self.processed_objects:
             if obj["type"] == "table":
@@ -91,8 +123,16 @@ class SchemaManager:
 
         self.schema.add_all_table_instances()
 
-        vcprint(f"Loaded {len(self.schema.tables)} tables.", verbose=self.verbose, color="blue")
-        vcprint(f"Loaded {len(self.schema.views)} views.", verbose=self.verbose, color="green")
+        vcprint(
+            f"Loaded {len(self.schema.tables)} tables.",
+            verbose=self.verbose,
+            color="blue",
+        )
+        vcprint(
+            f"Loaded {len(self.schema.views)} views.",
+            verbose=self.verbose,
+            color="green",
+        )
 
     def load_table(self, obj):
         table = Table(
@@ -178,7 +218,10 @@ class SchemaManager:
         # Detect many-to-many relationships
         self.detect_many_to_many_relationships()
         if self.verbose:
-            vcprint(f"Loaded relationships for {len(self.full_relationships)} tables.", color="green")
+            vcprint(
+                f"Loaded relationships for {len(self.full_relationships)} tables.",
+                color="green",
+            )
 
     def detect_many_to_many_relationships(self):
         """Detects and sets many-to-many relationships."""
@@ -188,9 +231,7 @@ class SchemaManager:
                 for related_table_name in related_tables:
                     related_table = self.schema.get_table(related_table_name)
                     if related_table:
-                        other_table = self.schema.get_table(
-                            related_tables[1] if related_tables[0] == related_table_name else related_tables[0]
-                        )
+                        other_table = self.schema.get_table(related_tables[1] if related_tables[0] == related_table_name else related_tables[0])
                         if other_table:
                             related_table.add_many_to_many(table, other_table)
                             table.add_many_to_many(table, other_table)
@@ -202,8 +243,9 @@ class SchemaManager:
             "tables_referenced_by_others": sum(1 for table in self.schema.tables.values() if table.referenced_by),
             "many_to_many_relationships": sum(len(table.many_to_many) for table in self.schema.tables.values()) // 2,
             "most_referenced_tables": sorted(
-                [(table.name, len(table.referenced_by)) for table in self.schema.tables.values()], key=lambda x: x[1],
-                reverse=True
+                [(table.name, len(table.referenced_by)) for table in self.schema.tables.values()],
+                key=lambda x: x[1],
+                reverse=True,
             )[:5],
         }
         return analysis
@@ -299,13 +341,11 @@ class SchemaManager:
                 unique_column_types.add(col_type)
 
                 if column.default_component:
-                    default_component_count[column.default_component] = default_component_count.get(
-                        column.default_component, 0) + 1
+                    default_component_count[column.default_component] = default_component_count.get(column.default_component, 0) + 1
 
                 if "typescript" in column.calc_validation_functions:
                     validation_function = column.calc_validation_functions["typescript"]
-                    calc_validation_functions_count[validation_function] = calc_validation_functions_count.get(
-                        validation_function, 0) + 1
+                    calc_validation_functions_count[validation_function] = calc_validation_functions_count.get(validation_function, 0) + 1
 
                 if "typescript" in column.calc_exclusion_rules:
                     exclusion_rule = column.calc_exclusion_rules["typescript"]
@@ -325,8 +365,7 @@ class SchemaManager:
             "no_primary_key_tables": no_primary_key_tables,
             "total_columns": sum(len(table.columns) for table in self.schema.tables.values()),
             "unique_column_types": list(unique_column_types - set(self.all_enum_base_types)),  # Exclude enums
-            "most_common_column_types": dict(
-                sorted(column_type_count.items(), key=lambda item: item[1], reverse=True)[:10]),
+            "most_common_column_types": dict(sorted(column_type_count.items(), key=lambda item: item[1], reverse=True)[:10]),
             "all_enum_base_types": list(self.all_enum_base_types),
             "tables_by_size": sorted(self.schema.tables.values(), key=lambda t: t.size_bytes, reverse=True)[:5],
             "views_by_size": sorted(self.schema.views.values(), key=lambda v: v.size_bytes, reverse=True)[:5],
@@ -356,11 +395,7 @@ class SchemaManager:
         return self.schema.views[view_name] if view_name in self.schema.views else None
 
     def get_column_instance(self, table_name, column_name):
-        return (
-            self.schema.tables[table_name].columns[column_name]
-            if table_name in self.schema.tables and column_name in self.schema.tables[table_name].columns
-            else None
-        )
+        return self.schema.tables[table_name].columns[column_name] if table_name in self.schema.tables and column_name in self.schema.tables[table_name].columns else None
 
     def get_table_frontend_name(self, table_name):
         return self.get_table_instance(table_name).name_camel if table_name in self.schema.tables else table_name
@@ -391,7 +426,13 @@ class SchemaManager:
                 "constraint_name": fk_data["constraint_name"],
             }
 
-        vcprint(transformed, title="Transformed Foreign Keys", verbose=self.debug, pretty=True, color="yellow")
+        vcprint(
+            transformed,
+            title="Transformed Foreign Keys",
+            verbose=self.debug,
+            pretty=True,
+            color="yellow",
+        )
         return transformed
 
     def transform_referenced_by(self, table_name, entry):
@@ -428,8 +469,13 @@ class SchemaManager:
             }
             self.frontend_full_relationships.append(updated_relationship)
 
-        vcprint(self.frontend_full_relationships, title="Frontend Full Relationships", pretty=True,
-                verbose=self.verbose, color="yellow")
+        vcprint(
+            self.frontend_full_relationships,
+            title="Frontend Full Relationships",
+            pretty=True,
+            verbose=self.verbose,
+            color="yellow",
+        )
         return self.frontend_full_relationships
 
     def get_full_relationship_analysis(self):
@@ -459,15 +505,24 @@ class SchemaManager:
         ts_types_string = get_relationship_data_model_types()
 
         ts_code_content = self.utils.python_dict_to_ts_with_updates(
-            name="entityRelationships", obj=self.full_relationship_analysis, keys_to_camel=True, export=True,
-            as_const=True, ts_type=None
+            name="entityRelationships",
+            obj=self.full_relationship_analysis,
+            keys_to_camel=True,
+            export=True,
+            as_const=True,
+            ts_type=None,
         )
 
         ts_code_content = ts_types_string + ts_code_content
         self.schema.code_handler.save_code_file("fullRelationships.ts", ts_code_content)
 
-        vcprint(self.full_relationship_analysis, title="Full Relationship Analysis", pretty=True, verbose=self.verbose,
-                color="blue")
+        vcprint(
+            self.full_relationship_analysis,
+            title="Full Relationship Analysis",
+            pretty=True,
+            verbose=self.verbose,
+            color="blue",
+        )
 
     def get_frontend_junction_analysis(self):
         frontend_junction_analysis = {}
@@ -476,8 +531,12 @@ class SchemaManager:
             table_instance = self.schema.tables.get(table_key)
             entity_name = table_instance.name_camel if table_instance else table_key
 
-            updated_table = {"entityName": entity_name, "schema": table_value["schema"], "connectedTables": [],
-                             "additionalFields": []}
+            updated_table = {
+                "entityName": entity_name,
+                "schema": table_value["schema"],
+                "connectedTables": [],
+                "additionalFields": [],
+            }
 
             for connected_table in table_value["connected_tables"]:
                 connected_instance = self.schema.tables.get(connected_table["table"])
@@ -485,8 +544,7 @@ class SchemaManager:
                     {
                         "schema": connected_table["schema"],
                         "entity": connected_instance.name_camel if connected_instance else connected_table["table"],
-                        "connectingColumn": self.schema.tables[table_key].columns[
-                            connected_table["connecting_column"]].name_camel
+                        "connectingColumn": self.schema.tables[table_key].columns[connected_table["connecting_column"]].name_camel
                         if table_instance and connected_table["connecting_column"] in table_instance.columns
                         else connected_table["connecting_column"],
                         "referencedColumn": connected_instance.columns[connected_table["referenced_column"]].name_camel
@@ -561,15 +619,9 @@ def generate_schema_structure(schema_manager, table_name):
             schema_structure["manyToMany"].append(
                 {
                     "relatedTable": mm["related_table"],  # The related table
-                    "junctionTable": mm[
-                        "junction_table"
-                    ],  # The junction table that joins the two tables
-                    "localColumn": mm[
-                        "local_column"
-                    ],  # Column in the junction table for the current table
-                    "relatedColumn": mm[
-                        "related_column"
-                    ],  # Column in the junction table for the related table
+                    "junctionTable": mm["junction_table"],  # The junction table that joins the two tables
+                    "localColumn": mm["local_column"],  # Column in the junction table for the current table
+                    "relatedColumn": mm["related_column"],  # Column in the junction table for the related table
                 }
             )
 
@@ -583,9 +635,7 @@ def generate_schema_structure(schema_manager, table_name):
     elif schema_structure["inverseForeignKeys"]:
         schema_structure["defaultFetchStrategy"] = "ifk"
     else:
-        schema_structure["defaultFetchStrategy"] = (
-            "simple"  # No relationships, basic fetch
-        )
+        schema_structure["defaultFetchStrategy"] = "simple"  # No relationships, basic fetch
 
     return schema_structure
 
@@ -614,9 +664,7 @@ def example_usage(schema_manager):
         color="cyan",
     )
 
-    example_view = schema_manager.get_view(
-        "view_registered_function_all_rels"
-    ).to_dict()
+    example_view = schema_manager.get_view("view_registered_function_all_rels").to_dict()
     vcprint(
         example_view,
         title="Full Registered Function View",

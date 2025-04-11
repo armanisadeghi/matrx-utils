@@ -1,7 +1,7 @@
 # relationship_trials.py
 import asyncio
 from common import vcprint
-from database.models import DataBroker, DataInputComponent, MessageBroker
+from database.orm.models import DataBroker, DataInputComponent, MessageBroker
 from database.state import StateManager
 
 
@@ -15,7 +15,12 @@ async def relationship_trial():
     default_component_id = broker.default_component
     if default_component_id:
         component = await DataInputComponent.get(id=default_component_id)
-        vcprint(component.to_dict(), title="Related DataInputComponent", color="green", pretty=True)
+        vcprint(
+            component.to_dict(),
+            title="Related DataInputComponent",
+            color="green",
+            pretty=True,
+        )
 
         # Verify it's in cache
         cached_component = await StateManager.get(DataInputComponent, id=default_component_id)
@@ -37,13 +42,18 @@ async def relationship_trial():
     await broker.fetch_related()
 
     # Check if related data is cached
-    has_component_cache = hasattr(broker, '_default_component_cache')
-    has_message_brokers_cache = hasattr(broker, '_message_brokers_cache')
+    has_component_cache = hasattr(broker, "_default_component_cache")
+    has_message_brokers_cache = hasattr(broker, "_message_brokers_cache")
 
-    vcprint({
-        "Component Cached": has_component_cache,
-        "Message Brokers Cached": has_message_brokers_cache
-    }, title="Cache Status", color="green", pretty=True)
+    vcprint(
+        {
+            "Component Cached": has_component_cache,
+            "Message Brokers Cached": has_message_brokers_cache,
+        },
+        title="Cache Status",
+        color="green",
+        pretty=True,
+    )
 
     # 4. Test Relationship Navigation
     vcprint("\nTesting Relationship Navigation:", color="yellow")
@@ -51,7 +61,11 @@ async def relationship_trial():
         first_message_broker = message_brokers[0]
         # Navigate back to the data broker
         related_broker = await DataBroker.get(id=first_message_broker.broker_id)
-        vcprint("Relationship navigation successful:", broker.id == related_broker.id, color="blue")
+        vcprint(
+            "Relationship navigation successful:",
+            broker.id == related_broker.id,
+            color="blue",
+        )
 
     # Test Cache Coherency
     vcprint("\nTesting Cache Coherency:", color="yellow")
@@ -67,15 +81,21 @@ async def relationship_trial():
 
             # Verify cache update
             cached_mb = await StateManager.get(MessageBroker, id=mb.id)
-            vcprint({
-                "Original Value": original_value,
-                "Updated Value": cached_mb.default_value if cached_mb else None,
-                "Cache Updated": cached_mb.default_value == test_value if cached_mb else False
-            }, title="Cache Update Check", color="green", pretty=True)
+            vcprint(
+                {
+                    "Original Value": original_value,
+                    "Updated Value": cached_mb.default_value if cached_mb else None,
+                    "Cache Updated": cached_mb.default_value == test_value if cached_mb else False,
+                },
+                title="Cache Update Check",
+                color="green",
+                pretty=True,
+            )
         finally:
             # Always restore original value
             mb.default_value = original_value
             await mb.save()
+
 
 if __name__ == "__main__":
     asyncio.run(relationship_trial())

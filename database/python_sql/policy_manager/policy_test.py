@@ -2,31 +2,32 @@ import os
 from common import vcprint
 from database.client.postgres_connection import execute_sql_query
 
-def set_unified_rls_policy(table_name, schema='public', database_project=None):
+
+def set_unified_rls_policy(table_name, schema="public", database_project=None):
     """
     Apply consistent Row Level Security policies to a specified table using
     explicit transaction blocks and ensure the resource type exists in the enum.
-    
+
     Args:
         table_name (str): The name of the table to apply RLS policies to
         schema (str, optional): Database schema. Defaults to 'public'.
         database_project (str, optional): The database project identifier.
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
     # All of our tables use user_id as the owner column
-    owner_column = 'user_id'
-    
+    owner_column = "user_id"
+
     # Use the table name as the resource type name
     resource_type_name = table_name
-    
+
     # Standard insertion check
-    insertion_check = 'auth.uid() = user_id'
-    
+    insertion_check = "auth.uid() = user_id"
+
     # Use schema-qualified table name with quotes (Supabase style)
     full_table_name = f'"{schema}"."{table_name}"'
-    
+
     # First, check if the resource type exists in the enum and add it if not
     check_and_add_resource_type_query = f"""
     DO $$
@@ -56,7 +57,7 @@ def set_unified_rls_policy(table_name, schema='public', database_project=None):
     -- Return a dummy result
     SELECT 'Resource type check completed' AS result;
     """
-    
+
     # Generate the SQL query with explicit transaction blocks
     rls_query = f"""
 BEGIN;
@@ -147,16 +148,16 @@ COMMIT;
 -- Return a dummy result to avoid "no results to fetch" error
 SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
 """
-    
+
     try:
         # First add the resource type to the enum if needed
         print(f"Checking and adding resource type '{resource_type_name}' to enum if needed...")
         enum_result = execute_sql_query(check_and_add_resource_type_query, (), database_project)
-        
+
         # Then apply the RLS policies
         print(f"Applying RLS policies to {full_table_name}...")
         rls_result = execute_sql_query(rls_query, (), database_project)
-        
+
         # Verify the policies were created
         verification_query = f"""
         SELECT 
@@ -171,15 +172,15 @@ SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
         ORDER BY 
             policyname;
         """
-        
+
         policies = execute_sql_query(verification_query, (schema, table_name), database_project)
-        
+
         if policies and len(policies) >= 4:  # We expect at least 4 policies (SELECT, INSERT, UPDATE, DELETE)
             print(f"✅ Successfully applied RLS policies to {full_table_name}")
             print(f"✅ Verified {len(policies)} policies:")
             for policy in policies:
                 print(f"  - {policy['policyname']} ({policy['cmd']})")
-                
+
             # Verify that the enum value exists
             enum_check_query = """
             SELECT EXISTS (
@@ -191,12 +192,12 @@ SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
             ) as exists;
             """
             enum_exists = execute_sql_query(enum_check_query, (resource_type_name,), database_project)
-            if enum_exists and enum_exists[0]['exists']:
+            if enum_exists and enum_exists[0]["exists"]:
                 print(f"✅ Verified '{resource_type_name}' exists in resource_type enum")
             else:
                 print(f"❌ Failed to verify '{resource_type_name}' in resource_type enum")
                 return False
-                
+
             return True
         else:
             print(f"❌ Failed to verify policies for {full_table_name}. Found {len(policies) if policies else 0} policies.")
@@ -209,31 +210,31 @@ SELECT 'RLS policies applied successfully to {full_table_name}' AS result;
         return False
 
 
-def apply_rls_to_all_tables(tables, schema='public', database_project=None):
+def apply_rls_to_all_tables(tables, schema="public", database_project=None):
     """
     Apply RLS policies to multiple tables and report results.
-    
+
     Args:
         tables (list): List of table names to apply RLS to
         schema (str, optional): Database schema. Defaults to 'public'.
         database_project (str, optional): The database project identifier.
-        
+
     Returns:
         dict: Results showing success/failure for each table
     """
     results = {}
     total = len(tables)
     success_count = 0
-    
+
     print(f"Applying RLS policies to {total} tables...")
-    
+
     for i, table in enumerate(tables, 1):
         print(f"\n[{i}/{total}] Processing {table}...")
         success = set_unified_rls_policy(table, schema, database_project)
         results[table] = success
         if success:
             success_count += 1
-    
+
     # Print summary
     print(f"\n{'='*50}")
     print(f"RLS POLICY APPLICATION SUMMARY")
@@ -241,35 +242,35 @@ def apply_rls_to_all_tables(tables, schema='public', database_project=None):
     print(f"Total tables: {total}")
     print(f"Successful: {success_count}")
     print(f"Failed: {total - success_count}")
-    
+
     # List failures if any
     if total - success_count > 0:
         print("\nFailed tables:")
         for table, success in results.items():
             if not success:
                 print(f"  - {table}")
-    
+
     print(f"{'='*50}")
-    
+
     return results
 
 
 if __name__ == "__main__":
-    os.system('cls')
-    
+    os.system("cls")
+
     # Example of applying to a single table
     # table_name = "conversation"
     # schema = 'public'
     # database_project = 'supabase_automation_matrix'
     # success = set_unified_rls_policy(table_name, schema=schema, database_project=database_project)
-    
+
     # Example of applying to multiple tables
     tables_to_secure = [
         "conversation",
         "message",
     ]
-    
-    schema = 'public'
-    database_project = 'supabase_automation_matrix'
-    
+
+    schema = "public"
+    database_project = "supabase_automation_matrix"
+
     results = apply_rls_to_all_tables(tables_to_secure, schema, database_project)

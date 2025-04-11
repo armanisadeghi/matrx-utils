@@ -6,6 +6,7 @@ from database.orm.core.registry import get_model_by_name
 from .fields import Field
 from functools import cached_property
 
+
 @dataclass
 class ForeignKeyReference:
     column_name: str
@@ -13,8 +14,8 @@ class ForeignKeyReference:
     to_column: str
     related_name: str = None
     is_native: bool = False
-    on_delete: str = 'CASCADE'
-    on_update: str = 'CASCADE'
+    on_delete: str = "CASCADE"
+    on_update: str = "CASCADE"
 
     @cached_property
     def _related_model(self):
@@ -45,7 +46,7 @@ class ForeignKeyReference:
     async def fetch_data(self, instance, column_value):
         """
         Fetches the related object based on the foreign key value and stores it in the instance
-        
+
         Args:
             instance: The model instance we're fetching related data for
             column_value: The value stored in this model's foreign key field
@@ -53,11 +54,13 @@ class ForeignKeyReference:
         filter_kwargs = {self.to_column: column_value}
         related_object = await self.related_model.get(**filter_kwargs)
         instance.set_related(self.column_name, related_object)
-        return related_object    
-        
+        return related_object
+
+
 @dataclass
 class InverseForeignKeyReference:
     """Tracks an inverse foreign key relationship"""
+
     from_model: str
     from_field: str
     referenced_field: str
@@ -85,30 +88,29 @@ class InverseForeignKeyReference:
     async def fetch_data(self, instance, referenced_value=None):
         """
         Fetches all related objects based on the foreign key value and stores them in the instance
-        
+
         Args:
             instance: The model instance we're fetching related data for
             referenced_value: Optional value override. If not provided, gets from referenced_field
         """
         if referenced_value is None:
             referenced_value = getattr(instance, self.referenced_field)
-            
+
         if referenced_value is not None:
             filter_kwargs = {self.from_field: referenced_value}
             related_objects = await self.related_model.filter(**filter_kwargs).all()
-            
+
             relation_name = self.related_name or self.from_field
             instance.set_related(relation_name, related_objects, is_inverse=True)
             return related_objects
         return []
 
 
-
 class LazyRelation:
     def __init__(self, instance, field):
         self.instance = instance
         self.field = field
-        self.cache_name = f'_{field.name}_cache'
+        self.cache_name = f"_{field.name}_cache"
 
     async def __call__(self):
         if hasattr(self.instance, self.cache_name):
@@ -117,10 +119,11 @@ class LazyRelation:
         setattr(self.instance, self.cache_name, related)
         return related
 
+
 class RelationDescriptor:
     def __init__(self, field):
         self.field = field
-        self.cache_name = f'_{field.name}_cache'
+        self.cache_name = f"_{field.name}_cache"
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -145,17 +148,18 @@ class RelationDescriptor:
         else:
             raise ValueError(f"Invalid value type for relation field: {type(value)}")
 
+
 class RelationField(Field):
     def __init__(self, to_model, **kwargs):
         # Force is_native=False for relationship fields unless explicitly set
-        kwargs['is_native'] = kwargs.get('is_native', False)  # Default to False
+        kwargs["is_native"] = kwargs.get("is_native", False)  # Default to False
         super().__init__("", **kwargs)
         self.to_model = to_model
-        self.related_name = kwargs.get('related_name')
-        self.on_delete = kwargs.get('on_delete', 'CASCADE')
-        self.on_update = kwargs.get('on_update', 'CASCADE')
-        self.lazy = kwargs.get('lazy', True)
-        self.through = kwargs.get('through')
+        self.related_name = kwargs.get("related_name")
+        self.on_delete = kwargs.get("on_delete", "CASCADE")
+        self.on_update = kwargs.get("on_update", "CASCADE")
+        self.lazy = kwargs.get("lazy", True)
+        self.through = kwargs.get("through")
         self._related_model = None
 
     def contribute_to_class(self, model, name):
@@ -167,6 +171,7 @@ class RelationField(Field):
         if self._related_model is None:
             if isinstance(self.to_model, str):
                 from .registry import get_model_by_name
+
                 self._related_model = get_model_by_name(self.to_model)
             else:
                 self._related_model = self.to_model
@@ -180,6 +185,7 @@ class RelationField(Field):
             return pk_field.db_type
         else:
             return "JSONB"
+
 
 class ForeignKey(RelationField):
     def __init__(self, to_model, **kwargs):
@@ -199,10 +205,7 @@ class ForeignKey(RelationField):
             key_values = getattr(instance, self.name)
             if not key_values:
                 return None
-            filter_kwargs = {
-                key: key_values[key]
-                for key in related_model._meta.primary_keys
-            }
+            filter_kwargs = {key: key_values[key] for key in related_model._meta.primary_keys}
         else:
             key_value = getattr(instance, self.name)
             if not key_value:
@@ -211,11 +214,11 @@ class ForeignKey(RelationField):
         return await related_model.get(**filter_kwargs)
 
     async def handle_on_delete(self, instance):
-        if self.on_delete == 'CASCADE':
+        if self.on_delete == "CASCADE":
             related_instance = await self.get_related_objects(instance)
             if related_instance:
                 await related_instance.delete()
-        elif self.on_delete == 'SET_NULL':
+        elif self.on_delete == "SET_NULL":
             if self.composite:
                 setattr(instance, self.name, {})
             else:
@@ -241,6 +244,7 @@ class ForeignKey(RelationField):
             return value
         return value
 
+
 class RelationLoader:
     def __init__(self, instance, field):
         self.instance = instance
@@ -250,7 +254,8 @@ class RelationLoader:
     async def load(self):
         return await self.field.get_related_objects(self.instance)
 
+
 class OneToOneField(ForeignKey):
     def __init__(self, to_model, **kwargs):
-        kwargs['unique'] = True
+        kwargs["unique"] = True
         super().__init__(to_model, **kwargs)
