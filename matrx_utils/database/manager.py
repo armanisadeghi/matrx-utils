@@ -4,16 +4,16 @@ import json
 from datetime import datetime
 import os
 
-from common.utils.file_handlers.code_hanlder import CodeHandler
-from common.utils.data_handlers.data_transformer import DataTransformer
-from database.constants import (
+from matrx_utils.common.file_management.specific_handlers.code import CodeHandler
+from matrx_utils.data_handling.data_transformer import DataTransformer
+from matrx_utils.database.constants import (
     get_default_component_props,
     get_relationship_data_model_types,
 )
-from database.schema_builder.helpers.manager_helpers import generate_dto_and_manager
-from database.python_sql.db_objects import get_db_objects
-from common import vcprint
-from database.schema_builder.helpers.manual_overrides import TABLE_ORDER_OVERRIDES
+from matrx_utils.database.schema_builder.helpers.manager_helpers import generate_dto_and_manager
+from matrx_utils.database.python_sql.db_objects import get_db_objects
+from matrx_utils.common import vcprint
+from matrx_utils.database.schema_builder.helpers.manual_overrides import TABLE_ORDER_OVERRIDES
 
 verbose = False
 debug = False
