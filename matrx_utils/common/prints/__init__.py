@@ -12,7 +12,7 @@ from .fancy_prints import (
     vclist,
     vcdlist
 )
-from .colors import Color
+from .colors import COLORS
 
 __all__ = [
     'vcprint',
@@ -23,5 +23,5 @@ __all__ = [
     'pretty_print',
     'vclist',
     'vcdlist',
-    'Color'
+    'COLORS'
 ] 
