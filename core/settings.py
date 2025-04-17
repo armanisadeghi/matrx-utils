@@ -25,9 +25,12 @@ class Settings(BaseSettings):
 
     PORT: int = 8000
 
+    # Migration related settings.
+
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = 'ignore'
 
 
 # Create settings instance
