@@ -1,10 +1,10 @@
 # database\orm\demo.py
 import asyncio
 
-from common import vcprint
-from common import cool_print
-from database.orm.models import DataBroker, DataInputComponent, DataOutputComponent
-from database.orm.orm_tests.additional_tests import final_message, type_sentence
+from matrx_utils.common import vcprint
+from matrx_utils.common import cool_print
+from matrx_utils.database.orm.models import DataBroker, DataInputComponent, DataOutputComponent
+from matrx_utils.database.orm.orm_tests.additional_tests import final_message, type_sentence
 import time
 import os
 
@@ -270,7 +270,7 @@ async def basic_operations_demo(broker_id):
         "\n--> Import placed here to show you never need to think about the cache or state",
         color="bright_lavender",
     )
-    from database.state import StateManager
+    from matrx_utils.database.state import StateManager
 
     cool_print(
         "\n --> in_cache = bool(await StateManager.get(DataBroker, id=broker_id)) \n",
