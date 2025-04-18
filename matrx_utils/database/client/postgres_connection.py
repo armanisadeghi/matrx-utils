@@ -4,6 +4,9 @@ from psycopg2 import pool
 from dotenv import load_dotenv
 from matrx_utils.common import vcprint
 from matrx_utils.database.utils.sql_utils import sql_param_to_psycopg2
+from typing import List, Dict, Any
+import json
+
 
 connection_pool = None
 
@@ -109,3 +112,72 @@ def execute_sql_file(filename, params=None, database_project="this_will_cause_er
     vcprint(f"With params: {params}\n", color="green")
 
     return execute_sql_query(query, params, database_project)
+
+
+def execute_transaction_query(query, params=None, database_project="this_will_cause_error_specify_the_database"):
+    """
+    Executes a SQL query within a transaction, commits it, and returns any results.
+    Suitable for INSERT/UPDATE/DELETE operations that may or may not return values.
+    """
+    conn = get_postgres_connection(database_project)
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if params and isinstance(params, dict):
+                query, params = sql_param_to_psycopg2(query, params)
+            cur.execute(query, params)
+            conn.commit()  # Explicitly commit the transaction
+
+            # Try to fetch results if any are available
+            try:
+                return cur.fetchall()
+            except:
+                # If no results to fetch, return an empty list instead of raising an error
+                return []
+    finally:
+        connection_pool.putconn(conn)
+
+
+# database/client/postgres_connection.py
+# Add this function to your postgres_connection.py file
+
+def execute_batch_query(query: str, batch_params: List[Dict[str, Any]], batch_size: int = 50, database_project="supabase_automation_matrix"):
+    """
+    Executes a SQL query with batched parameters.
+    """
+    conn = get_postgres_connection(database_project)
+    all_results = []
+
+    try:
+        # Process in batches
+        for i in range(0, len(batch_params), batch_size):
+            batch = batch_params[i:i + batch_size]
+            vcprint(f"Processing batch {i//batch_size + 1}/{(len(batch_params) + batch_size - 1)//batch_size}", color="blue")
+
+            # Process each row individually within the batch
+            for idx, row_params in enumerate(batch):
+                # Handle JSONB serialization properly
+                processed_params = {}
+                for key, value in row_params.items():
+                    if key == 'data' and isinstance(value, dict):
+                        # Convert dict to JSONB-compatible string
+                        processed_params[key] = json.dumps(value)
+                    else:
+                        processed_params[key] = value
+
+                # Execute the query for this row
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    if processed_params:
+                        query_with_names, params = sql_param_to_psycopg2(query, processed_params)
+                        cur.execute(query_with_names, params)
+                        conn.commit()
+                        try:
+                            result = cur.fetchall()
+                            if result:
+                                all_results.extend(result)
+                        except:
+                            # No results to fetch
+                            pass
+    finally:
+        connection_pool.putconn(conn)
+
+    return all_results

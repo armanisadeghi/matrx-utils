@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     LOG_FILENAME: str = f"matrx-{APP_NAME}-{APP_VERSION}.log"
     LOG_VCPRINT: bool = False
 
+    STATIC_ROOT: Path = Path(BASE_DIR) / "staticfiles"
     PORT: int = 8000
 
     # Migration related settings.

@@ -3,10 +3,32 @@ from core import settings, get_logger
 from app.api.v1 import create_v1_app
 # from app.api.v2 import create_v2_app
 import time
+from contextlib import  asynccontextmanager
+from matrx_utils.common import vcprint
+from core.task_queue import get_task_queue
 
+logger = get_logger()
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application with multiple API versions"""
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # --- startup block ---
+        vcprint("[AI DREAM] All Core Services Starting...", color="green")
+        logger.info("FastAPI startup complete.")
+        task_queue = get_task_queue()
+        logger.info("[create_app] Task Queue Initialized.")
+
+        # Startup related things go here.
+        ##################################
+
+        yield
+        # --- shutdown block ---
+        logger.info("Shutting down gracefully…")
+        await task_queue.shutdown()
+        logger.info("Task Queue Shutdown complete.")
+
 
     # Main app - no docs at root level
     main_app = FastAPI(
@@ -14,7 +36,8 @@ def create_app() -> FastAPI:
         version=settings.APP_VERSION,
         description="FastAPI Microservice with Multiple API Versions",
         docs_url=None,  # Disable default /docs
-        redoc_url=None  # Disable default /redoc
+        redoc_url=None , # Disable default /redoc,
+        lifespan=lifespan
     )
 
     # Create API v1 sub-app

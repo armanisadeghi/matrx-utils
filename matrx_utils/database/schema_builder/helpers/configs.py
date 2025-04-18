@@ -176,21 +176,20 @@ CODE_BASICS_PYTHON_AUTO_CONFIG = {
     "additional_bottom_lines": [],
 }
 
-SOCKET_SCHEMA_TS_INTERFACES = {  # Added by Jatin for saving socket task types
-    "temp_path": "socketSchema.interface.ts",
-    "root": os.path.join(ADMIN_TS_ROOT, "constants/"),
-    "file_location": "",
+SOCKET_SCHEMA_TS_INTERFACES = {
+    "temp_path": "socket-schema-types.ts",
+    "root": os.path.join(ADMIN_TS_ROOT, "types/"),
+    "file_location": "// File: types/socket-schema-types.ts",
     "import_lines": "",
     "additional_top_lines": [],
     "additional_bottom_lines": [],
 }
-# constants\socket-constants-new.ts
 
-SOCKET_SCHEMA_TS_SCHEMAS = {  # Added by Jatin for saving socket task types
-    "temp_path": "socketSchema.schema.ts",
-    "root": os.path.join(ADMIN_TS_ROOT, "constants/"),  # Added by Armani to avoid errors
-    "file_location": "",
-    "import_lines": "",
+SOCKET_SCHEMA_TS_SCHEMAS = {
+    "temp_path": "socket-schema.ts",
+    "root": os.path.join(ADMIN_TS_ROOT, "constants/"),
+    "file_location": "// File Location: constants/socket-schema.ts",
+    "import_lines": [],
     "additional_top_lines": [],
     "additional_bottom_lines": [],
 }

@@ -1,4 +1,4 @@
-from database.python_sql.table_relationships import get_table_relationships
+from matrx_utils.database.python_sql.table_relationships import get_table_relationships
 
 
 def get_table_relationships_data(schema="public"):

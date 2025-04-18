@@ -1,7 +1,7 @@
 import os
 from typing import List, Dict, Any, Optional, Union, Tuple
 from psycopg2.extras import RealDictCursor
-from database.client.postgres_connection import execute_sql_query
+from matrx_utils.database.client.postgres_connection import execute_sql_query
 
 class AIQueryTool:
     """

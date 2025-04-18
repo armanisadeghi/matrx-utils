@@ -8,6 +8,7 @@ from enum import Enum as PythonEnum
 from typing import Union, List, Type
 
 
+
 class Field:
     CORE_ATTRS = {
         "db_type",

@@ -78,7 +78,9 @@ CHAT_CONFIG_FIELD_DEFINITIONS = {
     "tools_override": {"type": list, "always_include": False, "default": None},
     "recipe_id": {"type": str, "always_include": False, "default": None},
     "version": {"type": Any, "always_include": True, "default": "latest"},
+    "user_id": {"type": str, "always_include": False, "default": None},
     "prepare_for_next_call": {"type": bool, "always_include": True, "default": False},
+    "save_new_conversation": {"type": bool, "always_include": True, "default": False},
 }
 
 CHAT_CONFIG_FIELD_MAP = {

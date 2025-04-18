@@ -1,4 +1,3 @@
-from core.services.socketio_app import sio
 from matrx_utils.socket.core.service_factory import ServiceFactory
 
 

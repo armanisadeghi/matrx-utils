@@ -1,4 +1,4 @@
-from database.orm.supabase.core.fields import (
+from matrx_utils.database.orm.supabase.core.fields import (
     CharField,
     IntegerField,
     DateTimeField,

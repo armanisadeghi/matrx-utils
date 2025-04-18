@@ -1,5 +1,5 @@
 import os
-from ..file_manager import FileManager
+from matrx_utils.common.file_management.file_manager import FileManager
 from datetime import datetime
 
 

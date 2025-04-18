@@ -1,8 +1,8 @@
 # common/file_management/file_manager.py
 
 from .file_handler import FileHandler
-from .specific_handlers.html import HtmlHandler
-from .specific_handlers.json import JsonHandler
+from .specific_handlers.html_handler import HtmlHandler
+from .specific_handlers.json_handler import JsonHandler
 from .specific_handlers.markdown import MarkdownHandler
 from .specific_handlers.text import TextHandler
 from .specific_handlers.image import ImageHandler

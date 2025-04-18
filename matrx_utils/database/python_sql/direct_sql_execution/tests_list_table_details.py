@@ -3,7 +3,7 @@ import sys
 from typing import Dict, Any
 import json
 
-from database.python_sql.direct_sql_execution.ai_sql_executor import create_ai_query_tool
+from matrx_utils.database.python_sql.direct_sql_execution.ai_sql_executor import create_ai_query_tool
 
 
 def test_get_full_spectrum_position_schema():

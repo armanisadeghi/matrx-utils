@@ -149,11 +149,11 @@ class BaseDTO:
 
 class BaseManager:
     def __init__(
-        self,
-        model,
-        dto_class=None,
-        fetch_on_init_limit: int = 0,
-        FETCH_ON_INIT_WITH_WARNINGS_OFF: Optional[str] = None,
+            self,
+            model,
+            dto_class=None,
+            fetch_on_init_limit: int = 0,
+            FETCH_ON_INIT_WITH_WARNINGS_OFF: Optional[str] = None,
     ):
         self.model = model
         self.dto_class = dto_class
@@ -169,15 +169,14 @@ class BaseManager:
         if self.fetch_on_init_limit > 0:
             # Run the auto-fetch in an async context if possible, but since __init__ is sync,
             # we'll defer to an async method and warn if not handled properly elsewhere
-            vcprint("Auto-fetching on init", verbose=info, color="yellow")
 
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 loop.create_task(self._auto_fetch_on_init())
+                vcprint("Auto-fetching on init", verbose=info, color="yellow")
             else:
                 vcprint(
-                    "Auto-fetch requires an async context. Ensure this runs in an async environment!",
-                    "[WARNING] Auto-fetch deferred",
+                    "[WARNING] Auto-fetching on init deferred | Auto-fetch requires an async context.",
                     color="yellow",
                 )
 
@@ -376,7 +375,12 @@ class BaseManager:
     async def load_item(self, use_cache=True, **kwargs):
         """Load and initialize a single item."""
         return await self._get_item_or_raise(use_cache=use_cache, **kwargs)
-    
+
+    @handle_errors
+    async def load_item_or_none(self, use_cache=True, **kwargs):
+        """Load and initialize a single item or None."""
+        return await self._get_item_or_none(use_cache=use_cache, **kwargs)
+
     @handle_errors
     async def load_item_or_none(self, use_cache=True, **kwargs):
         """Load and initialize a single item or None."""
@@ -441,6 +445,7 @@ class BaseManager:
     async def create_item(self, **data):
         """Create and initialize an item."""
         item = await self._create_item(**data)
+        vcprint(item, "BASE MANAGER Created item", verbose=debug, color="yellow")
         return await self._initialize_item_runtime(item)
 
     async def update_item(self, item_id, **updates):
@@ -800,7 +805,8 @@ class BaseManager:
 
     async def get_active_item_with_related_models_list_dict(self, related_models_list):
         """Get dicts for an active item with multiple specific related models."""
-        return [item.to_dict() for item in await self.get_active_item_with_related_models_list(related_models_list) if item]
+        return [item.to_dict() for item in await self.get_active_item_with_related_models_list(related_models_list) if
+                item]
 
     async def get_active_item_with_through_fk(self, item_id, first_relationship, second_relationship):
         """Get an active item through two FK hops."""
@@ -888,7 +894,7 @@ class BaseManager:
             suppression_prefix = "YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_"
             if self._FETCH_ON_INIT_WITH_WARNINGS_OFF.startswith(suppression_prefix):
                 try:
-                    warning_limit_threshold = int(self._FETCH_ON_INIT_WITH_WARNINGS_OFF[len(suppression_prefix) :])
+                    warning_limit_threshold = int(self._FETCH_ON_INIT_WITH_WARNINGS_OFF[len(suppression_prefix):])
                     warnings_suppressed = warning_limit_threshold >= self.fetch_on_init_limit
                 except ValueError:
                     vcprint(
@@ -934,7 +940,8 @@ class BaseManager:
                 f"[WARNING!!!!] INIT method for model {self.model.__name__} fetched {count} items (>500)!".center(80),
                 f"Threshold was {warning_limit_threshold}. ARE YOU SURE?".center(80),
                 "To suppress this warning, set:".center(80),
-                f"FETCH_ON_INIT_WITH_WARNINGS_OFF='YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_{self.fetch_on_init_limit}'".center(80),
+                f"FETCH_ON_INIT_WITH_WARNINGS_OFF='YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_{self.fetch_on_init_limit}'".center(
+                    80),
                 "=" * 80,
                 "ITEMS FETCHED:".center(80),
             ]
@@ -945,11 +952,13 @@ class BaseManager:
             scary_warning = [
                 "!" * 80,
                 f"!!! AUTOFETCH COUNT: {count} !!!".center(80),
-                f"!!! [DANGER ZONE] INIT method for model {self.model.__name__} fetched {count} items (>1000) !!!".center(80),
+                f"!!! [DANGER ZONE] INIT method for model {self.model.__name__} fetched {count} items (>1000) !!!".center(
+                    80),
                 "!!! THIS IS INSANE! YOU MIGHT CRASH EVERYTHING !!!".center(80),
                 f"!!! Threshold was {warning_limit_threshold}. PROCEED WITH EXTREME CAUTION !!!".center(80),
                 "To suppress this madness, set:".center(80),
-                f"FETCH_ON_INIT_WITH_WARNINGS_OFF='YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_{self.fetch_on_init_limit}'".center(80),
+                f"FETCH_ON_INIT_WITH_WARNINGS_OFF='YES_I_KNOW_WHAT_IM_DOING_TURN_OFF_WARNINGS_FOR_LIMIT_{self.fetch_on_init_limit}'".center(
+                    80),
                 "!" * 80,
                 "FETCHED ITEMS (GOOD LUCK):".center(80),
             ]

@@ -389,6 +389,10 @@ class Column:
             self.update_prop(prop="subComponent", value="default", priority=1)
             self.update_prop(prop="rows", value=3, priority=1)
 
+        elif self.full_type == "character varying(100)":
+            self.update_component(component="INPUT", priority=3)
+            self.update_prop(prop="subComponent", value="default", priority=1)
+
         elif self.full_type == "character varying(50)":
             self.update_component(component="INPUT", priority=3)
             self.update_prop(prop="subComponent", value="default", priority=1)

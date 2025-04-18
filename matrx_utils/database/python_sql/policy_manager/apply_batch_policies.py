@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Union
 from policy_executor import PolicyExecutor
-from common import vcprint
+from matrx_utils.common import vcprint
 
 
 def apply_batch_policies(

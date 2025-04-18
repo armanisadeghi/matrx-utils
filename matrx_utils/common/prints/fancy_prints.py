@@ -84,7 +84,7 @@ def vcprint(
         color=None,
         background=None,
         style=None,
-        pretty=False,
+        pretty=True,
         indent=4,
         inline=False,
         chunks=False,
@@ -323,8 +323,8 @@ def handle_dto_instance(instance):
 
 
 def convert_to_json_compatible(data):
-    from database.orm.core.fields import Field
-    from database.orm.core.extended import BaseDTO
+    from matrx_utils.database.orm.core.fields import Field
+    from matrx_utils.database.orm.core.extended import BaseDTO
 
     TYPE_HANDLERS = {
         "simplenamespace": (lambda x: isinstance(x, types.SimpleNamespace), handle_simplenamespace_instance),

@@ -74,6 +74,9 @@ scrape_task_auto_config = {'model_pascal': 'ScrapeTask', 'model_name': 'scrape_t
 system_function_auto_config = {'model_pascal': 'SystemFunction', 'model_name': 'system_function', 'model_name_plural': 'system_functions', 'model_name_snake': 'system_function', 'relations': ['registered_function', 'tool', 'recipe_function'], 'filter_fields': ['rf_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 
+user_tables_auto_config = {'model_pascal': 'UserTables', 'model_name': 'user_tables', 'model_name_plural': 'user_table', 'model_name_snake': 'user_tables', 'relations': ['table_fields', 'table_data'], 'filter_fields': ['user_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
+
+
 ai_settings_auto_config = {'model_pascal': 'AiSettings', 'model_name': 'ai_settings', 'model_name_plural': 'ai_setting', 'model_name_snake': 'ai_settings', 'relations': ['ai_endpoint', 'ai_model', 'ai_provider', 'ai_agent'], 'filter_fields': ['ai_endpoint', 'ai_provider', 'ai_model'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 
@@ -227,6 +230,9 @@ recipe_processor_auto_config = {'model_pascal': 'RecipeProcessor', 'model_name':
 recipe_tool_auto_config = {'model_pascal': 'RecipeTool', 'model_name': 'recipe_tool', 'model_name_plural': 'recipe_tools', 'model_name_snake': 'recipe_tool', 'relations': ['recipe', 'tool'], 'filter_fields': ['recipe', 'tool'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 
+scrape_base_config_auto_config = {'model_pascal': 'ScrapeBaseConfig', 'model_name': 'scrape_base_config', 'model_name_plural': 'scrape_base_configs', 'model_name_snake': 'scrape_base_config', 'relations': [], 'filter_fields': [], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
+
+
 scrape_domain_disallowed_notes_auto_config = {'model_pascal': 'ScrapeDomainDisallowedNotes', 'model_name': 'scrape_domain_disallowed_notes', 'model_name_plural': 'scrape_domain_disallowed_note', 'model_name_snake': 'scrape_domain_disallowed_notes', 'relations': ['scrape_domain'], 'filter_fields': ['scrape_domain_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 
@@ -249,6 +255,12 @@ scrape_parsed_page_auto_config = {'model_pascal': 'ScrapeParsedPage', 'model_nam
 
 
 scrape_quick_failure_log_auto_config = {'model_pascal': 'ScrapeQuickFailureLog', 'model_name': 'scrape_quick_failure_log', 'model_name_plural': 'scrape_quick_failure_logs', 'model_name_snake': 'scrape_quick_failure_log', 'relations': ['scrape_domain'], 'filter_fields': ['scrape_domain_id', 'user_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
+
+
+table_data_auto_config = {'model_pascal': 'TableData', 'model_name': 'table_data', 'model_name_plural': 'table_datas', 'model_name_snake': 'table_data', 'relations': ['user_tables'], 'filter_fields': ['table_id', 'user_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
+
+
+table_fields_auto_config = {'model_pascal': 'TableFields', 'model_name': 'table_fields', 'model_name_plural': 'table_field', 'model_name_snake': 'table_fields', 'relations': ['user_tables'], 'filter_fields': ['table_id', 'data_type', 'user_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 
 task_assignments_auto_config = {'model_pascal': 'TaskAssignments', 'model_name': 'task_assignments', 'model_name_plural': 'task_assignment', 'model_name_snake': 'task_assignments', 'relations': ['tasks'], 'filter_fields': ['task_id', 'user_id', 'assigned_by'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}

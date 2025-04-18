@@ -25,6 +25,8 @@ from matrx_utils.database.schema_builder.parts_generators.entity_override_genera
 )
 import re
 
+LOCAL_DEBUG_MODE = False
+
 
 def format_ts_object(ts_object_str):
     """
@@ -656,9 +658,10 @@ class Schema:
         main_code = "\n".join(py_structure)
         additional_code = "\n".join(py_manager_structure)
 
-        print("DEBUG.....")
-        print("python_models", CODE_BASICS["python_models"])
-        print("-----------------------------\n")
+        if LOCAL_DEBUG_MODE:
+            print("DEBUG.....")
+            print("python_models", CODE_BASICS["python_models"])
+            print("-----------------------------\n")
 
         self.code_handler.generate_and_save_code_from_object(CODE_BASICS["python_models"], main_code, additional_code)
 

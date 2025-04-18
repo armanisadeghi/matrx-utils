@@ -832,6 +832,23 @@ class SystemFunction(Model):
                                                   'referenced_field': 'id', 'related_name': 'recipe_functions'}}
 
 
+class UserTables(Model):
+    id = UUIDField(primary_key=True, null=False)
+    table_name = CharField(null=False, max_length=255, unique=True)
+    description = TextField()
+    version = IntegerField(null=False, default='1')
+    user_id = ForeignKey(to_model=Users, to_column='id', null=False, unique=True)
+    is_public = BooleanField(null=False, default=False)
+    authenticated_read = BooleanField(null=False, default=False)
+    created_at = DateTimeField(null=False)
+    updated_at = DateTimeField(null=False)
+    _inverse_foreign_keys = {
+        'table_fieldss': {'from_model': 'TableFields', 'from_field': 'table_id', 'referenced_field': 'id',
+                          'related_name': 'table_fieldss'},
+        'table_datas': {'from_model': 'TableData', 'from_field': 'table_id', 'referenced_field': 'id',
+                        'related_name': 'table_datas'}}
+
+
 class AiSettings(Model):
     id = UUIDField(primary_key=True, null=False)
     ai_endpoint = ForeignKey(to_model=AiEndpoint, to_column='id', default='4bedf336-b274-4cdb-8202-59fd282ae6a0')
@@ -1572,6 +1589,10 @@ class ScrapeBaseConfig(Model):
     exact = JSONBField()
     partial = JSONBField()
     regex = JSONBField()
+    created_at = DateTimeField(null=False)
+    updated_at = DateTimeField(null=False)
+    is_public = BooleanField(default=False)
+    authenticated_read = BooleanField(default=False)
     _inverse_foreign_keys = {}
 
 
@@ -1662,6 +1683,7 @@ class ScrapeParsedPage(Model):
     updated_at = DateTimeField()
     is_public = BooleanField(default=False)
     authenticated_read = BooleanField(default=False)
+    expires_at = DateTimeField()
     _inverse_foreign_keys = {}
 
 
@@ -1677,6 +1699,47 @@ class ScrapeQuickFailureLog(Model):
     updated_at = DateTimeField()
     is_public = BooleanField(default=False)
     authenticated_read = BooleanField(default=False)
+    _inverse_foreign_keys = {}
+
+
+class TableData(Model):
+    id = UUIDField(primary_key=True, null=False, unique=True)
+    table_id = ForeignKey(to_model=UserTables, to_column='id', null=False, unique=True)
+    data = JSONBField(null=False)
+    user_id = ForeignKey(to_model=Users, to_column='id', null=False)
+    is_public = BooleanField(null=False, default=False)
+    authenticated_read = BooleanField(null=False, default=False)
+    created_at = DateTimeField(null=False)
+    updated_at = DateTimeField(null=False)
+    _inverse_foreign_keys = {}
+
+
+class FieldDataType(str, Enum):
+    ARRAY = "array"
+    BOOLEAN = "boolean"
+    DATE = "date"
+    DATETIME = "datetime"
+    INTEGER = "integer"
+    JSON = "json"
+    NUMBER = "number"
+    STRING = "string"
+
+
+class TableFields(Model):
+    id = UUIDField(primary_key=True, null=False)
+    table_id = ForeignKey(to_model=UserTables, to_column='id', null=False, unique=True)
+    field_name = CharField(null=False, max_length=100, unique=True)
+    display_name = CharField(null=False, max_length=255)
+    data_type = EnumField(enum_class=FieldDataType, null=False, default='string')
+    field_order = IntegerField(null=False, default='0')
+    is_required = BooleanField(null=False, default=False)
+    default_value = JSONBField()
+    validation_rules = JSONBField()
+    user_id = ForeignKey(to_model=Users, to_column='id', null=False)
+    is_public = BooleanField(null=False, default=False)
+    authenticated_read = BooleanField(null=False, default=False)
+    created_at = DateTimeField(null=False)
+    updated_at = DateTimeField(null=False)
     _inverse_foreign_keys = {}
 
 
@@ -1824,6 +1887,8 @@ model_registry.register_all(
         ScrapeTaskResponse,
         Subcategory,
         SystemFunction,
+        TableData,
+        TableFields,
         TaskAssignments,
         TaskAttachments,
         TaskComments,
@@ -1831,6 +1896,7 @@ model_registry.register_all(
         Tool,
         Transformer,
         UserPreferences,
+        UserTables,
         WcClaim,
         WcImpairmentDefinition,
         WcInjury,
@@ -2337,6 +2403,26 @@ class SystemFunctionManager(BaseManager):
         super()._initialize_manager()
 
     async def _initialize_runtime_data(self, system_function):
+        pass
+
+
+@dataclass
+class UserTablesDTO(BaseDTO):
+    id: str
+
+    @classmethod
+    async def from_model(cls, model):
+        return cls(id=str(model.id))
+
+
+class UserTablesManager(BaseManager):
+    def __init__(self):
+        super().__init__(UserTables, UserTablesDTO)
+
+    def _initialize_manager(self):
+        super()._initialize_manager()
+
+    async def _initialize_runtime_data(self, user_tables):
         pass
 
 
@@ -3537,6 +3623,46 @@ class ScrapeQuickFailureLogManager(BaseManager):
         super()._initialize_manager()
 
     async def _initialize_runtime_data(self, scrape_quick_failure_log):
+        pass
+
+
+@dataclass
+class TableDataDTO(BaseDTO):
+    id: str
+
+    @classmethod
+    async def from_model(cls, model):
+        return cls(id=str(model.id))
+
+
+class TableDataManager(BaseManager):
+    def __init__(self):
+        super().__init__(TableData, TableDataDTO)
+
+    def _initialize_manager(self):
+        super()._initialize_manager()
+
+    async def _initialize_runtime_data(self, table_data):
+        pass
+
+
+@dataclass
+class TableFieldsDTO(BaseDTO):
+    id: str
+
+    @classmethod
+    async def from_model(cls, model):
+        return cls(id=str(model.id))
+
+
+class TableFieldsManager(BaseManager):
+    def __init__(self):
+        super().__init__(TableFields, TableFieldsDTO)
+
+    def _initialize_manager(self):
+        super()._initialize_manager()
+
+    async def _initialize_runtime_data(self, table_fields):
         pass
 
 

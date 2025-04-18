@@ -3,10 +3,10 @@ import importlib
 import inspect
 from datetime import datetime
 from typing import List, Type, Union
-from database.orm.core.config import get_database_config
-from database.orm.core.base import Model
-from database.orm.adapters.base_adapter import BaseAdapter
-from database.orm.core.relations import ForeignKey
+from matrx_utils.database.orm.core.config import get_database_config
+from matrx_utils.database.orm.core.base import Model
+from matrx_utils.database.orm.adapters.base_adapter import BaseAdapter
+from matrx_utils.database.orm.core.relations import ForeignKey
 
 
 class Migration:
