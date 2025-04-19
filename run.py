@@ -9,10 +9,7 @@ import uvicorn
 from core.settings import settings  # Keep core.settings (Pydantic)
 
 directories_to_ensure = [
-    f"/var/log/{settings.LOG_FILENAME}",
     "temp",
-    "reports",
-    f"/var/log/{settings.APP_NAME}/"
 ]
 
 for directory in directories_to_ensure:

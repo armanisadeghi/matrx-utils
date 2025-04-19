@@ -9,7 +9,7 @@ from matrx_utils.socket.core.service_base import SocketServiceBase
 from core.settings import TEMP_DIR
 
 # Log file mapping for user-friendly names
-LOG_FILE_MAPPING = {
+LOG_FILE_MAPPING = { # Change these directories.
     "application logs": "run_py.log",
     "daphne logs": "aidreamdev.log",
     "local logs": os.path.join(TEMP_DIR, "logs", "aidreamdev.log")

@@ -1,6 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings ,SettingsConfigDict
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -18,20 +21,21 @@ class Settings(BaseSettings):
     TEMP_DIR: Path = Path(BASE_DIR) / "temp"
 
     # Logging
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "WARNING"
     LOG_DIR: Path = Path(TEMP_DIR) / "logs"
     LOG_FILENAME: str = f"matrx-{APP_NAME}-{APP_VERSION}.log"
-    LOG_VCPRINT: bool = False
+    LOG_VCPRINT: bool = True
 
     STATIC_ROOT: Path = Path(BASE_DIR) / "staticfiles"
     PORT: int = 8000
 
     # Migration related settings.
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = 'ignore'
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
 # Create settings instance
@@ -43,42 +47,3 @@ TEMP_DIR = settings.TEMP_DIR
 os.makedirs(settings.TEMP_DIR, exist_ok=True)
 os.makedirs(settings.LOG_DIR, exist_ok=True)
 
-# Create logging config dict
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {
-            "format": "%(levelname)s %(asctime)s %(name)s: %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-    },
-    "handlers": {
-        "console": {
-            "level": settings.LOG_LEVEL,
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-            "stream": "ext://sys.stdout",
-        },
-        "file": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(settings.LOG_DIR, settings.LOG_FILENAME),
-            "maxBytes": 10 * 1024 * 1024,  # 10 MB
-            "backupCount": 5,
-            "formatter": "standard",
-            "encoding": "utf-8",
-        },
-    },
-    "loggers": {
-        "app": {
-            "handlers": ["console", "file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-    },
-    "root": {
-        "handlers": ["console", "file"],
-        "level": "DEBUG",
-    },
-}

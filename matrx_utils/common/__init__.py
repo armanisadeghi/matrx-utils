@@ -9,6 +9,7 @@ from .prints.fancy_prints import (
         vcdlist
 
 )
+from .prints.matrx_print_logger import MatrixPrintLog
 
 from .file_management.file_manager import FileManager
 

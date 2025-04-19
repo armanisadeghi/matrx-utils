@@ -1,6 +1,8 @@
 import asyncio
 from matrx_utils.common import vcprint
 from matrx_utils.socket.core.request_base import SocketRequestBase
+from ..services.log_service import LogService
+
 
 class ServiceFactory:
     def __init__(self):
@@ -44,6 +46,7 @@ class ServiceFactory:
         return self.service_instances[service_name]
 
     def register_default_services(self):
+        self.register_service("log_service", LogService)
         """Register services here."""
 
     async def process_request(self, sid, user_id, data, namespace, service_name):

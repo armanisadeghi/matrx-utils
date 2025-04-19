@@ -10,8 +10,9 @@ from .settings import settings
 
 
 def get_log_directory():
+    """Return the appropriate log directory based on environment"""
     if settings.ENVIRONMENT == "remote":
-        return f'/var/log/{settings.LOG_FILENAME}'
+        return '/var/log/'
     else:
         path = os.path.join(settings.TEMP_DIR, 'logs')
         os.makedirs(path, exist_ok=True)
@@ -19,14 +20,57 @@ def get_log_directory():
 
 
 log_file_dir = get_log_directory()
-
 if log_file_dir is None:
     raise ValueError("LOCAL_LOG_DIR must be set in settings.py")
+
+os.makedirs(log_file_dir, exist_ok=True)
+LOG_FILENAME = f"matrx-{settings.APP_NAME}-{settings.APP_VERSION}.log"
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(levelname)s %(asctime)s %(name)s: %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": settings.LOG_LEVEL,
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "stream": "ext://sys.stdout",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(log_file_dir, LOG_FILENAME),
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "standard",
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        "app": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "DEBUG",
+    },
+}
+
 
 
 class SystemLogger:
     def __init__(self):
-        self.logger = logging.getLogger('system_logger')
+        self.logger = logging.getLogger('app')
         os.makedirs(log_file_dir, exist_ok=True)
         self.console_handler = None
         self.configure_logging()
@@ -34,7 +78,6 @@ class SystemLogger:
 
     def configure_logging(self):
         try:
-            from app.core.config import LOGGING
             logging_config = LOGGING
             if logging_config:
                 logging.config.dictConfig(logging_config)
@@ -54,7 +97,7 @@ class SystemLogger:
 
         # File Handler (Concurrent rotation)
         file_handler = ConcurrentRotatingFileHandler(
-            f"{log_file_dir}/system.log",
+            f"{log_file_dir}/appdev.log",
             maxBytes=5 * 1024 * 1024,  # 5 MB
             backupCount=5,
             encoding='utf-8'

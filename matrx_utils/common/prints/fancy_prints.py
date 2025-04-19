@@ -12,6 +12,7 @@ import random
 import os
 
 from core import settings, get_logger
+from ..utils.matrx_json_converter import to_matrx_json
 from .colors import COLORS
 
 print_debug = False
@@ -78,16 +79,17 @@ def colorize(text, color=None, background=None, style=None):
 
 
 def vcprint(
-        data=None,
-        title="Unnamed Data",
-        verbose=True,
-        color=None,
-        background=None,
-        style=None,
-        pretty=True,
-        indent=4,
-        inline=False,
-        chunks=False,
+    data=None,
+    title="Unnamed Data",
+    verbose=True,
+    color=None,
+    background=None,
+    style=None,
+    pretty=False,
+    indent=4,
+    inline=False,
+    chunks=False,
+    simple=False,  # New parameter
 ) -> None:
     """
     Optionally prints data with styling based on verbosity and formatting preferences, and logs the output.
@@ -103,16 +105,28 @@ def vcprint(
         indent (int): Sets the indent level for pretty printing. Default is 4.
         inline (bool): Whether to print the title and data on the same line. Default is False.
         chunks (bool): Whether to print chunks on the same line without newlines, with color. Default is False.
+        simple (bool): Prevents auto-enabling pretty printing for complex types when True. Default is False.
 
     Returns:
         None
     """
     from matrx_utils.database.orm.core.extended import BaseDTO
+    from dataclasses import is_dataclass, asdict
+    from uuid import UUID
+    from enum import Enum
+
+    BASIC_TYPES = (
+        str, int, float, bool, type(None), bytes, complex,  # Core primitives
+    )
+
+    if not simple and not pretty:  # Only override if pretty is at default (False) and simple isn't True
+        if not isinstance(data, BASIC_TYPES):
+            pretty = True
 
     if data is None:
         data = "No data provided."
-    elif isinstance(data, type):  # Check if data is a type (class) object
-        data = str(data)  # Convert type to string representation
+    elif isinstance(data, type):
+        data = str(data)
     elif isinstance(data, BaseDTO):
         data = data.to_dict()
     elif is_dataclass(data):
@@ -144,12 +158,30 @@ def vcprint(
         if verbose:
             if pretty:
                 try:
-                    parsed_data = json.loads(data)
-                    pretty_print(parsed_data, title, color, background, style, indent, inline=inline, chunks=chunks)
+                    parsed_data = to_matrx_json(data) # BIG CHANGE HERE! Needs to be tested.
+                    pretty_print(
+                        parsed_data,
+                        title,
+                        color,
+                        background,
+                        style,
+                        indent,
+                        inline=inline,
+                        chunks=chunks,
+                    )
                 except (json.JSONDecodeError, TypeError) as e:
                     if print_debug:
                         print(f"----> Failed to parse data: {str(e)}")
-                    pretty_print(data, title, color, background, style, indent, inline=inline, chunks=chunks)
+                    pretty_print(
+                        data,
+                        title,
+                        color,
+                        background,
+                        style,
+                        indent,
+                        inline=inline,
+                        chunks=chunks,
+                    )
             else:
                 if title == "Unnamed Data":
                     if chunks:
@@ -157,22 +189,38 @@ def vcprint(
                         sys.stdout.write(colored_text)
                         sys.stdout.flush()
                     else:
-                        cool_print(text=f"{data}", color=color, background=background, style=style)
+                        cool_print(
+                            text=f"{data}",
+                            color=color,
+                            background=background,
+                            style=style,
+                        )
                 else:
                     if chunks:
                         colored_text = colorize(f"{title}: {data}", color, background, style)
                         sys.stdout.write(colored_text)
                         sys.stdout.flush()
                     elif inline:
-                        cool_print(text=f"{title}: {data}", color=color, background=background, style=style)
+                        cool_print(
+                            text=f"{title}: {data}",
+                            color=color,
+                            background=background,
+                            style=style,
+                        )
                     else:
-                        cool_print(text=f"\n{title}:\n{data}", color=color, background=background, style=style)
+                        cool_print(
+                            text=f"\n{title}:\n{data}",
+                            color=color,
+                            background=background,
+                            style=style,
+                        )
     except Exception as e:
         print(f"Failed to print data: {str(e)}")  # Error CAUGHT HERE1
         print("Raw data:\n\n")
         print(data)
         print(f"Type of data: {type(data)}")
         print("==============================")
+
 
 
 def pretty_print(data, title="Unnamed Data", color="white", background="black", style=None, indent=4, inline=False,
