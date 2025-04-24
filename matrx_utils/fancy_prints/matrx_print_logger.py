@@ -2,18 +2,18 @@ import json
 import re
 import inspect
 import sys
-from core import settings
-from core.system_logger import get_logger
+from matrx_utils.conf import settings
+from .fancy_prints import logger
 from uuid import UUID
 from enum import Enum
 from dataclasses import is_dataclass, asdict
-from ..utils.matrx_json_converter import to_matrx_json
+from .utils.matrx_json_converter import to_matrx_json
 
 
 class MatrixPrintLog:
     def __init__(self, system_level, class_name, outro=None):
         self.level_options = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "PRINT"]
-        self.logger = get_logger()
+        self.logger = logger
         self.log_vcprint = settings.LOG_VCPRINT
         self.system_level = system_level.upper() if system_level in self.level_options else "INFO"
         self.class_name = class_name

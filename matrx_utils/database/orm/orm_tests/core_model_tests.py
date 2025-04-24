@@ -1,5 +1,5 @@
-from database.orm.models import DataBroker
-from database.orm.core.relations import (
+from matrx_utils.database.orm.models import DataBroker
+from matrx_utils.database.orm.core.relations import (
     ForeignKey,
     ForeignKeyReference,
     InverseForeignKeyReference,

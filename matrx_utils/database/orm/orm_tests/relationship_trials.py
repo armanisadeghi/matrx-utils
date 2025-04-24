@@ -1,8 +1,8 @@
 # relationship_trials.py
 import asyncio
-from common import vcprint
-from database.orm.models import DataBroker, DataInputComponent, MessageBroker
-from database.state import StateManager
+from matrx_utils import vcprint
+from matrx_utils.database.orm.models import DataBroker, DataInputComponent, MessageBroker
+from matrx_utils.database.state import StateManager
 
 
 async def relationship_trial():

@@ -1,10 +1,10 @@
 # File: database/orm/models.py
-from database.orm.core.fields import (CharField, EnumField, DateField, TextField, IntegerField, FloatField, BooleanField, DateTimeField, UUIDField, JSONField, DecimalField, BigIntegerField, SmallIntegerField, JSONBField, UUIDArrayField, JSONBArrayField, ForeignKey)
-from database.orm.core.base import Model
-from database.orm.core.registry import model_registry
+from matrx_utils.database.orm.core.fields import (CharField, EnumField, DateField, TextField, IntegerField, FloatField, BooleanField, DateTimeField, UUIDField, JSONField, DecimalField, BigIntegerField, SmallIntegerField, JSONBField, UUIDArrayField, JSONBArrayField, ForeignKey)
+from matrx_utils.database.orm.core.base import Model
+from matrx_utils.database.orm.core.registry import model_registry
 from enum import Enum
 from dataclasses import dataclass
-from database.orm.core.extended import BaseDTO, BaseManager
+from matrx_utils.database.orm.core.extended import BaseDTO, BaseManager
 
 verbose = False
 debug = False

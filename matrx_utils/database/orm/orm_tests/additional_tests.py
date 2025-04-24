@@ -1,11 +1,9 @@
 import asyncio
 import time
 
-from common import vcprint
-from common.utils.fancy_prints import cool_print
-from database.orm.models import DataBroker, MessageBroker
-from common import vcprint
-from database.orm.models import DataBroker
+from matrx_utils import vcprint, cool_print
+from matrx_utils.database.orm.models import DataBroker, MessageBroker
+from matrx_utils.database.orm.models import DataBroker
 
 
 def type_sentence(sentence):

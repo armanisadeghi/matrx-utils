@@ -1,5 +1,13 @@
 # matrx_utils/conf.py
+from pathlib import Path
+
+from matrx_utils import vcprint
+
+DEV_MODE = True
+
+
 class NotConfiguredError(Exception): pass
+
 
 class LazySettings:
     _settings_object = None
@@ -15,9 +23,25 @@ class LazySettings:
         except AttributeError:
             raise AttributeError(f"Setting '{name}' not found.")
 
+
 settings = LazySettings()
 
-def configure(settings_object):
+
+def configure_settings(settings_object):
     if settings_object is None: raise ValueError("Settings object cannot be None.")
     settings._settings_object = settings_object
     settings._configured = True
+
+
+if DEV_MODE:
+    vcprint("DEV_MODE is being used in MATRX UTILS.", color="light_yellow")
+
+
+    class DevSettings:
+        BASE_DIR: Path = Path(r"D:\work\matrx-utils")
+        TEMP_DIR: Path = BASE_DIR / "temp"
+        LOG_VCPRINT: bool = True
+        DEBUG: bool = True
+
+
+    configure_settings(DevSettings())

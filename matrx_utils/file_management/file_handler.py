@@ -9,7 +9,7 @@ from matrx_utils import print_link, vcprint
 from matrx_utils.file_management.base_handler import BaseHandler
 from matrx_utils.file_management.batch_handler import BatchHandler
 from matrx_utils.cloud.aws import get_s3_client
-from ..dev_conf import settings
+from matrx_utils.conf import settings
 
 
 # from collections import defaultdict
@@ -24,9 +24,9 @@ class FileHandler(BaseHandler):
     _instances = {}
     _log_intro = "[MATRIX FILE HANDLER]"
 
-    def __init__(self, app_name, batch_print=False, print_errors=True,
+    def __init__(self, app_name, new_instance=False, batch_print=False, print_errors=True,
                  batch_handler=None):
-        self.base_dir = BASE_DIR
+        self.base_dir = settings.BASE_DIR
         self.app_name = app_name
         self.temp_dir = self.base_dir / "temp" / app_name
         self.data_dir = self.base_dir / "data" / app_name
@@ -45,13 +45,13 @@ class FileHandler(BaseHandler):
             self.batch_handler.enable_batch()
 
     @classmethod
-    def get_instance(cls, app_name, base_dir, new_instance=False, batch_print=False, print_errors=True,
+    def get_instance(cls, app_name, new_instance=False, batch_print=False, print_errors=True,
                      batch_handler=None):
         key = (app_name, batch_print, print_errors, id(batch_handler))
         if not new_instance and key in cls._instances:
             return cls._instances[key]
 
-        instance = cls(app_name, base_dir, new_instance, batch_print, print_errors, batch_handler)
+        instance = cls(app_name, new_instance, batch_print, print_errors, batch_handler)
         if not new_instance:
             cls._instances[key] = instance
         return instance

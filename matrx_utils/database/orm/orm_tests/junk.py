@@ -1,6 +1,6 @@
-from database.orm.core.base import Model
-from database.orm.core.fields import DateTimeField, UUIDField, CharField, TextField
-from database.orm.core.relations import ForeignKey
+from matrx_utils.database.orm.core.base import Model
+from matrx_utils.database.orm.core.fields import DateTimeField, UUIDField, CharField, TextField
+from matrx_utils.database.orm.core.relations import ForeignKey
 
 
 # https://claude.ai/chat/c307841f-89f9-4347-a885-a0640e3968f5
