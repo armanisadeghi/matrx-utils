@@ -1,0 +1,15 @@
+[project]
+name = "matrx_utils"
+version = "0.1.0"
+description = "A utility package for matrix-related operations and schema management"
+packages = ["matrx_utils", "matrx_utils.schema_builder", "matrx_utils.schema_builder.helpers"]
+dependencies = [
+    "asyncpg>=0.30.0",
+    "boto3>=1.38.1",
+    "botocore>=1.38.1",
+    "dotenv>=0.9.9",
+    "gitpython>=3.1.44",
+    "inflect>=7.5.0",
+    "pillow>=11.2.1",
+    "psycopg2>=2.9.10",
+]

@@ -1,0 +1,12 @@
+temo
+reports
+.history
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+.idea
+.env
+.venv
