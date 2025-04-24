@@ -67,7 +67,7 @@ class SocketRequestBase:
                 event_name = context.get("response_listener_event", f"{self.sid}_{task}_{index}")
                 vcprint(event_name, title="SocketRequestBase with Event Name", color="blue")
 
-                stream_handler = SocketEmitter(event_name=event_name, sid=self.sid, namespace=self.namespace)
+                stream_handler = SocketEmitter(event_name=event_name, sid=self.sid, namespace=self.namespace, sio_instance=self.sio_instance)
 
 
                 if task == 'mic_check':

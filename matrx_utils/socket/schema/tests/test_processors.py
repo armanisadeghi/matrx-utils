@@ -1,6 +1,6 @@
 # from enum import Enum
 import os
-from matrx_utils.common import vcprint
+from matrx_utils import vcprint
 from matrx_utils.socket.schema.schema_processor import ValidationSystem
 
 

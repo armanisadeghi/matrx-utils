@@ -1,6 +1,6 @@
 import os
 
-from matrx_utils.common import vcprint
+from matrx_utils import vcprint
 
 # Icon names MUST be names of actual icons from "Lucide-React" - Go to https://lucide.dev/icons/ to find official names and use them freely here.
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from matrx_utils import vcprint
 
-DEV_MODE = True
+DEV_MODE = False
 
 
 class NotConfiguredError(Exception): pass
