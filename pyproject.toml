@@ -2,7 +2,6 @@
 name = "matrx_utils"
 version = "0.1.0"
 description = "A utility package for matrix-related operations and schema management"
-packages = ["matrx_utils", "matrx_utils.schema_builder", "matrx_utils.schema_builder.helpers"]
 dependencies = [
     "asyncpg>=0.30.0",
     "boto3>=1.38.1",
