@@ -11,5 +11,7 @@ dependencies = [
     "inflect>=7.5.0",
     "pillow>=11.2.1",
     "psycopg2>=2.9.10",
+    "python-socketio>=5.13.0",
     "setuptools>=79.0.1",
+    "supabase>=2.15.0",
 ]
