@@ -30,15 +30,6 @@ def clean_data_for_logging(data):
     return data
 
 
-VCPRINT_CONSOLE_ENABLED = True
-
-
-def configure_vcprint_console(enabled: bool = True):
-    """Configures if vcprint prints to console (sys.stdout)."""
-    global VCPRINT_CONSOLE_ENABLED
-    VCPRINT_CONSOLE_ENABLED = enabled
-
-
 def colorize(text, color=None, background=None, style=None):
     # ANSI escape codes for colors
 
@@ -164,7 +155,7 @@ def vcprint(
         logger.error("[SYSTEM LOGGER] Internal Error...")
 
     try:
-        if verbose and VCPRINT_CONSOLE_ENABLED:
+        if verbose:
             if pretty:
                 try:
                     parsed_data = to_matrx_json(data)  # BIG CHANGE HERE! Needs to be tested.
