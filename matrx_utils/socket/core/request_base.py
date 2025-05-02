@@ -105,7 +105,7 @@ class SocketRequestBase:
 
     async def _handle_error(self, error_object):
         """Centralized error handling"""
-        stream_handler = SocketEmitter(event_name="global_error", sid=self.sid, namespace=self.namespace)
+        stream_handler = SocketEmitter(event_name="global_error", sid=self.sid, namespace=self.namespace, sio_instance=self.sio_instance)
         await stream_handler.send_error(**error_object)
         return False
 

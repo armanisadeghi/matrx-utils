@@ -42,6 +42,7 @@ if DEV_MODE:
         TEMP_DIR: Path = BASE_DIR / "temp"
         LOG_VCPRINT: bool = True
         DEBUG: bool = True
+        SAVE_DIRECT_SCHEMA = True
 
 
     configure_settings(DevSettings())
