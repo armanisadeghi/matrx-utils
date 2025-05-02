@@ -1,7 +1,8 @@
 import asyncio
+
 from matrx_utils import vcprint
 from matrx_utils.socket.core.request_base import SocketRequestBase
-# from ..services.log_service import LogService
+from matrx_utils.socket.services.log_service import LogService
 
 
 class ServiceFactory:
@@ -10,10 +11,6 @@ class ServiceFactory:
         self.service_instances = {}
         self.multi_instance_services = set()
         self.register_default_services()
-        self.sio_instance = None
-
-    def add_sio_instance(self, sio_instance):
-        self.sio_instance = sio_instance
 
     def register_service(self, service_name, service_class):
         self.services[service_name] = service_class
@@ -50,14 +47,10 @@ class ServiceFactory:
         return self.service_instances[service_name]
 
     def register_default_services(self):
-        # self.register_service("log_service", LogService)
-        """Register services specific to ."""
+        self.register_service("log_service", LogService)
 
     async def process_request(self, sid, user_id, data, namespace, service_name):
-        if not self.sio_instance:
-            raise ValueError("Please add SIO app instance by add_sio_instance")
-
-        request = SocketRequestBase(sid, data, namespace, service_name, user_id, sio_instance=self.sio_instance)
+        request = SocketRequestBase(sid, data, namespace, service_name, user_id)
         success, prepared_tasks = await request.initialize()
 
         if success:

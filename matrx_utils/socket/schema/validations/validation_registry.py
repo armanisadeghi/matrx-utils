@@ -4,15 +4,6 @@ from matrx_utils.socket.schema.validations.validation_functions import (
     validate_url,
     validate_urls,
 )
-# from automation_matrix.processing.markdown.data_class import (
-#     LineCategory,
-#     CodeLanguage,
-#     SectionType,
-#     SectionGroupPatternType,
-#     SegmentType,
-# )
-# from scraper.logic.data_class import ScrapeMode
-# from knowledgebase.experts.ama_expert.pd_ratings.data_class import Side
 import datetime
 
 
@@ -35,20 +26,9 @@ def validate_date(date_str):
 
 
 VALIDATION_REGISTRY = {
-    # Md related
-    # "validate_md_code_language": CodeLanguage,
-    # "validate_md_section_type": SectionType,
-    # "validate_md_section_group_type": SectionGroupPatternType,
-    # "validate_md_segment_type": SegmentType,
-    # "validate_md_line_category": LineCategory,
-    # Scrape related.
     "validate_scrape_url": validate_url,
     "validate_scrape_urls": validate_urls,
-    # "validate_scrape_mode": ScrapeMode,
-    # "validate_scrape_noise_config": validate_noise_config,
-    # "validate_scrape_filter_config": validate_filter_config,
     "validate_date": validate_date,
-    # "validate_wc_side": Side,
 }
 
 

@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
+
 from matrx_utils import vcprint
-from matrx_utils.file_management.file_manager import FileManager
-# from matrx_utils.common import MatrixPrintLog # Not brought over
-from matrx_utils.socket.core.stream.print_stream import PrintStreamHandler
+from matrx_utils.socket.response.socket_printer import SocketPrinter
+from matrx_utils import FileManager
+from matrx_utils import MatrixPrintLog
 
 local_debug = False
 
-class SocketServiceBase(ABC, FileManager, ):
-    def __init__(self, app_name: str, service_name: str, log_level: str, batch_print: bool, stream_handler=None, user_id=None, **kwargs):
+
+class SocketServiceBase(ABC, FileManager, MatrixPrintLog):
+    def __init__(self, app_name: str, service_name: str, log_level: str, batch_print: bool, stream_handler=None,
+                 user_id=None, **kwargs):
         if not app_name:
             raise ValueError("app_name must be provided and cannot be empty")
         if not service_name:
@@ -18,19 +21,19 @@ class SocketServiceBase(ABC, FileManager, ):
         self.service_name = service_name
         self.log_level = log_level
         self.batch_print = batch_print
-        self.stream_handler = stream_handler or PrintStreamHandler(event_name="socket_service_base_default")
+        self.stream_handler = stream_handler or SocketPrinter(event_name="socket_service_base_default")
         self.user_id = user_id
         # Dynamically set any additional kwargs as attributes
         for key, value in kwargs.items():
             setattr(self, key, value)
         FileManager.__init__(self, app_name=app_name, batch_print=batch_print)
 
-        # MatrixPrintLog.__init__(
-        #     self,
-        #     system_level=log_level,
-        #     class_name=service_name,
-        #     outro=f"= [${service_name} Process Completed] =",
-        # )
+        MatrixPrintLog.__init__(
+            self,
+            system_level=log_level,
+            class_name=service_name,
+            outro=f"= [${service_name} Process Completed] =",
+        )
 
     def __setattr__(self, name, value):
         # Allow dynamic attribute setting without restrictions

@@ -1,8 +1,7 @@
-from matrx_utils.socket.core.socket_emitter import SocketEmitter
-from matrx_utils.socket.utils.log_request import handle_error
-from matrx_utils.socket.schema.schema_processor import ValidationSystem
+from matrx_utils.core.sio_app import sio
 from matrx_utils import vcprint
-
+from matrx_utils.socket.response.socket_emitter import SocketEmitter
+from matrx_utils.socket.schema.schema_processor import ValidationSystem
 
 verbose = True
 debug = False
@@ -16,43 +15,40 @@ def validate_object_structure(obj):
 
     if not isinstance(obj, dict):
         errors.append("Object is not a dictionary")
-        return None, None, None, None, None, errors
+        return None, None, None, None, errors
 
-    task = obj.get("task")
-    index = obj.get("index")
-    stream = obj.get("stream")
+    task = obj.get("task") or obj.get("taskName")
+    index = obj.get("index", 0)
+    stream = obj.get("stream", False)
     task_data = obj.get("taskData")
 
     if task is None:
-        errors.append("Task was not provided. This field is required in the task object.")
-    if index is None:
-        errors.append("Index was not provided. This field is required in the task object.")
-    if stream is None:
-        errors.append("Stream was not provided. This field is required in the task object.")
+        errors.append("Task was not provided. Either 'task' or 'taskName' field is required in the task object.")
     if task_data is None:
         errors.append("TaskData was not provided. This field is required in the task object.")
 
     if errors:
-        return None, None, None, None, None, errors
+        return None, None, None, None, errors
 
     return task, index, stream, task_data, errors
 
+
 class SocketRequestBase:
-    def __init__(self, sid, data, namespace, event, user_id, sio_instance):
+    def __init__(self, sid, data, namespace, event, user_id):
         self.sid = sid
         self.data = data
         self.namespace = namespace
         self.event = event
         self.prepared_tasks = []
         self.context_builder = ValidationSystem()
+        self.namespace_handler = sio.namespace_handlers[namespace]
         self.user_id = user_id
-        self.sio_instance = sio_instance
 
     async def initialize(self):
         """Set up basic request validation and stream handlers for all tasks"""
         try:
             if not self.data:
-                return await self._handle_error("No data provided")
+                return await self._handle_error({"error_type": "no_data_provided", "message": "No data provided"})
 
             all_successful = True
 
@@ -67,13 +63,12 @@ class SocketRequestBase:
                 event_name = context.get("response_listener_event", f"{self.sid}_{task}_{index}")
                 vcprint(event_name, title="SocketRequestBase with Event Name", color="blue")
 
-                stream_handler = SocketEmitter(event_name=event_name, sid=self.sid, namespace=self.namespace, sio_instance=self.sio_instance)
+                stream_handler = SocketEmitter(event_name=event_name, sid=self.sid, namespace=self.namespace)
 
-
-                if task == 'mic_check':
+                if task == "mic_check":
                     await self.system_mic_check(stream_handler)
 
-                await stream_handler.send_status_update(status="confirm", system_message=f"Processing task {task} with index {index}", user_visible_message=f"Yay! You're about to get some good stuff!")
+                await stream_handler.send_status_update(status="confirm", system_message=f"Processing task {task} with index {index}", user_visible_message="Yay! You're about to get some good stuff!")
 
                 errors = result.get("errors")
 
@@ -98,14 +93,16 @@ class SocketRequestBase:
 
         except Exception as e:
             vcprint(e, title="Error", color="red")
-            error_object = {"message": "Error in SocketRequestBase during task initialization. This is likely a result of an incorrect task object structure.", "error": str(e)}
+            error_object = {
+                "error_type": "socket_request_base_error",
+                "message": "Error in SocketRequestBase during task initialization.",
+                "details": {"exception_type": type(e).__name__, "exception_message": str(e)},
+            }
             await self._handle_error(error_object)
-
-            return await self._handle_error(e)
 
     async def _handle_error(self, error_object):
         """Centralized error handling"""
-        stream_handler = SocketEmitter(event_name="global_error", sid=self.sid, namespace=self.namespace, sio_instance=self.sio_instance)
+        stream_handler = SocketEmitter(event_name="global_error", sid=self.sid, namespace=self.namespace)
         await stream_handler.send_error(**error_object)
         return False
 
@@ -113,8 +110,15 @@ class SocketRequestBase:
         """Override this method in specific request handlers"""
         raise NotImplementedError
 
-    async def system_mic_check(self, stream_handler):
+    async def get_service_instance(self, service_class, sid, event, stream_handler=None):
+        return await self.namespace_handler.get_service_instance(
+            service_class=service_class,
+            sid=sid,
+            stream_handler=stream_handler,
+            event=event,
+        )
 
+    async def system_mic_check(self, stream_handler):
         status_object = {
             "status": "confirm",
             "system_message": "System Mic Check",
@@ -137,4 +141,6 @@ class SocketRequestBase:
         }
         await stream_handler.send_error(**error_object)
 
-        await stream_handler.send_chunk("You will now receive an individual chunk, data, status update, and every type of transmission available for this service directly from the service and sub-services.")
+        await stream_handler.send_chunk(
+            "You will now receive an individual chunk, data, status update, and every type of transmission available for this service directly from the service and sub-services."
+        )

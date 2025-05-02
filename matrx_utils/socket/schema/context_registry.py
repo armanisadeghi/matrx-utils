@@ -1,6 +1,7 @@
 import os
-
-from matrx_utils import vcprint
+import json
+from typing import Dict, Any
+from matrx_utils import vcprint ,print_link
 
 # Icon names MUST be names of actual icons from "Lucide-React" - Go to https://lucide.dev/icons/ to find official names and use them freely here.
 
@@ -25,13 +26,13 @@ DEFAULT_DEFINITION = {
 
 MIC_CHECK_DEFINITION = {
     "mic_check_message": {
-        "REQUIRED": True,
-        "DEFAULT": None,
+        "REQUIRED": False,
+        "DEFAULT": "",
         "VALIDATION": None,
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Check",
         "DESCRIPTION": "Enter any message and the same message will be streamed back to you as a test of the mic.",
@@ -46,7 +47,7 @@ SAMPLE_SCHEMA_FIELDS = {
         "DATA_TYPE": "number",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Slider",
+        "COMPONENT": "slider",
         "COMPONENT_PROPS": {
             "min": 0,
             "max": 100,
@@ -181,7 +182,7 @@ BROKER_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the name of the broker.",
         "ICON_NAME": "User",
@@ -193,7 +194,7 @@ BROKER_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the broker.",
         "ICON_NAME": "Key",
@@ -206,7 +207,7 @@ BROKER_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the value of the broker.",
         "ICON_NAME": "LetterText",
@@ -219,7 +220,7 @@ BROKER_DEFINITION = {
         "DATA_TYPE": "boolean",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Whether the broker's value is DIRECTLY ready exactly as it is.",
         "ICON_NAME": "Check",
@@ -234,7 +235,7 @@ OVERRIDE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the model to use.",
         "ICON_NAME": "Key",
@@ -273,7 +274,7 @@ COCKPIT_INSTANT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Not sure what this is for yet.",
         "ICON_NAME": "Key",
@@ -285,7 +286,7 @@ COCKPIT_INSTANT_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": "convert_broker_data",
         "REFERENCE": BROKER_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedArrayObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the broker values to be used in the recipe.",
         "ICON_NAME": "Parentheses",
@@ -297,7 +298,7 @@ COCKPIT_INSTANT_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": OVERRIDE_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the overrides to be applied. These will override the 'settings' for the recipe, if overrides are allowed for the recipe.",
         "ICON_NAME": "Parentheses",
@@ -312,10 +313,11 @@ RUN_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the recipe to run.",
         "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
     },
     "broker_values": {
         "REQUIRED": False,
@@ -324,7 +326,7 @@ RUN_RECIPE_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": "convert_broker_data",
         "REFERENCE": BROKER_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedArrayObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the broker values to be used in the recipe.",
         "ICON_NAME": "Parentheses",
@@ -336,7 +338,7 @@ RUN_RECIPE_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": OVERRIDE_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the overrides to be applied. These will override the 'settings' for the recipe, if overrides are allowed for the recipe.",
         "ICON_NAME": "Parentheses",
@@ -363,10 +365,11 @@ RUN_COMPILED_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the recipe to run.",
         "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
     },
     "compiled_id": {
         "REQUIRED": True,
@@ -375,7 +378,7 @@ RUN_COMPILED_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the compiled recipe to run.",
         "ICON_NAME": "Key",
@@ -387,7 +390,7 @@ RUN_COMPILED_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the compiled recipe to run.",
         "ICON_NAME": "Key",
@@ -414,10 +417,11 @@ ADD_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the recipe to add.",
         "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
     },
     "compiled_id": {
         "REQUIRED": True,
@@ -426,7 +430,7 @@ ADD_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the compiled recipe to add.",
         "ICON_NAME": "Key",
@@ -438,7 +442,7 @@ ADD_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the compiled recipe to add.",
         "ICON_NAME": "Key",
@@ -453,10 +457,11 @@ GET_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the recipe to get.",
         "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
     },
 }
 
@@ -468,7 +473,7 @@ GET_COMPILED_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the id of the compiled recipe to get.",
         "ICON_NAME": "Key",
@@ -512,7 +517,7 @@ GET_CODE_BLOCKS_BY_LANGUAGE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the language of the code blocks to be extracted.",
         "ICON_NAME": "Key",
@@ -578,7 +583,7 @@ GET_SECTION_BLOCKS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the type of section to be extracted.",
         "ICON_NAME": "Key",
@@ -605,7 +610,7 @@ GET_SECTION_GROUPS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the type of section group to be extracted.",
         "ICON_NAME": "Key",
@@ -632,7 +637,7 @@ GET_SEGMENTS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the type of segment to be extracted.",
         "ICON_NAME": "Key",
@@ -674,7 +679,7 @@ GET_PYTHON_DICTS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the variable name of the dictionary to be created.",
         "ICON_NAME": "Key",
@@ -796,7 +801,7 @@ CREATE_DOMAIN_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the path pattern to be used for the domain.",
         "ICON_NAME": "Key",
@@ -856,7 +861,7 @@ CREATE_DOMAIN_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the mode to be used for the domain.",
         "ICON_NAME": "Key",
@@ -883,7 +888,7 @@ UPDATE_DOMAIN_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the path pattern to be used for the domain.",
         "ICON_NAME": "Key",
@@ -943,7 +948,7 @@ UPDATE_DOMAIN_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the mode to be used for the domain.",
         "ICON_NAME": "Key",
@@ -958,7 +963,7 @@ CREATE_DOMAIN_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the domain to be created.",
         "ICON_NAME": "Key",
@@ -973,7 +978,7 @@ CREATE_INTERACTION_SETTINGS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the name of the interaction settings to be created.",
         "ICON_NAME": "Key",
@@ -1052,7 +1057,7 @@ CREATE_FILTER_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the name of the filter config to be created.",
         "ICON_NAME": "Key",
@@ -1079,7 +1084,7 @@ SAVE_NOISE_CONFIG_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the new noise config to be used for the domain.",
         "ICON_NAME": "Key",
@@ -1106,7 +1111,7 @@ SAVE_FILTER_CONFIG_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the new filter config to be used for the domain.",
         "ICON_NAME": "Key",
@@ -1133,7 +1138,7 @@ SAVE_INTERACTION_SETTINGS_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the new interaction settings to be used for the domain.",
         "ICON_NAME": "Key",
@@ -1199,7 +1204,7 @@ CREATE_SCRAPE_TASKS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the mode to be used for the scrape.",
         "ICON_NAME": "Blend",
@@ -1226,7 +1231,7 @@ SCRAPE_PAGE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the url to be scraped.",
         "ICON_NAME": "Link",
@@ -1238,7 +1243,7 @@ SCRAPE_PAGE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the mode to be used for the scrape.",
         "ICON_NAME": "Blend",
@@ -1265,7 +1270,7 @@ PARSE_RESPONSE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the scrape task id to be parsed.",
         "ICON_NAME": "Key",
@@ -1289,7 +1294,7 @@ PARSE_RESPONSE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the noise config id to be used for the scrape.",
         "ICON_NAME": "Key",
@@ -1367,7 +1372,7 @@ GET_SCRAPE_HISTORY_URL_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the url to be scraped.",
         "ICON_NAME": "Link",
@@ -1484,7 +1489,7 @@ GET_PARSED_PAGES_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the cursor to be used for the scrape.",
         "ICON_NAME": "Key",
@@ -1600,7 +1605,6 @@ SCRAPE_SERVICE_DEFINITIONS = {
 }
 
 
-
 QUICK_SCRAPE_V2_DEFINITION = {
     "urls": {
         "REQUIRED": True,
@@ -1609,12 +1613,13 @@ QUICK_SCRAPE_V2_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "ArrayField",
+        "COMPONENT": "arrayField",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the urls to be scraped.",
         "ICON_NAME": "Link",
+        "TEST_VALUE": ["https://en.wikipedia.org/wiki/Donald_Trump", "https://titaniumsuccess.com/arman-sadeghi/business-coach/"]
     },
-    "clean_output": {
+    "get_organized_data": {
         "REQUIRED": False,
         "DEFAULT": False,
         "VALIDATION": None,
@@ -1623,10 +1628,11 @@ QUICK_SCRAPE_V2_DEFINITION = {
         "REFERENCE": None,
         "COMPONENT": "Switch",
         "COMPONENT_PROPS": {},
-        "DESCRIPTION": "Clean text formatting.",
-        "ICON_NAME": "eraser",
+        "DESCRIPTION": "Get organized json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
     },
-    "get_raw_json_content": {
+    "get_structured_data": {
         "REQUIRED": False,
         "DEFAULT": False,
         "VALIDATION": None,
@@ -1635,9 +1641,340 @@ QUICK_SCRAPE_V2_DEFINITION = {
         "REFERENCE": None,
         "COMPONENT": "Switch",
         "COMPONENT_PROPS": {},
-        "DESCRIPTION": "Get raw json content with results.",
-        "ICON_NAME": "braces",
+        "DESCRIPTION": "Get structured data json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_overview": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get overview content for the scraped page. Overview contains basic information for the page like title, other metadata etc.",
+        "ICON_NAME": "Target",
+        "TEST_VALUE": False
+    },
+    "get_text_data": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get parsed text data for the scraped page. Generated from 'organized data'.",
+        "ICON_NAME": "LetterText",
+        "TEST_VALUE": True
+    },
+    "get_main_image": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get main image for the scraped page. Main image is usually the biggest or most relevant image on the page. Extracted from OG metadata or other meta tags.",
+        "ICON_NAME": "Image",
+        "TEST_VALUE": True
+    },
+    "get_links": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get all the links from the scraped page. Links are categorized as internal, external, document, archive etc.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": False
+    },
+    "get_content_filter_removal_details": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get list of objects that were ignored during parsing page based on settings.",
+        "ICON_NAME": "RemoveFormatting",
+        "TEST_VALUE": False
+    },
+    "include_highlighting_markers": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include /exclude highlighting markers like 'underline', 'list markers' etc... from text.",
+        "ICON_NAME": "Underline",
+        "TEST_VALUE": False
+    },
+    "include_media": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media content in text output.",
+        "ICON_NAME": "TvMinimalPlay",
+        "TEST_VALUE": True
+    },
+    "include_media_links": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media links (image , video, audio) in text. Triggered when include_media is turned on.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": True
+    },
+    "include_media_description": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media description (media caption etc.) in text. Triggers when include_media is turned on.",
+        "ICON_NAME": "WholeWord",
+        "TEST_VALUE": True
+    },
+    "include_anchors": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include hyperlinks in scraped text",
+        "ICON_NAME": "ExternalLink",
+        "TEST_VALUE": True
+    },
+    "anchor_size": {
+        "REQUIRED": False,
+        "DEFAULT": 100,
+        "VALIDATION": None,
+        "DATA_TYPE": "integer",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 10, "max": 500},
+        "DESCRIPTION": "Size of hyperlinks in scraped text",
+        "ICON_NAME": "Ruler",
+        "TEST_VALUE": 100
     }
+}
+
+
+QUICK_SCRAPE_V2_STREAM_DEFINITION = {
+    "urls": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "array",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "arrayField",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Enter the urls to be scraped.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": ["https://en.wikipedia.org/wiki/Donald_Trump", "https://titaniumsuccess.com/arman-sadeghi/business-coach/"]
+    },
+    "get_organized_data": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get organized json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_structured_data": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get structured data json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_overview": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get overview content for the scraped page. Overview contains basic information for the page like title, other metadata etc.",
+        "ICON_NAME": "Target",
+        "TEST_VALUE": False
+    },
+    "get_text_data": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get parsed text data for the scraped page. Generated from 'organized data'.",
+        "ICON_NAME": "LetterText",
+        "TEST_VALUE": True
+    },
+    "get_main_image": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get main image for the scraped page. Main image is usually the biggest or most relevant image on the page. Extracted from OG metadata or other meta tags.",
+        "ICON_NAME": "Image",
+        "TEST_VALUE": True
+    },
+    "get_links": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get all the links from the scraped page. Links are categorized as internal, external, document, archive etc.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": False
+    },
+    "get_content_filter_removal_details": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get list of objects that were ignored during parsing page based on settings.",
+        "ICON_NAME": "RemoveFormatting",
+        "TEST_VALUE": False
+    },
+    "include_highlighting_markers": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include /exclude highlighting markers like 'underline', 'list markers' etc... from text.",
+        "ICON_NAME": "Underline",
+        "TEST_VALUE": False
+    },
+    "include_media": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media content in text output.",
+        "ICON_NAME": "TvMinimalPlay",
+        "TEST_VALUE": True
+    },
+    "include_media_links": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media links (image , video, audio) in text. Triggered when include_media is turned on.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": True
+    },
+    "include_media_description": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media description (media caption etc.) in text. Triggers when include_media is turned on.",
+        "ICON_NAME": "WholeWord",
+        "TEST_VALUE": True
+    },
+    "include_anchors": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include hyperlinks in scraped text",
+        "ICON_NAME": "ExternalLink",
+        "TEST_VALUE": True
+    },
+    "anchor_size": {
+        "REQUIRED": False,
+        "DEFAULT": 100,
+        "VALIDATION": None,
+        "DATA_TYPE": "integer",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 10, "max": 500},
+        "DESCRIPTION": "Size of hyperlinks in scraped text",
+        "ICON_NAME": "Ruler",
+        "TEST_VALUE": 100
+    }
+
 }
 
 
@@ -1651,8 +1988,9 @@ SEARCH_AND_SCRAPE_DEFINITION = {
         "REFERENCE": None,
         "COMPONENT": "ArrayField",
         "COMPONENT_PROPS": {},
-        "DESCRIPTION": "Enter the keywords to search for.",
-        "ICON_NAME": "whole-word",
+        "DESCRIPTION": "Enter the queries to search for.",
+        "ICON_NAME": "WholeWord",
+        "TEST_VALUE": [ "apple stock price", "apple stock best time to buy" , "apple stock forecast"]
     },
     "country_code": {
         "REQUIRED": False,
@@ -1661,22 +1999,64 @@ SEARCH_AND_SCRAPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
-        "COMPONENT_PROPS": {},
+        "COMPONENT": "Select",
+        "COMPONENT_PROPS": {
+            "options": [
+                {"label": "Argentina", "value": "AR"},
+                {"label": "Australia", "value": "AU"},
+                {"label": "Austria", "value": "AT"},
+                {"label": "Belgium", "value": "BE"},
+                {"label": "Brazil", "value": "BR"},
+                {"label": "Canada", "value": "CA"},
+                {"label": "Chile", "value": "CL"},
+                {"label": "Denmark", "value": "DK"},
+                {"label": "Finland", "value": "FI"},
+                {"label": "France", "value": "FR"},
+                {"label": "Germany", "value": "DE"},
+                {"label": "Hong Kong", "value": "HK"},
+                {"label": "India", "value": "IN"},
+                {"label": "Indonesia", "value": "ID"},
+                {"label": "Italy", "value": "IT"},
+                {"label": "Japan", "value": "JP"},
+                {"label": "Korea", "value": "KR"},
+                {"label": "Malaysia", "value": "MY"},
+                {"label": "Mexico", "value": "MX"},
+                {"label": "Netherlands", "value": "NL"},
+                {"label": "New Zealand", "value": "NZ"},
+                {"label": "Norway", "value": "NO"},
+                {"label": "Peoples Republic of China", "value": "CN"},
+                {"label": "Poland", "value": "PL"},
+                {"label": "Portugal", "value": "PT"},
+                {"label": "Republic of the Philippines", "value": "PH"},
+                {"label": "Russia", "value": "RU"},
+                {"label": "Saudi Arabia", "value": "SA"},
+                {"label": "South Africa", "value": "ZA"},
+                {"label": "Spain", "value": "ES"},
+                {"label": "Sweden", "value": "SE"},
+                {"label": "Switzerland", "value": "CH"},
+                {"label": "Taiwan", "value": "TW"},
+                {"label": "Turkey", "value": "TR"},
+                {"label": "United Kingdom", "value": "GB"},
+                {"label": "United States", "value": "US"},
+                {"label": "All Regions", "value": "ALL"},
+            ]
+        },
         "DESCRIPTION": "Enter the country code to get search results for.",
-        "ICON_NAME": "flag",
+        "ICON_NAME": "Flag",
+        "TEST_VALUE": "US"
     },
     "total_results_per_keyword": {
         "REQUIRED": False,
-        "DEFAULT": 5,
+        "DEFAULT": 10,
         "VALIDATION": None,
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
-        "COMPONENT_PROPS": {},
+        "COMPONENT": "slider",
+        "COMPONENT_PROPS": {"min": 10, "max": 30, "step": 1, "range": "False"},
         "DESCRIPTION": "Enter the number of results per keyword to get.",
-        "ICON_NAME": "flag",
+        "ICON_NAME": "SlidersHorizontal",
+        "TEST_VALUE": 10
     },
     "search_type": {
         "REQUIRED": False,
@@ -1685,24 +2065,12 @@ SEARCH_AND_SCRAPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
-        "COMPONENT_PROPS": {},
+        "COMPONENT": "RadioGroup",
+        "COMPONENT_PROPS": {"options": [{"label": "All", "value": "all"}, {"label": "Web", "value": "web"}, {"label": "News", "value": "news"}], "orientation": "vertical"},
         "DESCRIPTION": "Kind of search type to scrape, 'web', 'news', or 'all'.",
-        "ICON_NAME": "rss",
+        "ICON_NAME": "Rss",
     },
-    "clean_output": {
-        "REQUIRED": True,
-        "DEFAULT": False,
-        "VALIDATION": None,
-        "DATA_TYPE": "boolean",
-        "CONVERSION": None,
-        "REFERENCE": None,
-        "COMPONENT": "Switch",
-        "COMPONENT_PROPS": {},
-        "DESCRIPTION": "Clean text formatting.",
-        "ICON_NAME": "eraser",
-    },
-    "get_raw_json_content": {
+    "get_organized_data": {
         "REQUIRED": False,
         "DEFAULT": False,
         "VALIDATION": None,
@@ -1711,15 +2079,535 @@ SEARCH_AND_SCRAPE_DEFINITION = {
         "REFERENCE": None,
         "COMPONENT": "Switch",
         "COMPONENT_PROPS": {},
-        "DESCRIPTION": "Get raw json content with results.",
-        "ICON_NAME": "braces",
-    }
+        "DESCRIPTION": "Get organized json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_structured_data": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get structured data json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_overview": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get overview content for the scraped page. Overview contains basic information for the page like title, other metadata etc.",
+        "ICON_NAME": "Target",
+        "TEST_VALUE": False
+    },
+    "get_text_data": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get parsed text data for the scraped page. Generated from 'organized data'.",
+        "ICON_NAME": "LetterText",
+        "TEST_VALUE": True
+    },
+    "get_main_image": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get main image for the scraped page. Main image is usually the biggest or most relevant image on the page. Extracted from OG metadata or other meta tags.",
+        "ICON_NAME": "Image",
+        "TEST_VALUE": True
+    },
+    "get_links": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get all the links from the scraped page. Links are categorized as internal, external, document, archive etc.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": False
+    },
+    "get_content_filter_removal_details": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get list of objects that were ignored during parsing page based on settings.",
+        "ICON_NAME": "RemoveFormatting",
+        "TEST_VALUE": False
+    },
+    "include_highlighting_markers": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include /exclude highlighting markers like 'underline', 'list markers' etc... from text.",
+        "ICON_NAME": "Underline",
+        "TEST_VALUE": False
+    },
+    "include_media": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media content in text output.",
+        "ICON_NAME": "TvMinimalPlay",
+        "TEST_VALUE": True
+    },
+    "include_media_links": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media links (image , video, audio) in text. Triggered when include_media is turned on.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": True
+    },
+    "include_media_description": {
+            "REQUIRED": False,
+            "DEFAULT": True,
+            "VALIDATION": None,
+            "DATA_TYPE": "boolean",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "Switch",
+            "COMPONENT_PROPS": {},
+            "DESCRIPTION": "Include media description (media caption etc.) in text. Triggers when include_media is turned on.",
+            "ICON_NAME": "WholeWord",
+            "TEST_VALUE": True
+        },
+    "include_anchors":{
+            "REQUIRED": False,
+            "DEFAULT": True,
+            "VALIDATION": None,
+            "DATA_TYPE": "boolean",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "Switch",
+            "COMPONENT_PROPS": {},
+            "DESCRIPTION": "Include hyperlinks in scraped text",
+            "ICON_NAME": "ExternalLink",
+            "TEST_VALUE": True
+        },
+    "anchor_size": {
+            "REQUIRED": False,
+            "DEFAULT": 100,
+            "VALIDATION": None,
+            "DATA_TYPE": "integer",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "NumberInput",
+            "COMPONENT_PROPS": {"min": 10, "max": 500},
+            "DESCRIPTION": "Size of hyperlinks in scraped text",
+            "ICON_NAME": "Ruler",
+            "TEST_VALUE": 100
+        }
 }
+
+
+SEARCH_KEYWORDS_DEFINITION ={
+    "keywords": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "array",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "arrayField",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Enter the queries to search for.",
+        "ICON_NAME": "WholeWord",
+        "TEST_VALUE": [ "apple stock price", "apple stock best time to buy" , "apple stock forecast"]
+    },
+    "country_code": {
+        "REQUIRED": False,
+        "DEFAULT": "all",
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Select",
+        "COMPONENT_PROPS": {
+            "options": [
+                {"label": "Argentina", "value": "AR"},
+                {"label": "Australia", "value": "AU"},
+                {"label": "Austria", "value": "AT"},
+                {"label": "Belgium", "value": "BE"},
+                {"label": "Brazil", "value": "BR"},
+                {"label": "Canada", "value": "CA"},
+                {"label": "Chile", "value": "CL"},
+                {"label": "Denmark", "value": "DK"},
+                {"label": "Finland", "value": "FI"},
+                {"label": "France", "value": "FR"},
+                {"label": "Germany", "value": "DE"},
+                {"label": "Hong Kong", "value": "HK"},
+                {"label": "India", "value": "IN"},
+                {"label": "Indonesia", "value": "ID"},
+                {"label": "Italy", "value": "IT"},
+                {"label": "Japan", "value": "JP"},
+                {"label": "Korea", "value": "KR"},
+                {"label": "Malaysia", "value": "MY"},
+                {"label": "Mexico", "value": "MX"},
+                {"label": "Netherlands", "value": "NL"},
+                {"label": "New Zealand", "value": "NZ"},
+                {"label": "Norway", "value": "NO"},
+                {"label": "Peoples Republic of China", "value": "CN"},
+                {"label": "Poland", "value": "PL"},
+                {"label": "Portugal", "value": "PT"},
+                {"label": "Republic of the Philippines", "value": "PH"},
+                {"label": "Russia", "value": "RU"},
+                {"label": "Saudi Arabia", "value": "SA"},
+                {"label": "South Africa", "value": "ZA"},
+                {"label": "Spain", "value": "ES"},
+                {"label": "Sweden", "value": "SE"},
+                {"label": "Switzerland", "value": "CH"},
+                {"label": "Taiwan", "value": "TW"},
+                {"label": "Turkey", "value": "TR"},
+                {"label": "United Kingdom", "value": "GB"},
+                {"label": "United States", "value": "US"},
+                {"label": "All Regions", "value": "ALL"},
+            ]
+        },
+        "DESCRIPTION": "Enter the country code to get search results for.",
+        "ICON_NAME": "Flag",
+        "TEST_VALUE": "US"
+    },
+    "total_results_per_keyword": {
+        "REQUIRED": False,
+        "DEFAULT": 5,
+        "VALIDATION": None,
+        "DATA_TYPE": "integer",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "slider",
+        "COMPONENT_PROPS": {"min": 1, "max": 100, "step": 1, "range": "False"},
+        "DESCRIPTION": "Enter the number of results per keyword to get. Note: Total results per keyword may deviate from this number due to the search engine results.",
+        "ICON_NAME": "SlidersHorizontal",
+        "TEST_VALUE": 5
+    },
+    "search_type": {
+        "REQUIRED": False,
+        "DEFAULT": "All",
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "RadioGroup",
+        "COMPONENT_PROPS": {"options": [{"label": "All", "value": "all"}, {"label": "Web", "value": "web"}, {"label": "News", "value": "news"}], "orientation": "vertical"},
+        "DESCRIPTION": "Kind of search type to scrape, 'web', 'news', or 'all'.",
+        "ICON_NAME": "Rss",
+    },
+}
+
+
+SEARCH_AND_SCRAPE_LIMITED_DEFINITION = {
+    "keyword": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "input",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Enter query to search and get results for.",
+        "ICON_NAME": "WholeWord",
+        "TEST_VALUE": "apple stock price"
+    },
+    "country_code": {
+        "REQUIRED": False,
+        "DEFAULT": "all",
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Select",
+        "COMPONENT_PROPS": {
+            "options": [
+                {"label": "Argentina", "value": "AR"},
+                {"label": "Australia", "value": "AU"},
+                {"label": "Austria", "value": "AT"},
+                {"label": "Belgium", "value": "BE"},
+                {"label": "Brazil", "value": "BR"},
+                {"label": "Canada", "value": "CA"},
+                {"label": "Chile", "value": "CL"},
+                {"label": "Denmark", "value": "DK"},
+                {"label": "Finland", "value": "FI"},
+                {"label": "France", "value": "FR"},
+                {"label": "Germany", "value": "DE"},
+                {"label": "Hong Kong", "value": "HK"},
+                {"label": "India", "value": "IN"},
+                {"label": "Indonesia", "value": "ID"},
+                {"label": "Italy", "value": "IT"},
+                {"label": "Japan", "value": "JP"},
+                {"label": "Korea", "value": "KR"},
+                {"label": "Malaysia", "value": "MY"},
+                {"label": "Mexico", "value": "MX"},
+                {"label": "Netherlands", "value": "NL"},
+                {"label": "New Zealand", "value": "NZ"},
+                {"label": "Norway", "value": "NO"},
+                {"label": "Peoples Republic of China", "value": "CN"},
+                {"label": "Poland", "value": "PL"},
+                {"label": "Portugal", "value": "PT"},
+                {"label": "Republic of the Philippines", "value": "PH"},
+                {"label": "Russia", "value": "RU"},
+                {"label": "Saudi Arabia", "value": "SA"},
+                {"label": "South Africa", "value": "ZA"},
+                {"label": "Spain", "value": "ES"},
+                {"label": "Sweden", "value": "SE"},
+                {"label": "Switzerland", "value": "CH"},
+                {"label": "Taiwan", "value": "TW"},
+                {"label": "Turkey", "value": "TR"},
+                {"label": "United Kingdom", "value": "GB"},
+                {"label": "United States", "value": "US"},
+                {"label": "All Regions", "value": "ALL"},
+            ]
+        },
+        "DESCRIPTION": "Enter the country code to get search results for.",
+        "ICON_NAME": "Flag",
+        "TEST_VALUE": "US"
+    },
+    "max_page_read": {
+        "REQUIRED": False,
+        "DEFAULT": 10,
+        "VALIDATION": None,
+        "DATA_TYPE": "integer",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "slider",
+        "COMPONENT_PROPS": {"min": 1, "max": 20, "step": 1, "range": "False"},
+        "DESCRIPTION": "Enter the number of results per keyword to get.",
+        "ICON_NAME": "SlidersHorizontal",
+        "TEST_VALUE": 5
+    },
+    "search_type": {
+        "REQUIRED": False,
+        "DEFAULT": "all",
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "RadioGroup",
+        "COMPONENT_PROPS": {"options": [{"label": "All", "value": "all"}, {"label": "Web", "value": "web"}, {"label": "News", "value": "news"}], "orientation": "vertical"},
+        "DESCRIPTION": "Kind of search type to scrape, 'web', 'news', or 'all'.",
+        "ICON_NAME": "Rss",
+    },
+    "get_organized_data": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get organized json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_structured_data": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get structured data json content for the scrape page.",
+        "ICON_NAME": "Braces",
+        "TEST_VALUE": False
+    },
+    "get_overview": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get overview content for the scraped page. Overview contains basic information for the page like title, other metadata etc.",
+        "ICON_NAME": "Target",
+        "TEST_VALUE": False
+    },
+    "get_text_data": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get parsed text data for the scraped page. Generated from 'organized data'.",
+        "ICON_NAME": "LetterText",
+        "TEST_VALUE": True
+    },
+    "get_main_image": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get main image for the scraped page. Main image is usually the biggest or most relevant image on the page. Extracted from OG metadata or other meta tags.",
+        "ICON_NAME": "Image",
+        "TEST_VALUE": True
+    },
+    "get_links": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get all the links from the scraped page. Links are categorized as internal, external, document, archive etc.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": False
+    },
+    "get_content_filter_removal_details": {
+        "REQUIRED": False,
+        "DEFAULT": False,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Get list of objects that were ignored during parsing page based on settings.",
+        "ICON_NAME": "RemoveFormatting",
+        "TEST_VALUE": False
+    },
+    "include_highlighting_markers": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include /exclude highlighting markers like 'underline', 'list markers' etc... from text.",
+        "ICON_NAME": "Underline",
+        "TEST_VALUE": False
+    },
+    "include_media": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media content in text output.",
+        "ICON_NAME": "TvMinimalPlay",
+        "TEST_VALUE": True
+    },
+    "include_media_links": {
+        "REQUIRED": False,
+        "DEFAULT": True,
+        "VALIDATION": None,
+        "DATA_TYPE": "boolean",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "Switch",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Include media links (image , video, audio) in text. Triggered when include_media is turned on.",
+        "ICON_NAME": "Link",
+        "TEST_VALUE": True
+    },
+    "include_media_description": {
+            "REQUIRED": False,
+            "DEFAULT": True,
+            "VALIDATION": None,
+            "DATA_TYPE": "boolean",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "Switch",
+            "COMPONENT_PROPS": {},
+            "DESCRIPTION": "Include media description (media caption etc.) in text. Triggers when include_media is turned on.",
+            "ICON_NAME": "WholeWord",
+            "TEST_VALUE": True
+        },
+    "include_anchors":{
+            "REQUIRED": False,
+            "DEFAULT": True,
+            "VALIDATION": None,
+            "DATA_TYPE": "boolean",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "Switch",
+            "COMPONENT_PROPS": {},
+            "DESCRIPTION": "Include hyperlinks in scraped text",
+            "ICON_NAME": "ExternalLink",
+            "TEST_VALUE": True
+        },
+    "anchor_size": {
+            "REQUIRED": False,
+            "DEFAULT": 100,
+            "VALIDATION": None,
+            "DATA_TYPE": "integer",
+            "CONVERSION": None,
+            "REFERENCE": None,
+            "COMPONENT": "NumberInput",
+            "COMPONENT_PROPS": {"min": 10, "max": 500},
+            "DESCRIPTION": "Size of hyperlinks in scraped text",
+            "ICON_NAME": "Ruler",
+            "TEST_VALUE": 100
+        }
+}
+
 
 
 SCRAPER_SERVICE_V2_DEFINITIONS = {
     "QUICK_SCRAPE": QUICK_SCRAPE_V2_DEFINITION,
+    "QUICK_SCRAPE_STREAM": QUICK_SCRAPE_V2_STREAM_DEFINITION,
     "SEARCH_AND_SCRAPE": SEARCH_AND_SCRAPE_DEFINITION,
+    "SEARCH_KEYWORDS": SEARCH_KEYWORDS_DEFINITION,
+    "SEARCH_AND_SCRAPE_LIMITED": SEARCH_AND_SCRAPE_LIMITED_DEFINITION,
     "MIC_CHECK": MIC_CHECK_DEFINITION,
 }
 
@@ -1734,6 +2622,10 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {"placeholder": "YYYY-MM-DD"},
+        "DESCRIPTION": "Date of injury in YYYY-MM-DD format",
+        "ICON_NAME": "Calendar"
     },
     "date_of_birth": {
         "REQUIRED": False,
@@ -1742,6 +2634,10 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {"placeholder": "YYYY-MM-DD"},
+        "DESCRIPTION": "Date of birth in YYYY-MM-DD format",
+        "ICON_NAME": "Calendar"
     },
     "age_at_doi": {
         "REQUIRED": False,
@@ -1750,6 +2646,10 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 120},
+        "DESCRIPTION": "Age at the date of injury",
+        "ICON_NAME": "Hash"
     },
     "occupational_code": {
         "REQUIRED": True,
@@ -1758,6 +2658,10 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Occupational code",
+        "ICON_NAME": "Briefcase"
     },
     "weekly_earnings": {
         "REQUIRED": False,
@@ -1766,6 +2670,10 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "float",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"step": 0.01, "min": 0},
+        "DESCRIPTION": "Weekly earnings in dollars",
+        "ICON_NAME": "DollarSign"
     },
     "applicant_name": {
         "REQUIRED": True,
@@ -1774,7 +2682,11 @@ CREATE_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-    },
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Full name of the applicant",
+        "ICON_NAME": "User"
+    }
 }
 
 # 2. Create WC Report Task Definition
@@ -1786,6 +2698,10 @@ CREATE_WC_REPORT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the associated claim",
+        "ICON_NAME": "FileText"
     }
 }
 
@@ -1798,6 +2714,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the associated report",
+        "ICON_NAME": "FileText"
     },
     "impairment_definition_id": {
         "REQUIRED": True,
@@ -1806,6 +2726,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the impairment definition",
+        "ICON_NAME": "FileText"
     },
     "digit": {
         "REQUIRED": False,
@@ -1814,6 +2738,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Digit impairment rating",
+        "ICON_NAME": "Hash"
     },
     "wpi": {
         "REQUIRED": False,
@@ -1822,6 +2750,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 100},
+        "DESCRIPTION": "Whole person impairment percentage",
+        "ICON_NAME": "Hash"
     },
     "le": {
         "REQUIRED": False,
@@ -1830,6 +2762,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Lower extremity impairment rating",
+        "ICON_NAME": "Hash"
     },
     "ue": {
         "REQUIRED": False,
@@ -1838,6 +2774,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Upper extremity impairment rating",
+        "ICON_NAME": "Hash"
     },
     "industrial": {
         "REQUIRED": False,
@@ -1846,6 +2786,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 100},
+        "DESCRIPTION": "Industrial apportionment percentage",
+        "ICON_NAME": "Hash"
     },
     "pain": {
         "REQUIRED": False,
@@ -1854,6 +2798,10 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Pain add-on rating",
+        "ICON_NAME": "Hash"
     },
     "side": {
         "REQUIRED": False,
@@ -1862,7 +2810,17 @@ CREATE_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-    },
+        "COMPONENT": "Select",
+        "COMPONENT_PROPS": {
+            "options": [
+                {"label": "Left", "value": "left"},
+                {"label": "Right", "value": "right"},
+                {"label": "Bilateral", "value": "bilateral"}
+            ]
+        },
+        "DESCRIPTION": "Side of the injury (left, right, or bilateral)",
+        "ICON_NAME": "ArrowLeftRight"
+    }
 }
 
 # 4. Calculate WC Ratings Task Definition
@@ -1874,6 +2832,10 @@ CALCULATE_WC_RATINGS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the report to calculate ratings for",
+        "ICON_NAME": "FileText"
     }
 }
 
@@ -1886,6 +2848,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the claim to edit",
+        "ICON_NAME": "FileText"
     },
     "date_of_injury": {
         "REQUIRED": False,
@@ -1894,6 +2860,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {"placeholder": "YYYY-MM-DD"},
+        "DESCRIPTION": "Updated date of injury in YYYY-MM-DD format",
+        "ICON_NAME": "Calendar"
     },
     "date_of_birth": {
         "REQUIRED": False,
@@ -1902,6 +2872,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {"placeholder": "YYYY-MM-DD"},
+        "DESCRIPTION": "Updated date of birth in YYYY-MM-DD format",
+        "ICON_NAME": "Calendar"
     },
     "age_at_doi": {
         "REQUIRED": False,
@@ -1910,6 +2884,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 120},
+        "DESCRIPTION": "Updated age at the date of injury",
+        "ICON_NAME": "Hash"
     },
     "occupational_code": {
         "REQUIRED": False,
@@ -1918,6 +2896,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Updated occupational code",
+        "ICON_NAME": "Briefcase"
     },
     "weekly_earnings": {
         "REQUIRED": False,
@@ -1926,6 +2908,10 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "float",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"step": 0.01, "min": 0},
+        "DESCRIPTION": "Updated weekly earnings in dollars",
+        "ICON_NAME": "DollarSign"
     },
     "applicant_name": {
         "REQUIRED": False,
@@ -1934,7 +2920,11 @@ EDIT_WC_CLAIM_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-    },
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "Updated full name of the applicant",
+        "ICON_NAME": "User"
+    }
 }
 
 # 6. Edit WC Injury Task Definition
@@ -1946,6 +2936,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "TextInput",
+        "COMPONENT_PROPS": {},
+        "DESCRIPTION": "ID of the injury to edit",
+        "ICON_NAME": "FileText"
     },
     "digit": {
         "REQUIRED": False,
@@ -1954,6 +2948,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Updated digit impairment rating",
+        "ICON_NAME": "Hash"
     },
     "wpi": {
         "REQUIRED": False,
@@ -1962,6 +2960,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 100},
+        "DESCRIPTION": "Updated whole person impairment percentage",
+        "ICON_NAME": "Hash"
     },
     "le": {
         "REQUIRED": False,
@@ -1970,6 +2972,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Updated lower extremity impairment rating",
+        "ICON_NAME": "Hash"
     },
     "ue": {
         "REQUIRED": False,
@@ -1978,6 +2984,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Updated upper extremity impairment rating",
+        "ICON_NAME": "Hash"
     },
     "industrial": {
         "REQUIRED": False,
@@ -1986,6 +2996,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0, "max": 100},
+        "DESCRIPTION": "Updated industrial apportionment percentage",
+        "ICON_NAME": "Hash"
     },
     "pain": {
         "REQUIRED": False,
@@ -1994,6 +3008,10 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "integer",
         "CONVERSION": None,
         "REFERENCE": None,
+        "COMPONENT": "NumberInput",
+        "COMPONENT_PROPS": {"min": 0},
+        "DESCRIPTION": "Updated pain add-on rating",
+        "ICON_NAME": "Hash"
     },
     "side": {
         "REQUIRED": False,
@@ -2002,7 +3020,17 @@ EDIT_WC_INJURY_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-    },
+        "COMPONENT": "Select",
+        "COMPONENT_PROPS": {
+            "options": [
+                {"label": "Left", "value": "left"},
+                {"label": "Right", "value": "right"},
+                {"label": "Bilateral", "value": "bilateral"}
+            ]
+        },
+        "DESCRIPTION": "Updated side of the injury (left, right, or bilateral)",
+        "ICON_NAME": "ArrowLeftRight"
+    }
 }
 
 CALIFORNIA_WORKER_COMP_SERVICE_DEFINITIONS = {
@@ -2026,7 +3054,7 @@ MESSAGE_OBJECT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the message id.",
@@ -2038,7 +3066,7 @@ MESSAGE_OBJECT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the conversation id.",
@@ -2050,7 +3078,7 @@ MESSAGE_OBJECT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "TextArea",
+        "COMPONENT": "textarea",
         "COMPONENT_PROPS": {
             "rows": 10,
         },
@@ -2128,7 +3156,7 @@ AI_CHAT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the conversation id.",
@@ -2140,7 +3168,7 @@ AI_CHAT_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": "convert_message_object",
         "REFERENCE": MESSAGE_OBJECT_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedObject",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Messages",
         "DESCRIPTION": "Enter the message object with message id, conversation id, content, role, type, and files.",
@@ -2155,7 +3183,7 @@ PREP_CONVERSATION_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the ID of the conversation to be fetched, cached and ready for fast usage.",
@@ -2171,19 +3199,20 @@ GET_NEEDED_RECIPE_BROKERS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
-        "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the ID of the recipe to be fetched, cached and ready for fast usage.",
+        "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
     },
     "version": {
         "REQUIRED": False,
         "DEFAULT": None,
         "VALIDATION": None,
-        "DATA_TYPE": "integer",
+        "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the version of the recipe or blank to get the latest version.",
@@ -2198,19 +3227,20 @@ RUN_CHAT_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
-        "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the ID of the recipe to be fetched, cached and ready for fast usage.",
+        "ICON_NAME": "Key",
+        "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853"
     },
     "version": {
         "REQUIRED": False,
         "DEFAULT": None,
         "VALIDATION": None,
-        "DATA_TYPE": "integer",
+        "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the version of the recipe or blank to get the latest version.",
@@ -2222,7 +3252,7 @@ RUN_CHAT_RECIPE_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": "convert_broker_data",
         "REFERENCE": BROKER_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedArrayObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the broker values to be used in the recipe.",
         "ICON_NAME": "Parentheses",
@@ -2282,7 +3312,7 @@ RUN_CHAT_RECIPE_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the ID of the AI Model or leave blank to use the default model.",
@@ -2333,7 +3363,7 @@ CHAT_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
@@ -2343,12 +3373,13 @@ CHAT_CONFIG_DEFINITION = {
         "REQUIRED": False,
         "DEFAULT": "latest",
         "VALIDATION": None,
-        "DATA_TYPE": "integer",
+        "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
+        "TEST_VALUE": "latest",
         "DESCRIPTION": "Enter the version of the recipe or blank to get the latest version.",
     },
     "user_id": {
@@ -2406,7 +3437,7 @@ CHAT_CONFIG_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "TEST_VALUE": "10168527-4d6b-456f-ab07-a889223ba3a9",
@@ -2458,9 +3489,9 @@ RECIPE_TO_CHAT_DEFINITION = {
         "DATA_TYPE": "object",
         "CONVERSION": None,
         "REFERENCE": CHAT_CONFIG_DEFINITION,
-        "COMPONENT": "Input",
+        "COMPONENT": "relatedObject",
         "COMPONENT_PROPS": {},
-        "ICON_NAME": "Key",
+        "ICON_NAME": "Settings",
         "DESCRIPTION": "Enter the chat config to be used in the recipe.",
     },
     "broker_values": {
@@ -2470,7 +3501,7 @@ RECIPE_TO_CHAT_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": "convert_broker_data",
         "REFERENCE": BROKER_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedArrayObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the broker values to be used in the recipe.",
         "ICON_NAME": "Parentheses",
@@ -2486,7 +3517,7 @@ BATCH_RECIPE_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": None,
         "REFERENCE": CHAT_CONFIG_DEFINITION,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the chat configs to be used in the recipe.",
@@ -2498,7 +3529,7 @@ BATCH_RECIPE_DEFINITION = {
         "DATA_TYPE": "array",
         "CONVERSION": "convert_broker_data",
         "REFERENCE": BROKER_DEFINITION,
-        "COMPONENT": "relatedFieldsDisplay",
+        "COMPONENT": "relatedArrayObject",
         "COMPONENT_PROPS": {},
         "DESCRIPTION": "Enter the broker values to be used in the recipe.",
         "ICON_NAME": "Parentheses",
@@ -2525,18 +3556,57 @@ CONVERT_RECIPE_TO_CHAT_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Key",
         "DESCRIPTION": "Enter the ID of the chat to be converted to a recipe.",
     },
 }
 
+CONVERT_NORMALIZED_DATA_TO_USER_DATA_DEFINITION = {
+    "data": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "object",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "JsonEditor",
+        "COMPONENT_PROPS": {},
+        "ICON_NAME": "Grid2x2Plus",
+        "DESCRIPTION": "Enter a JSON object with normalized keys and values.",
+    },
+    "table_name": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "input",
+        "COMPONENT_PROPS": {},
+        "ICON_NAME": "Baseline",
+        "DESCRIPTION": "Enter the name of the table to be created.",
+    },
+    "table_description": {
+        "REQUIRED": True,
+        "DEFAULT": None,
+        "VALIDATION": None,
+        "DATA_TYPE": "string",
+        "CONVERSION": None,
+        "REFERENCE": None,
+        "COMPONENT": "input",
+        "COMPONENT_PROPS": {},
+        "ICON_NAME": "Text",
+        "DESCRIPTION": "Enter the description of the table to be created.",
+    },
+}
 
 AI_CHAT_SERVICE_DEFINITIONS = {
     "RUN_RECIPE_TO_CHAT": RECIPE_TO_CHAT_DEFINITION,
     "RUN_BATCH_RECIPE": BATCH_RECIPE_DEFINITION,
     "PREPARE_BATCH_RECIPE": BATCH_RECIPE_DEFINITION,
+    "CONVERT_NORMALIZED_DATA_TO_USER_DATA": CONVERT_NORMALIZED_DATA_TO_USER_DATA_DEFINITION,
     "MIC_CHECK": MIC_CHECK_DEFINITION,
 }
 
@@ -2582,13 +3652,7 @@ READ_LOGS_DEFINITION = {
         "CONVERSION": None,
         "REFERENCE": None,
         "COMPONENT": "Select",
-        "COMPONENT_PROPS": {
-            "options": [
-                {"value": "application logs", "label": "Application Logs"},
-                {"value": "daphne logs", "label": "Daphne Logs"},
-                {"value": "local logs", "label": "Local Logs"}
-            ]
-        },
+        "COMPONENT_PROPS": {"options": [{"value": "application logs", "label": "Application Logs"}, {"value": "daphne logs", "label": "Daphne Logs"}, {"value": "local logs", "label": "Local Logs"}]},
         "ICON_NAME": "Document",
         "DESCRIPTION": "The log file to read (Application Logs, Daphne Logs, or Local Logs).",
     },
@@ -2611,7 +3675,7 @@ READ_LOGS_DEFINITION = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Search",
         "DESCRIPTION": "A search term to filter log lines (case-insensitive).",
@@ -2627,13 +3691,7 @@ TAIL_LOGS_DEFINITION = {
         "CONVERSION": None,
         "REFERENCE": None,
         "COMPONENT": "Select",
-        "COMPONENT_PROPS": {
-            "options": [
-                {"value": "application logs", "label": "Application Logs"},
-                {"value": "daphne logs", "label": "Daphne Logs"},
-                {"value": "local logs", "label": "Local Logs"}
-            ]
-        },
+        "COMPONENT_PROPS": {"options": [{"value": "application logs", "label": "Application Logs"}, {"value": "daphne logs", "label": "Daphne Logs"}, {"value": "local logs", "label": "Local Logs"}]},
         "ICON_NAME": "Document",
         "DESCRIPTION": "The log file to tail (Application Logs, Daphne Logs, or Local Logs).",
     },
@@ -2664,13 +3722,7 @@ GET_ALL_LOGS_DEFINITION = {
         "CONVERSION": None,
         "REFERENCE": None,
         "COMPONENT": "Select",
-        "COMPONENT_PROPS": {
-            "options": [
-                {"value": "application logs", "label": "Application Logs"},
-                {"value": "daphne logs", "label": "Daphne Logs"},
-                {"value": "local logs", "label": "Local Logs"}
-            ]
-        },
+        "COMPONENT_PROPS": {"options": [{"value": "application logs", "label": "Application Logs"}, {"value": "daphne logs", "label": "Daphne Logs"}, {"value": "local logs", "label": "Local Logs"}]},
         "ICON_NAME": "Document",
         "DESCRIPTION": "The log file to read all lines from (Application Logs, Daphne Logs, or Local Logs).",
     },
@@ -2707,7 +3759,7 @@ STANDARD_FIELD_DEFINITIONS = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "CircleUser",
         "DESCRIPTION": "The ID of the user to be used in the recipe.",
@@ -2719,14 +3771,12 @@ STANDARD_FIELD_DEFINITIONS = {
         "DATA_TYPE": "string",
         "CONVERSION": None,
         "REFERENCE": None,
-        "COMPONENT": "Input",
+        "COMPONENT": "input",
         "COMPONENT_PROPS": {},
         "ICON_NAME": "Zap",
         "DESCRIPTION": "The name of the event to be used in the recipe.",
     },
 }
-
-
 
 
 # Globally defined definitions (We should create more of these, as we have things which are used in multiple services)
@@ -2902,6 +3952,339 @@ export const getTaskSchema = (taskName: string): Schema | undefined => {
     return SOCKET_TASKS[taskName];
 };
 
+export const initializeTaskDataWithDefaults = (taskName: string): Record<string, any> => {
+    const taskSchema = getTaskSchema(taskName);
+    if (!taskSchema) {
+        return {};
+    }
+
+    const taskData: Record<string, any> = {};
+
+    Object.entries(taskSchema).forEach(([fieldName, fieldSpec]) => {
+        if (fieldSpec.DEFAULT !== undefined) {
+            taskData[fieldName] = fieldSpec.DEFAULT;
+        }
+    });
+
+    return taskData;
+};
+
+export const validateTaskData = (taskName: string, taskData: Record<string, any>): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    const schema = getTaskSchema(taskName);
+
+    if (!schema) {
+        return { isValid: false, errors: [`No schema found for task '${taskName}'`] };
+    }
+
+    Object.entries(schema).forEach(([fieldName, fieldSpec]) => {
+        const providedValue = taskData[fieldName];
+        const isProvided = providedValue !== undefined && providedValue !== null;
+
+        if (fieldSpec.REQUIRED && !isProvided) {
+            errors.push(`Field '${fieldName}' is required but was not provided.`);
+        }
+    });
+
+    return {
+        isValid: errors.length === 0,
+        errors,
+    };
+};
+
+export const getFieldDefinition = (taskName: string, fieldPath: string, traverseNested: boolean = true): SchemaField | undefined => {
+    const taskSchema = getTaskSchema(taskName);
+    if (!taskSchema) {
+        return undefined;
+    }
+
+    // Split the field path into parts (e.g., "broker_values.name" -> ["broker_values", "name"])
+    const pathParts = fieldPath.split(".");
+
+    // If not traversing nested fields, return the root field directly
+    if (!traverseNested || pathParts.length === 1) {
+        return taskSchema[pathParts[0]];
+    }
+
+    // Traverse the path for nested fields
+    let currentSchema: Schema = taskSchema;
+    let currentField: SchemaField | undefined;
+
+    for (let i = 0; i < pathParts.length; i++) {
+        const part = pathParts[i];
+        currentField = currentSchema[part];
+        if (!currentField) {
+            return undefined; // Field not found
+        }
+
+        // If there's a REFERENCE and more parts to process, switch to the referenced schema
+        if (currentField.REFERENCE && i < pathParts.length - 1) {
+            if (!currentField.REFERENCE || typeof currentField.REFERENCE !== "object") {
+                return undefined; // Invalid REFERENCE
+            }
+            currentSchema = currentField.REFERENCE as Schema;
+        }
+    }
+
+    return currentField;
+};
+
+export const getAllFieldPaths = (taskName: string): string[] => {
+    const taskSchema = getTaskSchema(taskName);
+    if (!taskSchema) {
+        return [];
+    }
+
+    const fieldPaths: string[] = [];
+
+    const traverseSchema = (schema: Schema, prefix: string = "") => {
+        Object.entries(schema).forEach(([fieldName, fieldDefinition]) => {
+            const currentPath = prefix ? `${prefix}.${fieldName}` : fieldName;
+
+            // Add the current field path
+            fieldPaths.push(currentPath);
+
+            // Handle nested objects via REFERENCE
+            if (fieldDefinition.REFERENCE && typeof fieldDefinition.REFERENCE === "object") {
+                if (fieldDefinition.DATA_TYPE === "array") {
+                    // For arrays, append [index] to the path and traverse the referenced schema
+                    const arrayItemPath = `${currentPath}[index]`;
+                    traverseSchema(fieldDefinition.REFERENCE as Schema, arrayItemPath);
+                } else {
+                    // For non-array objects, traverse the referenced schema directly
+                    traverseSchema(fieldDefinition.REFERENCE as Schema, currentPath);
+                }
+            }
+        });
+    };
+
+    traverseSchema(taskSchema);
+    return fieldPaths;
+};
+
+export interface FieldDefinitionInfo {
+    path: string;
+    dataType: string;
+    defaultValue: any;
+    reference?: Schema;
+  }
+
+  export const getFieldDefinitions = (taskName: string): FieldDefinitionInfo[] => {
+    const taskSchema = getTaskSchema(taskName);
+    if (!taskSchema) {
+      return [];
+    }
+
+    const fieldDefinitions: FieldDefinitionInfo[] = [];
+
+    const traverseSchema = (schema: Schema, prefix: string = "") => {
+      Object.entries(schema).forEach(([fieldName, fieldDefinition]) => {
+        const currentPath = prefix ? `${prefix}.${fieldName}` : fieldName;
+
+        // Add field definition info
+        fieldDefinitions.push({
+          path: currentPath,
+          dataType: fieldDefinition.DATA_TYPE,
+          defaultValue: fieldDefinition.DEFAULT,
+          reference: fieldDefinition.REFERENCE,
+        });
+
+        // Handle nested objects via REFERENCE
+        if (fieldDefinition.REFERENCE && typeof fieldDefinition.REFERENCE === "object") {
+          if (fieldDefinition.DATA_TYPE === "array") {
+            const arrayItemPath = `${currentPath}[index]`;
+            traverseSchema(fieldDefinition.REFERENCE as Schema, arrayItemPath);
+          } else {
+            traverseSchema(fieldDefinition.REFERENCE as Schema, currentPath);
+          }
+        }
+      });
+    };
+
+    traverseSchema(taskSchema);
+    return fieldDefinitions;
+  };
+
+
+// Define the eUUID function that was missing
+const eUUID = (value: any): boolean => {
+    // UUID regex pattern
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return typeof value === 'string' && uuidPattern.test(value);
+  };
+
+export const validateTextLength = (value: any): boolean => {
+    if (typeof value !== "string") {
+        return false;
+    }
+    return value.length > 5;
+};
+
+export const validateMarkdown = (value: any): boolean => {
+    if (typeof value !== "string") {
+        return false;
+    }
+    // Check for common markdown patterns: headers, bold, italic, lists, links, or code
+    const markdownRegex = /(#+\s|[-*+]\s|\*\*.*?\*\*|__.*?__|\*.*?\*|_.*?_|`.*?`|\[.*?\]\(.*?\))/;
+    return markdownRegex.test(value);
+};
+
+
+export const validateWCSide = (value: any): boolean => {
+    const validSides: WCSide[] = ["left", "right", "default"];
+    return typeof value === "string" && validSides.includes(value as WCSide);
+};
+
+export const validateDate = (value: any): boolean => {
+    if (typeof value !== "string") {
+        return false;
+    }
+
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(value)) {
+        return false;
+    }
+
+    try {
+        const [year, month, day] = value.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+        return (
+            date.getFullYear() === year &&
+            date.getMonth() === month - 1 &&
+            date.getDate() === day
+        );
+    } catch {
+        return false;
+    }
+};
+
+export const validToolNames = [
+    "code_python_execute",
+    "code_web_store_html",
+    "code_fetcher_fetch",
+    "api_news_fetch_headlines",
+    "core_math_calculate",
+    "core_web_search",
+    "core_web_read_web_pages",
+    "core_web_search_and_read",
+    "data_sql_execute_query",
+    "data_sql_list_tables",
+    "data_sql_get_table_schema",
+    "data_sql_create_user_generated_table_data",
+    "text_analyze",
+    "text_regex_extract",
+];
+export const validateToolNames = (value: any): boolean => {
+    // Check if value is an array
+    if (!Array.isArray(value)) {
+        return false;
+    }
+
+    // Check if every item in the array is a string and exists in validToolNames
+    return value.every((item) => typeof item === "string" && validToolNames.includes(item));
+};
+
+const validationFunctions: Record<string, (value: any) => boolean> = {
+    eUUID,
+    validateTextLength,
+    validateMarkdown,
+    validateToolNames,
+};
+
+export const isValidField = (taskName: string, fieldPath: string, value: any, traverseNested: boolean = true): { isValid: boolean; errorMessage: string } => {
+    const fieldDefinition = getFieldDefinition(taskName, fieldPath, traverseNested);
+    if (!fieldDefinition) {
+      return { isValid: false, errorMessage: `Field definition not found for ${fieldPath}` };
+    }
+
+    const isEmpty = value === null || value === undefined;
+
+    if (!fieldDefinition.REQUIRED && isEmpty) {
+      console.log(`Field is not required and empty, returning true`);
+      return { isValid: true, errorMessage: "" };
+    }
+
+    if (fieldDefinition.REQUIRED && isEmpty) {
+      console.log(`Field is required but empty, returning false`);
+      return { isValid: false, errorMessage: `${fieldPath} is required` };
+    }
+
+    const expectedType = fieldDefinition.DATA_TYPE;
+    console.log(`Expected data type: ${expectedType}`);
+    if (!isEmpty) {
+      console.log(`Validating data type for value:`, value);
+      switch (expectedType) {
+        case "string":
+          if (typeof value !== "string") {
+            console.log(`Type mismatch: expected string, got ${typeof value}`);
+            return { isValid: false, errorMessage: `Expected a string for ${fieldPath}, got ${typeof value}` };
+          }
+          break;
+        case "number":
+        case "integer": // Add integer type
+          if (typeof value !== "number" || (expectedType === "integer" && !Number.isInteger(value))) {
+            console.log(`Type mismatch: expected ${expectedType}, got ${typeof value}`);
+            return { isValid: false, errorMessage: `Expected an ${expectedType} for ${fieldPath}, got ${typeof value}` };
+          }
+          break;
+        case "boolean":
+          if (typeof value !== "boolean") {
+            console.log(`Type mismatch: expected boolean, got ${typeof value}`);
+            return { isValid: false, errorMessage: `Expected a boolean for ${fieldPath}, got ${typeof value}` };
+          }
+          break;
+        case "array":
+          if (!Array.isArray(value)) {
+            console.log(`Type mismatch: expected array, got ${typeof value}`);
+            return { isValid: false, errorMessage: `Expected an array for ${fieldPath}, got ${typeof value}` };
+          }
+          break;
+        case "object":
+          if (typeof value !== "object" || value === null || Array.isArray(value)) {
+            console.log(`Type mismatch: expected object, got ${typeof value}`);
+            return { isValid: false, errorMessage: `Expected an object for ${fieldPath}, got ${typeof value}` };
+          }
+          break;
+        default:
+          console.log(`Unknown data type: ${expectedType}`);
+          return { isValid: false, errorMessage: `Unknown data type ${expectedType} for ${fieldPath}` };
+      }
+      console.log(`Data type validation passed`);
+    }
+
+    if (!isEmpty && fieldDefinition.VALIDATION) {
+      console.log(`Running validation function: ${fieldDefinition.VALIDATION}`);
+      const validationFn = validationFunctions[fieldDefinition.VALIDATION];
+      if (typeof validationFn === "function") {
+        const validationResult = validationFn(value);
+        console.log(`Validation function result: ${validationResult}`);
+        if (!validationResult) {
+          return { isValid: false, errorMessage: `Validation failed for ${fieldPath}: ${getValidationErrorMessage(fieldDefinition.VALIDATION, value)}` };
+        }
+        return { isValid: true, errorMessage: "" };
+      }
+      return { isValid: false, errorMessage: `Validation function ${fieldDefinition.VALIDATION} not found for ${fieldPath}` };
+    }
+
+    return { isValid: true, errorMessage: "" };
+  };
+
+  // Helper to provide specific error messages for validation failures
+  const getValidationErrorMessage = (validationName: string, value: any): string => {
+    switch (validationName) {
+      case "eUUID":
+        return `Expected a valid UUID, got "${value}"`;
+      case "validateTextLength":
+        return `Expected a string longer than 5 characters, got "${value}"`;
+      case "validateMarkdown":
+        return `Expected valid Markdown content, got "${value}"`;
+      case "validateToolNames":
+        return `Expected an array of valid tool names, got ${JSON.stringify(value)}`;
+      default:
+        return `Invalid value "${value}"`;
+    }
+  };
+
 """
 
 
@@ -2912,6 +4295,34 @@ def get_typescript_available_namespaces():
     "/Direct": "No Namespace",
     "/custom": "Custom Namespace",
 } as const;
+
+export type FieldType =
+    | "input"
+    | "textarea"
+    | "switch"
+    | "checkbox"
+    | "slider"
+    | "select"
+    | "radiogroup"
+    | "fileupload"
+    | "multifileupload"
+    | "jsoneditor";
+
+export interface FieldOverride {
+    type: FieldType;
+    props?: Record<string, any>;
+}
+
+export type FieldOverrides = Record<string, FieldOverride>;
+
+export const FIELD_OVERRIDES: FieldOverrides = {
+    raw_markdown: {
+        type: "textarea",
+        props: {
+            rows: 10,
+        },
+    },
+};
 
 """
 
@@ -3033,8 +4444,8 @@ def generate_typescript_interfaces_and_schemas(definitions=None):
     if definitions is None:
         definitions = SERVICE_DEFINITIONS
 
-    from matrx_utils.common.file_management.specific_handlers.code import CodeHandler
-    from matrx_utils.database.schema_builder.helpers.configs import CODE_BASICS
+    from matrx_utils.file_management.specific_handlers.code import CodeHandler
+    from matrx_utils.schema_builder.helpers.configs import CODE_BASICS
 
     code_handler = CodeHandler(batch_print=False)
 
@@ -3045,12 +4456,132 @@ def generate_typescript_interfaces_and_schemas(definitions=None):
     code_handler.generate_and_save_code_from_object(CODE_BASICS["socket_ts_schemas"], main_code=typescript_schemas)
 
 
-if __name__ == "__main__":
-    os.system("cls")
+# New ========================================================
+
+
+def generate_json_schemas(service_definitions: Dict[str, Any]) -> str:
+    """
+    Converts Python schema definitions into a JSON structure.
+    Ensures that referenced definitions are included and ordered correctly.
+    """
+    # Collect all definitions
+    all_definitions = {}
+
+    # Add global definitions
+    for var_name in globals().get("GLOBAL_DEFINITIONS", []):
+        if var_name in globals():
+            all_definitions[var_name] = globals()[var_name]
+
+    # Add service definitions and their references
+    def collect_definitions(defs: Dict[str, Any]):
+        for def_name, def_obj in defs.items():
+            all_definitions[def_name.upper()] = def_obj
+            for field, props in def_obj.items():
+                ref = props.get("REFERENCE")
+                if ref is not None:
+                    for var_name, var_value in globals().items():
+                        if var_value is ref:
+                            all_definitions[var_name] = ref
+                            break
+
+    for service, defs in service_definitions.items():
+        collect_definitions(defs)
+
+    # Build dependency graph
+    dependencies = {name: set() for name in all_definitions}
+    for name, def_obj in all_definitions.items():
+        for field, props in def_obj.items():
+            ref = props.get("REFERENCE")
+            if ref is not None:
+                for candidate_name, candidate_obj in all_definitions.items():
+                    if candidate_obj is ref:
+                        dependencies[name].add(candidate_name)
+                        break
+
+    # Perform topological sort
+    sorted_def_names = topological_sort(all_definitions, dependencies)
+
+    # Format values for JSON
+    def format_value(value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, dict):
+            return {k: format_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [format_value(item) for item in value]
+        return str(value)
+
+    # Parse definitions into JSON-compatible structure
+    json_output = {}
+    for def_name in sorted_def_names:
+        definition = all_definitions[def_name]
+        schema = {}
+        ref_names = get_reference_names(definition)
+
+        for field, props in definition.items():
+            field_props = {}
+            for key, value in props.items():
+                if key == "REFERENCE" and ref_names.get(field):
+                    field_props[key] = ref_names[field]
+                else:
+                    field_props[key] = format_value(value)
+            schema[field] = field_props
+        json_output[def_name] = schema
+
+    # Generate SERVICE_TASKS equivalent
+    service_tasks = {}
+    for service, defs in service_definitions.items():
+        service_key = service.lower()
+        service_tasks[service_key] = {}
+        for def_name in defs.keys():
+            task_name = def_name.lower().replace("_definition", "")
+            service_tasks[service_key][task_name] = def_name.upper()
+
+    json_output["SERVICE_TASKS"] = service_tasks
+
+    # Serialize to JSON string with proper formatting
+    return json.dumps(json_output, indent=4, sort_keys=True)
+
+
+def save_json_schemas(service_definitions: Dict[str, Any], output_file: str = "socket_schemas.json"):
+    """
+    Generates JSON schemas and saves them to a file in the same directory as this script.
+    """
+    json_schemas = generate_json_schemas(service_definitions)
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Construct the full path using the script's directory
+    output_path = os.path.join(script_dir, output_file)
+    with open(output_path, "w") as f:
+        f.write(json_schemas)
+    print_link(output_path)
+
+
+def generate_and_save_json_schemas():
     generate_typescript_interfaces_and_schemas()
-    # typescript_code = generate_typescript_interfaces(SERVICE_DEFINITIONS)
-    # print(typescript_code)
-    # print()
-    #
-    # typescript_code = generate_typescript_schemas(SERVICE_DEFINITIONS)
-    # print(typescript_code)
+    save_json_schemas(SERVICE_DEFINITIONS, "socket_schemas.json")
+
+
+# There is an issue I need to fix with the scheme for typescript where I need to put the functions at the top of the file.
+
+
+# if __name__ == "__main__":
+#     os.system("cls")
+#     # generate_typescript_interfaces_and_schemas()
+#     generate_and_save_json_schemas()
+#
+#     # typescript_code = generate_typescript_interfaces(SERVICE_DEFINITIONS)
+#     # print(typescript_code)
+#     # print()
+#     #
+#     # typescript_code = generate_typescript_schemas(SERVICE_DEFINITIONS)
+#     # print(typescript_code)
+#
+#     # save_json_schemas(SERVICE_DEFINITIONS)
+#

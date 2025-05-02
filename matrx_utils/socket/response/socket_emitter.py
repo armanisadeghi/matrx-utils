@@ -1,11 +1,11 @@
 from typing import Any, Dict, Optional
 from matrx_utils import vcprint
-from matrx_utils.socket.core.response_base import SocketResponse
+from common.socket.response.response_base import SocketResponse
 
 
 class SocketEmitter(SocketResponse):
-    def __init__(self, event_name: str, sid: str, namespace: str = "/UserSession", debug: bool = False, sio_instance=None):
-        super().__init__(event_name, sid, namespace, debug, sio_instance=sio_instance)
+    def __init__(self, event_name: str, sid: str, namespace: str = "/UserSession", debug: bool = False):
+        super().__init__(event_name, sid, namespace, debug)
 
     async def send_chunk(self, chunk: str):
         await self._send_chunk(chunk)
@@ -130,3 +130,16 @@ class SocketEmitter(SocketResponse):
     async def finalize_event(self, obj: any):
         await self.send_data_final(obj)
         vcprint("Warning! finalize_event is depreciated. Use 'send_data_final' instead.", color="red")
+
+    async def non_fatal_error(
+        self,
+        string_error_message: str,
+    ):
+        vcprint("Warning! non_fatal_error is depreciated. Use 'send_error' instead with updated parameters.", color="red")
+        error_object = {
+            "message": string_error_message,
+            "type": "error",
+            "user_visible_message": "Sorry. An error occurred. Please try again.",
+        }
+
+        await self._send_error(error_object)

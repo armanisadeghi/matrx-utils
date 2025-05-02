@@ -2,25 +2,22 @@ import asyncio
 import datetime
 import enum
 import uuid
+from matrx_utils.core.sio_app import sio
 from matrx_utils import vcprint
-import socketio
 
 LOCAL_DEBUG_OVERRIDE = True
 
 
 class SocketResponse:
-    def __init__(self, event_name: str, sid: str, namespace: str = "/UserSession", debug: bool = False, sio_instance: socketio.AsyncServer = None):
+    def __init__(self, event_name: str, sid: str, namespace: str = "/UserSession", debug: bool = False):
         self.event_name = event_name
         self.sid = sid
         self.namespace = namespace
-        self._sio = sio_instance
+        self._sio = sio
         self.debug = LOCAL_DEBUG_OVERRIDE or debug
         self._initialize()
 
-
     def _initialize(self):
-        if not self._sio:
-            raise ValueError("Please initialize SocketResponse with SIO instance. Hint: look at SocketEmitter initialization")
         try:
             asyncio.create_task(
                 self._sio.emit(
