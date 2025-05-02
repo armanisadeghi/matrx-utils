@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 from matrx_utils import vcprint
-from common.socket.response.response_base import SocketResponse
+from matrx_utils.socket.response.response_base import SocketResponse
 
 
 class SocketEmitter(SocketResponse):
