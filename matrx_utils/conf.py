@@ -9,6 +9,7 @@ DEV_MODE = False
 class NotConfiguredError(Exception): pass
 
 
+
 class LazySettings:
     _settings_object = None
     _configured = False
@@ -34,7 +35,7 @@ def configure_settings(settings_object):
 
 
 if DEV_MODE:
-    vcprint("DEV_MODE is being used in MATRX UTILS.", color="light_yellow")
+    vcprint("DEV_MODE is being used in matrx_utils.conf", color="light_yellow")
 
 
     class DevSettings:

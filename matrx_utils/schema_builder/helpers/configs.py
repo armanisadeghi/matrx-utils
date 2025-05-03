@@ -2,14 +2,14 @@ from matrx_utils.schema_builder.parts_generators.entity_main_hook_generator impo
     main_hook_imports,
 )
 import os
+from matrx_utils.conf import settings
 
 
 ADMIN_SAVE_DIRECT_ROOT = os.getenv("ADMIN_SAVE_DIRECT_ROOT", "")
 
 # ====== IMPORTANT: If save_direct = True in generator.py, live files will be overwritten with auto-generated files ======
 
-# If this environmental variable is set to your actual project root, auto-generated python files will overwrite the live, existing files
-ADMIN_PYTHON_ROOT = os.getenv("ADMIN_PYTHON_ROOT", "")
+ADMIN_PYTHON_ROOT = settings.ADMIN_PYTHON_ROOT_DIR
 
 # If this environmental variable is set to your actual project root, auto-generated typescript files will overwrite the live, existing files
 ADMIN_TS_ROOT = os.getenv("ADMIN_TS_ROOT", "")
@@ -27,14 +27,14 @@ if DEBUG_MODE is True:
 CODE_BASICS_PYTHON_MODELS = {
     "temp_path": "models.py",
     "root": os.path.join(ADMIN_PYTHON_ROOT, "database/orm"),
-    "file_location": "# File: database/orm/models.py",
+    "file_location": "# File: models.py",
     "import_lines": [
-        "from database.orm.core.fields import (CharField, EnumField, DateField, TextField, IntegerField, FloatField, BooleanField, DateTimeField, UUIDField, JSONField, DecimalField, BigIntegerField, SmallIntegerField, JSONBField, UUIDArrayField, JSONBArrayField, ForeignKey)",
-        "from database.orm.core.base import Model",
-        "from database.orm.core.registry import model_registry",
+        "from matrx_utils.database.orm.core.fields import (CharField, EnumField, DateField, TextField, IntegerField, FloatField, BooleanField, DateTimeField, UUIDField, JSONField, DecimalField, BigIntegerField, SmallIntegerField, JSONBField, UUIDArrayField, JSONBArrayField, ForeignKey)",
+        "from matrx_utils.database.orm.core.base import Model",
+        "from matrx_utils.database.orm.core.registry import model_registry",
         "from enum import Enum",
         "from dataclasses import dataclass",
-        "from database.orm.core.extended import BaseDTO, BaseManager",
+        "from matrx_utils.database.orm.core.extended import BaseDTO, BaseManager",
     ],
     "additional_top_lines": [
         "verbose = False",
