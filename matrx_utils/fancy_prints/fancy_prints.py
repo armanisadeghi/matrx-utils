@@ -158,7 +158,7 @@ def vcprint(
         if verbose:
             if pretty:
                 try:
-                    parsed_data = to_matrx_json(data)  # BIG CHANGE HERE! Needs to be tested.
+                    parsed_data = to_matrx_json(data)
                     pretty_print(
                         parsed_data,
                         title,
@@ -222,7 +222,12 @@ def vcprint(
         print("==============================")
 
 
-def pretty_print(data, title="Unnamed Data", color="white", background="black", style=None, indent=4, inline=False,
+def pretty_print(data,
+                 title="Unnamed Data",
+                 color="white",
+                 background="black",
+                 style=None,
+                 indent=4, inline=False,
                  chunks=False):
     frame = inspect.currentframe()
     try:
