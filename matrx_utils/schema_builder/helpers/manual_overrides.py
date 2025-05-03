@@ -11,9 +11,9 @@ TABLE_ORDER_OVERRIDES = {
     "scrape_cycle_tracker": 1,
     "scrape_path_pattern": 1,
     "scrape_path_pattern_cache_policy": 2,
+    "category": 1
 
 }
-
 
 SYSTEM_OVERRIDES_ENTITIES = {
     "recipe": {
