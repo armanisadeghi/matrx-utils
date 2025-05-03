@@ -6,8 +6,8 @@ def generate_base_manager_class(model_pascal: str, model_name: str, model_name_p
     """Generate the minimal core manager class without optional method sets."""
     return f"""
 from dataclasses import dataclass
-from database.orm.core.extended import BaseManager, BaseDTO
-from database.orm.models import {model_pascal}
+from matrx_utils.database.orm.core.extended import BaseManager, BaseDTO
+from matrx_utils.database.orm.models import {model_pascal}
 from typing import Optional, Type, Any
 from common import vcprint
 
