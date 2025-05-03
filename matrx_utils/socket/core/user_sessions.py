@@ -9,7 +9,7 @@ from supabase import create_client, Client
 # from automation_matrix.simple.conductor import Conductor
 # from automation_matrix.simple.execution import get_single
 from matrx_utils import vcprint
-from matrx_utils.socket.core.service_factory import ServiceFactory
+from matrx_utils.socket.core.app_factory import AppServiceFactory
 
 supabase_url = os.environ.get("SUPABASE_MATRIX_URL")
 supabase_key = os.environ.get("SUPABASE_MATRIX_KEY")
@@ -97,7 +97,7 @@ class UserSessionNamespace(AsyncNamespace):
 
             # Create and register a ServiceFactory for this user
             if user_id not in self.user_service_factories:
-                self.user_service_factories[user_id] = ServiceFactory()
+                self.user_service_factories[user_id] = AppServiceFactory()
                 vcprint(
                     verbose=True,
                     data=f"[SOCKET USER SESSION] New Service Factory Created for user: {user_id}",
