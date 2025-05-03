@@ -11,7 +11,7 @@ from matrx_utils.conf import settings
 LOG_FILE_MAPPING = {
     "application logs": os.path.join(settings.REMOTE_LOG_DIRECTORY, settings.LOG_FILENAME),
     "daphne logs": "aidreamdev.log",  # idk if we need this anymore.
-    "local logs": os.path.join(settings.LOG_DIRECTORY, settings.LOG_FILENAME)
+    "local logs": os.path.join(settings.LOCAL_LOG_DIRECTORY, settings.LOG_FILENAME)
 }
 
 
