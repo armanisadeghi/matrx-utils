@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from matrx_utils.database.orm.core.extended import BaseManager, BaseDTO
 from matrx_utils.database.orm.models import {model_pascal}
 from typing import Optional, Type, Any
-from common import vcprint
+from matrx_utils import vcprint
 
 @dataclass
 class {model_pascal}DTO(BaseDTO):
