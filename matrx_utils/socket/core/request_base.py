@@ -2,7 +2,7 @@
 from matrx_utils.core.sio_app import sio
 from matrx_utils import vcprint
 from matrx_utils.socket.response.socket_emitter import SocketEmitter
-from matrx_utils.socket.schema.schema_processor import ValidationSystem
+from matrx_utils.socket.schema.schema_processor import get_validator
 
 verbose = True
 debug = False
@@ -41,7 +41,7 @@ class SocketRequestBase:
         self.namespace = namespace
         self.event = event
         self.prepared_tasks = []
-        self.context_builder = ValidationSystem()
+        self.context_builder = get_validator()
         self.namespace_handler = sio.namespace_handlers[namespace]
         self.user_id = user_id
 

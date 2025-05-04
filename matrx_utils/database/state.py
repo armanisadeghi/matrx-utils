@@ -99,7 +99,7 @@ class ModelState:
                     try:
                         if not self._is_stale(record):
                             vcprint(
-                                f"[MODEL STATE {self.model_class.__name__}]âœ…  Returning cache key: {cache_key}",
+                                f"[MODEL STATE {self.model_class.__name__}]✅  Returning cache key: {cache_key}",
                                 color="pink",
                             )
                             return record
@@ -119,7 +119,7 @@ class ModelState:
                     cached_record = self._find_in_cache(**kwargs)
                     if cached_record and not self._is_stale(cached_record):
                         vcprint(
-                            f"[MODEL STATE {self.model_class.__name__} ]âœ…  Returning cached record for kwargs: {kwargs}",
+                            f"[MODEL STATE {self.model_class.__name__} ]✅  Returning cached record for kwargs: {kwargs}",
                             color="pink",
                         )
                         return cached_record
@@ -365,7 +365,7 @@ class StateManager:
         cached_records = [record for record in state.get_all_cached() if all(getattr(record, key) == value for key, value in kwargs.items())]
         if cached_records:
             vcprint(
-                f"[STATE MANAGER {model_class.__name__}] âœ… Returning {len(cached_records)} cached records",
+                f"[STATE MANAGER {model_class.__name__}] ✅ Returning {len(cached_records)} cached records",
                 color="pink",
             )
             return cached_records
