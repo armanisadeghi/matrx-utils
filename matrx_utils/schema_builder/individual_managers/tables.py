@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\individual_managers\tables.py
 import json
 from matrx_utils import vcprint
 from matrx_utils.schema_builder.helpers.configs import MANAGER_CONFIG_OVERRIDES

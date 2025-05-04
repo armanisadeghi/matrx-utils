@@ -1,3 +1,4 @@
+# matrx_utils\database\python_sql\db_objects.py
 from matrx_utils.database.client.postgres_connection import execute_sql_query
 from collections import defaultdict
 from matrx_utils.database.python_sql.table_typescript_relationship import get_ts_object

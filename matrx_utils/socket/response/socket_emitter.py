@@ -1,3 +1,4 @@
+# matrx_utils\socket\response\socket_emitter.py
 from typing import Any, Dict, Optional
 from matrx_utils import vcprint
 from matrx_utils.socket.response.response_base import SocketResponse

@@ -1,4 +1,4 @@
-# database/sql_queries/tests.py
+# matrx_utils\sql_queries\tests.py
 import os
 from common.utils.fancy_prints import vcprint
 from database.sql_queries.executor import execute_standard_query, list_available_queries, get_query_details

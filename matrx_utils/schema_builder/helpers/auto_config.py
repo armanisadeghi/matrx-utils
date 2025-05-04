@@ -1,4 +1,4 @@
-# File: database/schema_builder/helpers/auto_config.py
+# matrx_utils\schema_builder\helpers\auto_config.py
 recipe_auto_config = {'model_pascal': 'Recipe', 'model_name': 'recipe', 'model_name_plural': 'recipes', 'model_name_snake': 'recipe', 'relations': ['compiled_recipe', 'ai_agent', 'recipe_display', 'recipe_processor', 'recipe_model', 'recipe_broker', 'recipe_message', 'recipe_tool', 'recipe_function'], 'filter_fields': ['status', 'user_id'], 'include_core_relations': True, 'include_active_relations': False, 'include_filter_fields': True, 'include_active_methods': False, 'include_or_not_methods': False, 'include_to_dict_methods': False, 'include_to_dict_relations': False}
 
 

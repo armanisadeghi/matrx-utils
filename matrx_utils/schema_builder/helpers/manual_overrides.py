@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\helpers\manual_overrides.py
 # Add the table you want to MOVE UP in the file.
 # Use TABLE NAME, not the "Model" name. (Lowercase snake case)
 

@@ -1,4 +1,4 @@
-# matrx_utils/conf.py
+# matrx_utils\conf.py
 from pathlib import Path
 
 from matrx_utils import vcprint

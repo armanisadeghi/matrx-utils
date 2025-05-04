@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\parts_generators\entity_field_override_generator.py
 from matrx_utils.database.constants import get_default_component_props
 from collections import OrderedDict
 import re

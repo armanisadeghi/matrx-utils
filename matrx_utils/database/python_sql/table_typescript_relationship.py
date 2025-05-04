@@ -1,3 +1,4 @@
+# matrx_utils\database\python_sql\table_typescript_relationship.py
 from matrx_utils.database.python_sql.table_detailed_relationships import (
     get_table_relationships,
     analyze_junction_tables,

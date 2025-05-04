@@ -1,3 +1,4 @@
+# matrx_utils\database\python_sql\simple\manager.py
 from common import vcprint
 from database.python_sql.db_objects import get_objects
 from database.python_sql.table_relationships import get_table_relationships

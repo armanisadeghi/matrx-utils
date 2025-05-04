@@ -1,3 +1,4 @@
+# matrx_utils\data_handling\validation\errors.py
 class ValidationError(ValueError):
     """Raised when a validator fails."""
 

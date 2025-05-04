@@ -1,3 +1,4 @@
+# matrx_utils\database\orm\core\extended.py
 import asyncio
 from typing import Any, Optional, Set
 from enum import Enum
@@ -467,7 +468,7 @@ class BaseManager:
         return bool(await self._get_item_or_none(id=item_id))
 
     async def get_or_create(self, defaults=None, **kwargs):
-        """Get an item or create it if it doesn’t exist."""
+        """Get an item or create it if it doesnâ€™t exist."""
         item = await self._get_item_or_none(**kwargs)
         if not item and defaults:
             item = await self._create_item(**{**kwargs, **defaults})

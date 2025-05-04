@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\helpers\manager_helpers.py
 def generate_dto_and_manager(name, name_camel):
     return f"""
 

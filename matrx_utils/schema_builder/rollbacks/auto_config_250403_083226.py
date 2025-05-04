@@ -1,6 +1,6 @@
 """
 
-# File: database/schema_builder/helpers/auto_config.py
+# matrx_utils\schema_builder\rollbacks\auto_config_250403_083226.py
 
 
 recipe_auto_config = {

@@ -1,4 +1,4 @@
-# database/sql_queries/queries.py
+# matrx_utils\sql_queries\queries.py
 from typing import Dict, List, Union, Optional, Any, TypedDict
 
 class QueryParam(TypedDict):

@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\parts_generators\entity_override_generator.py
 from matrx_utils.schema_builder.helpers.manual_overrides import SYSTEM_OVERRIDES_ENTITIES
 
 

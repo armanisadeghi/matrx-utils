@@ -1,3 +1,4 @@
+# matrx_utils\socket\schema\context_registry.py
 import os
 import json
 from typing import Dict, Any

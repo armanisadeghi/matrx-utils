@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\helpers\field_processor\dataclass_generation_configs.py
 from database.schema_builder.helpers.field_processor.dataclass_generator import generate_complete_code
 from common import vcprint, print_link
 from typing import Dict, Any

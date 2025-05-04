@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\helpers\git_checker.py
 import os
 import sys
 from git import Repo, GitCommandError, InvalidGitRepositoryError
@@ -52,7 +53,7 @@ def check_git_status(save_direct):
         try:
             # Try to initialize repo object
             repo = Repo(root_path)
-            vcprint("- Git repository found! ✓", color="green")
+            vcprint("- Git repository found! âœ“", color="green")
             vcprint("- Checking git status...\n", color="green")
 
             # Check if there are uncommitted changes
@@ -69,10 +70,10 @@ def check_git_status(save_direct):
 
                 has_issues = True
             else:
-                vcprint("- No uncommitted changes found ✓", color="green")
+                vcprint("- No uncommitted changes found âœ“", color="green")
 
         except InvalidGitRepositoryError:
-            vcprint("- Not a git repository ✓", color="green")
+            vcprint("- Not a git repository âœ“", color="green")
             vcprint("- Proceeding as regular directory...", color="green")
             continue
         except GitCommandError as e:
@@ -93,7 +94,7 @@ def check_git_status(save_direct):
         )
         sys.exit(1)
     else:
-        vcprint("\n[MATRX GIT CHECKER] All checks passed ✓", color="green")
+        vcprint("\n[MATRX GIT CHECKER] All checks passed âœ“", color="green")
 
     return True
 

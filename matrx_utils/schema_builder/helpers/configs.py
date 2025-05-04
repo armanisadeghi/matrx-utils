@@ -1,3 +1,4 @@
+# matrx_utils\schema_builder\helpers\configs.py
 from matrx_utils.schema_builder.parts_generators.entity_main_hook_generator import (
     main_hook_imports,
 )
