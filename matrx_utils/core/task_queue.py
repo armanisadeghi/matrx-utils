@@ -246,7 +246,7 @@ class TaskQueue:
 
                 except ServiceNotDefinedError as e:
                     await e.send_error_via_socket(stream_handler=task.stream_handler, end_stream=True)
-                    print(f"[TASK QUEUE] Error processing task | Service {task.service_name} | User {task.user_id} | Error={str(e)}")
+                    print(f"[TASK QUEUE] Error processing undefined service:  {task.service_name} | User {task.user_id} | Error={str(e)}")
                 except Exception as e:
                     print(f"[TASK QUEUE] Error processing task | Service {task.service_name} | User {task.user_id} | Error={str(e)}")
                     traceback.print_exc()

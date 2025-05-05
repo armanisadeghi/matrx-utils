@@ -23,7 +23,7 @@ class ServiceFactory:
 
     def create_service(self, service_name, force_new=False):
         if service_name not in self.services:
-            raise ServiceNotDefinedError(f"Unknown service type: {service_name}")
+            raise ServiceNotDefinedError(message=f"Unknown service type: {service_name}")
 
         if service_name in self.multi_instance_services or force_new:
             vcprint(
