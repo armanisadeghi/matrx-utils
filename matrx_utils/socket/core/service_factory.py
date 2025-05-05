@@ -4,6 +4,7 @@ import asyncio
 from matrx_utils import vcprint
 from matrx_utils.socket.core.request_base import SocketRequestBase
 from matrx_utils.socket.services.log_service import LogService
+from matrx_utils.error_handling.errors import ServiceNotDefinedError
 
 
 class ServiceFactory:
@@ -22,7 +23,7 @@ class ServiceFactory:
 
     def create_service(self, service_name, force_new=False):
         if service_name not in self.services:
-            raise ValueError(f"Unknown service type: {service_name}")
+            raise ServiceNotDefinedError(f"Unknown service type: {service_name}")
 
         if service_name in self.multi_instance_services or force_new:
             vcprint(
