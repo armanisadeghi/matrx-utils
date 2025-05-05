@@ -158,17 +158,23 @@ class ValidationSystem:
         visited.remove(canonical_path) # Backtrack for cycle detection
 
     def _validate_single_field_def(self, rules: Dict, path: str):
-        """Validates the basic structure of a single, inline field definition."""
-        required_props = ["COMPONENT", "DATA_TYPE"] # Basic required properties
+        # Check for required properties
+        required_props = ["COMPONENT", "DATA_TYPE"]
         for prop in required_props:
             if prop not in rules:
                 raise SocketSchemaError(f"Missing required property '{prop}' in inline field definition at '{path}'.")
-        # Ensure REFERENCE is not used in inline field definitions
+
+        # Allow REFERENCE only if DATA_TYPE is 'array' or 'object'
         if "REFERENCE" in rules and rules["REFERENCE"] is not None:
-             raise SocketSchemaError(f"REFERENCE property is invalid in an inline field definition at '{path}'. Use a named group and REFERENCE on the pointing field, or use $ref.")
-        # Ensure $ref is not used here (handled separately)
+            data_type = rules.get("DATA_TYPE")
+            if data_type not in ["array", "object"]:
+                raise SocketSchemaError(
+                    f"REFERENCE property is only allowed for fields with DATA_TYPE 'array' or 'object' at '{path}'.")
+
+        # Ensure $ref is not used in inline field definitions
         if "$ref" in rules:
-             raise SocketSchemaError(f"$ref property is invalid in an inline field definition at '{path}'. It should be the only key if used.")
+            raise SocketSchemaError(
+                f"$ref property is invalid in an inline field definition at '{path}'. It should be the only key if used.")
 
     def _resolve_and_validate_ref(self, ref_path: str, current_path: str, allow_single_field: bool, visited: Set[str]) -> Dict:
         """Resolves a $ref or REFERENCE path, performs basic validation, and checks for immediate cycles."""
@@ -230,7 +236,8 @@ class ValidationSystem:
             validation_results = self._validate_recursive_data(data, working_definition, user_id)
             validation_result["context"] = validation_results["data"]
             validation_result["errors"] = validation_results["errors"]
-        except SocketSchemaError as e: validation_result["errors"]["_schema"] = str(e)
+        except SocketSchemaError as e:
+            validation_result["errors"]["_schema"] = str(e)
         except Exception as e:
              vcprint(f"Unexpected Validation Error for {event}.{task}: {e}", color="error"); import traceback; traceback.print_exc()
              validation_result["errors"]["_internal"] = f"Internal validation error: {type(e).__name__}"
@@ -242,34 +249,57 @@ class ValidationSystem:
             field_errors = []
             original_rules = rules
             if "$ref" in rules:
-                ref_path = rules["$ref"]; resolved_rules = self.get_definition(ref_path)
-                rules = copy.deepcopy(resolved_rules); overrides = {k: v for k, v in original_rules.items() if k != "$ref"}; rules.update(overrides)
+                ref_path = rules["$ref"]
+                resolved_rules = self.get_definition(ref_path)
+                rules = copy.deepcopy(resolved_rules)
+                overrides = {k: v for k, v in original_rules.items() if k != "$ref"}
+                rules.update(overrides)
 
-            value = data.get(field, rules.get("DEFAULT"))
-            if rules.get("DEFAULT") == "socket_internal_user_id": value = user_id
-            expected_type = rules.get("DATA_TYPE"); validation_rule = rules.get("VALIDATION"); conversion = rules.get("CONVERSION"); reference = rules.get("REFERENCE")
+            value = data.get(field)
+            if value is None:
+                value = rules.get("DEFAULT")
 
-            try: converted_value = convert_value(value, expected_type, conversion)
-            except Exception as e: field_errors.append(f"Conversion failed: {str(e)}"); errors[field] = "; ".join(field_errors); continue
-            if rules.get("REQUIRED") and converted_value is None and value is None: field_errors.append("Missing required field")
+            if rules.get("DEFAULT") == "socket_internal_user_id":
+                value = user_id
+
+            expected_type = rules.get("DATA_TYPE")
+            validation_rule = rules.get("VALIDATION")
+            conversion = rules.get("CONVERSION")
+            reference = rules.get("REFERENCE")
+
+            try:
+                converted_value = convert_value(value, expected_type, conversion)
+            except Exception as e:
+                field_errors.append(f"Conversion failed: {str(e)}")
+                errors[field] = "; ".join(field_errors)
+                continue
+
+            if rules.get("REQUIRED") and converted_value is None and value is None:
+                field_errors.append("Missing required field")
 
             if reference and converted_value is not None:
-                ref_def_path = f"definitions/{reference}"; ref_definition = self.get_definition(ref_def_path)
+                ref_def_path = f"definitions/{reference}"
+                ref_definition = self.get_definition(ref_def_path)
                 if isinstance(converted_value, dict):
                     nested_result = self._validate_recursive_data(converted_value, ref_definition, user_id, depth + 1)
-                    if nested_result["errors"]: errors[field] = nested_result["errors"]
+                    if nested_result["errors"]:
+                        errors[field] = nested_result["errors"]
                     converted_value = nested_result["data"]
                 elif isinstance(converted_value, list) and expected_type == "array":
                     processed_list, list_errors = [], {}
                     for idx, item in enumerate(converted_value):
                         if isinstance(item, dict):
                             nested_result = self._validate_recursive_data(item, ref_definition, user_id, depth + 1)
-                            if nested_result["errors"]: list_errors[f"[{idx}]"] = nested_result["errors"]
+                            if nested_result["errors"]:
+                                list_errors[f"[{idx}]"] = nested_result["errors"]
                             processed_list.append(nested_result["data"])
-                        else: list_errors[f"[{idx}]"] = f"Expected object for reference '{reference}', got {type(item).__name__}"
-                    if list_errors: errors[field] = list_errors
+                        else:
+                            list_errors[f"[{idx}]"] = f"Expected object for reference '{reference}', got {type(item).__name__}"
+                    if list_errors:
+                        errors[field] = list_errors
                     converted_value = processed_list
-                else: field_errors.append(f"Data type mismatch for reference '{reference}'. Expected object or array, got {type(converted_value).__name__}")
+                else:
+                    field_errors.append(f"Data type mismatch for reference '{reference}'. Expected object or array, got {type(converted_value).__name__}")
 
             if not field_errors and validation_rule and converted_value is not None:
                 validator, msg = None, None
@@ -277,15 +307,22 @@ class ValidationSystem:
                 elif validation_rule in VALIDATION_REGISTRY: validator = VALIDATION_REGISTRY[validation_rule]
                 if validator:
                     try:
-                        if isinstance(validator, type) and issubclass(validator, Enum): validate_enum(converted_value, validator)
-                        elif callable(validator): validator(converted_value)
-                        else: msg = f"Invalid validator for rule '{validation_rule}'"
-                    except Exception as e: msg = f"Validation failed: {str(e)}"
-                if msg: field_errors.append(msg)
+                        if isinstance(validator, type) and issubclass(validator, Enum):
+                            validate_enum(converted_value, validator)
+                        elif callable(validator):
+                            validator(converted_value)
+                        else:
+                            msg = f"Invalid validator for rule '{validation_rule}'"
+                    except Exception as e:
+                        msg = f"Validation failed: {str(e)}"
+                if msg:
+                    field_errors.append(msg)
 
             if field_errors:
-                if field not in errors: errors[field] = "; ".join(field_errors)
-            else: structured_data[field] = converted_value
+                if field not in errors:
+                    errors[field] = "; ".join(field_errors)
+            else:
+                structured_data[field] = converted_value
         return {"data": structured_data, "errors": errors}
 
 

@@ -184,11 +184,210 @@ SCHEMA = {
                 "DESCRIPTION": "Enter any message and the same message will be streamed back to you as a test of the mic.",
                 "TEST_VALUE": None
             }
+        },
+        "BROKER_DEFINITION": {
+            "id": {
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "CONVERSION": None,
+                "DATA_TYPE": "string",
+                "DEFAULT": None,
+                "DESCRIPTION": "Enter the id of the broker.",
+                "ICON_NAME": "Key",
+                "REFERENCE": None,
+                "REQUIRED": True,
+                "TEST_VALUE": "5d8c5ed2-5a84-476a-9258-6123a45f996a",
+                "VALIDATION": None
+            },
+            "name": {
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "CONVERSION": None,
+                "DATA_TYPE": "string",
+                "DEFAULT": None,
+                "DESCRIPTION": "Enter the name of the broker.",
+                "ICON_NAME": "User",
+                "REFERENCE": None,
+                "REQUIRED": False,
+                "TEST_VALUE": None,
+                "VALIDATION": None
+            },
+            "ready": {
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "CONVERSION": None,
+                "DATA_TYPE": "boolean",
+                "DEFAULT": "True",
+                "DESCRIPTION": "Whether the broker's value is DIRECTLY ready exactly as it is.",
+                "ICON_NAME": "Check",
+                "REFERENCE": None,
+                "REQUIRED": False,
+                "TEST_VALUE": None,
+                "VALIDATION": None
+            },
+            "value": {
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "CONVERSION": None,
+                "DATA_TYPE": "string",
+                "DEFAULT": None,
+                "DESCRIPTION": "Enter the value of the broker.",
+                "ICON_NAME": "LetterText",
+                "REFERENCE": None,
+                "REQUIRED": False,
+                "TEST_VALUE": "I have an app that let's users create task lists from audio files.",
+                "VALIDATION": None
+            }
+        },
+        "common_broker_values": {
+            "COMPONENT": "relatedArrayObject",
+            "COMPONENT_PROPS": {},
+            "CONVERSION": "convert_broker_data",
+            "DATA_TYPE": "array",
+            "DEFAULT": [],
+            "DESCRIPTION": "Enter the broker values to be used in the recipe.",
+            "ICON_NAME": "Parentheses",
+            "REFERENCE": "BROKER_DEFINITION",
+            "REQUIRED": False,
+            "TEST_VALUE": None,
+            "VALIDATION": None
+        },
+        "CHAT_CONFIG_DEFINITION": {
+            "recipe_id": {
+                "REQUIRED": True,
+                "DEFAULT": None,
+                "VALIDATION": None,
+                "DATA_TYPE": "string",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "TEST_VALUE": "e2049ce6-c340-4ff7-987e-deb24a977853",
+                "DESCRIPTION": "Enter the ID of the recipe to be fetched, cached and ready for fast usage."
+            },
+            "version": {
+                "REQUIRED": False,
+                "DEFAULT": "latest",
+                "VALIDATION": None,
+                "DATA_TYPE": "string",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "TEST_VALUE": "latest",
+                "DESCRIPTION": "Enter the version of the recipe or blank to get the latest version."
+            },
+            "user_id": {
+                "REQUIRED": False,
+                "DEFAULT": "socket_internal_user_id",
+                "VALIDATION": None,
+                "DATA_TYPE": "string",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "",
+                "DESCRIPTION": "",
+                "TEST_VALUE": None
+            },
+            "prepare_for_next_call": {
+                "REQUIRED": False,
+                "DEFAULT": False,
+                "VALIDATION": None,
+                "DATA_TYPE": "boolean",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "Switch",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "DESCRIPTION": "Determines if the results should be saved as a new conversation.",
+                "TEST_VALUE": None
+            },
+            "save_new_conversation": {
+                "REQUIRED": False,
+                "DEFAULT": False,
+                "VALIDATION": None,
+                "DATA_TYPE": "boolean",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "Switch",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "DESCRIPTION": "Determines if the results should be saved as a new conversation.",
+                "TEST_VALUE": None
+            },
+            "include_classified_output": {
+                "REQUIRED": False,
+                "DEFAULT": False,
+                "VALIDATION": None,
+                "DATA_TYPE": "boolean",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "Checkbox",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "DESCRIPTION": "Determines if the classified output should be included in the response.",
+                "TEST_VALUE": None
+            },
+            "model_override": {
+                "REQUIRED": False,
+                "DEFAULT": None,
+                "VALIDATION": None,
+                "DATA_TYPE": "string",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "input",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "TEST_VALUE": "10168527-4d6b-456f-ab07-a889223ba3a9",
+                "DESCRIPTION": "Enter the ID of the AI Model or leave blank to use the default model."
+            },
+            "tools_override": {
+                "REQUIRED": False,
+                "DEFAULT": [],
+                "VALIDATION": None,
+                "DATA_TYPE": "array",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "arrayField",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "PocketKnife",
+                "DESCRIPTION": "Enter a list of tool names to be used in the call, which will override the tools defined in the recipe.",
+                "TEST_VALUE": None
+            },
+            "allow_default_values": {
+                "REQUIRED": False,
+                "DEFAULT": False,
+                "VALIDATION": None,
+                "DATA_TYPE": "boolean",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "Switch",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "DESCRIPTION": "Determines if the default values can be used for brokers which are not provided or are not ready.",
+                "TEST_VALUE": None
+            },
+            "allow_removal_of_unmatched": {
+                "REQUIRED": False,
+                "DEFAULT": False,
+                "VALIDATION": None,
+                "DATA_TYPE": "boolean",
+                "CONVERSION": None,
+                "REFERENCE": None,
+                "COMPONENT": "Checkbox",
+                "COMPONENT_PROPS": {},
+                "ICON_NAME": "Key",
+                "DESCRIPTION": "Determines if brokers which are not provided or are not ready should be removed from the input content prior to the call.",
+                "TEST_VALUE": None
+            }
         }
     },
     "tasks": {
-        "scraper_service_v2": {
-            "quick_scrape": {
+        "SCRAPER_SERVICE_V2": {
+            "QUICK_SCRAPE": {
                 "urls": {"$ref": "definitions/scrape_urls", "TEST_VALUE": ["https://en.wikipedia.org/wiki/Donald_Trump",
                                                                            "https://titaniumsuccess.com/arman-sadeghi/business-coach/"]},
                 "get_organized_data": {"$ref": "definitions/scrape_get_organized_data", "TEST_VALUE": False},
@@ -208,7 +407,7 @@ SCHEMA = {
                 "include_anchors": {"$ref": "definitions/scrape_include_anchors", "TEST_VALUE": True},
                 "anchor_size": {"$ref": "definitions/scrape_anchor_size", "TEST_VALUE": 100}
             },
-            "quick_scrape_stream": {
+            "QUICK_SCRAPE_STREAM": {
                 "urls": {"$ref": "definitions/scrape_urls", "TEST_VALUE": ["https://en.wikipedia.org/wiki/Donald_Trump",
                                                                            "https://titaniumsuccess.com/arman-sadeghi/business-coach/"]},
                 "get_organized_data": {"$ref": "definitions/scrape_get_organized_data", "TEST_VALUE": False},
@@ -228,7 +427,7 @@ SCHEMA = {
                 "include_anchors": {"$ref": "definitions/scrape_include_anchors", "TEST_VALUE": True},
                 "anchor_size": {"$ref": "definitions/scrape_anchor_size", "TEST_VALUE": 100}
             },
-            "search_and_scrape": {
+            "SEARCH_AND_SCRAPE": {
                 "keywords": {"$ref": "definitions/search_keywords_array",
                              "TEST_VALUE": ["apple stock price", "apple stock best time to buy",
                                             "apple stock forecast"]},
@@ -253,7 +452,7 @@ SCHEMA = {
                 "include_anchors": {"$ref": "definitions/scrape_include_anchors", "TEST_VALUE": True},
                 "anchor_size": {"$ref": "definitions/scrape_anchor_size", "TEST_VALUE": 100}
             },
-            "search_keywords": {
+            "SEARCH_KEYWORDS": {
                 "keywords": {"$ref": "definitions/search_keywords_array",
                              "TEST_VALUE": ["apple stock price", "apple stock best time to buy",
                                             "apple stock forecast"]},
@@ -261,7 +460,7 @@ SCHEMA = {
                 "total_results_per_keyword": {"$ref": "definitions/search_total_results_slider_1_100", "TEST_VALUE": 5},
                 "search_type": {"$ref": "definitions/search_type", "DEFAULT": "All"}
             },
-            "search_and_scrape_limited": {
+            "SEARCH_AND_SCRAPE_LIMITED": {
                 "keyword": {"$ref": "definitions/search_keyword_string", "TEST_VALUE": "apple stock price"},
                 "country_code": {"$ref": "definitions/search_country_code", "TEST_VALUE": "US"},
                 "max_page_read": {"$ref": "definitions/search_max_page_read_slider_1_20", "TEST_VALUE": 5},
@@ -283,7 +482,7 @@ SCHEMA = {
                 "include_anchors": {"$ref": "definitions/scrape_include_anchors", "TEST_VALUE": True},
                 "anchor_size": {"$ref": "definitions/scrape_anchor_size", "TEST_VALUE": 100}
             },
-            "mic_check": {
+            "MIC_CHECK": {
                 "$ref": "definitions/MIC_CHECK_DEFINITION"
             }
         },
@@ -347,10 +546,31 @@ SCHEMA = {
                     "TEST_VALUE": None
                 }
             }
+        },
+        "AI_CHAT_SERVICE": {
+            "RUN_RECIPE_TO_CHAT": {
+                "broker_values": {
+                    "$ref": "definitions/common_broker_values"
+                },
+                "chat_config": {
+                    "COMPONENT": "relatedObject",
+                    "COMPONENT_PROPS": {},
+                    "CONVERSION": None,
+                    "DATA_TYPE": "object",
+                    "DEFAULT": None,
+                    "DESCRIPTION": "Enter the chat config to be used in the recipe.",
+                    "ICON_NAME": "Settings",
+                    "REFERENCE": "CHAT_CONFIG_DEFINITION",
+                    "REQUIRED": True,
+                    "TEST_VALUE": None,
+                    "VALIDATION": None
+                }
+            }
         }
 
     }
 }
+
 
 def get_schema():
     return SCHEMA
