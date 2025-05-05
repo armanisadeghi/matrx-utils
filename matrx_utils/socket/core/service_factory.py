@@ -59,21 +59,25 @@ class ServiceFactory:
             tasks = []
             temp_instances = []
             for task_info in prepared_tasks:
-                vcprint(task_info, title="Task Info", color="green")
+                try:
+                    vcprint(task_info, title="Task Info", color="green")
 
-                force_new = service_name in self.multi_instance_services
-                service_instance = self.create_service(service_name, force_new=force_new)
+                    force_new = service_name in self.multi_instance_services
+                    service_instance = self.create_service(service_name, force_new=force_new)
 
-                if force_new:
-                    temp_instances.append(service_instance)
+                    if force_new:
+                        temp_instances.append(service_instance)
 
-                service_instance.add_stream_handler(task_info["stream_handler"])
-                service_instance.set_user_id(user_id)
+                    service_instance.add_stream_handler(task_info["stream_handler"])
+                    service_instance.set_user_id(user_id)
 
-                if "log_level" in task_info and task_info["log_level"] is not None and task_info["log_level"] != "":
-                    service_instance.set_log_level(task_info["log_level"])
+                    if "log_level" in task_info and task_info["log_level"] is not None and task_info["log_level"] != "":
+                        service_instance.set_log_level(task_info["log_level"])
 
-                tasks.append(service_instance.process_task(task_info["task"], task_info["context"]))
+                    tasks.append(service_instance.process_task(task_info["task"], task_info["context"]))
+                except ServiceNotDefinedError as e:
+                    await e.send_error_via_socket(stream_handler=task_info["stream_handler"], end_stream=True)
+                    vcprint(f"Requested Service {service_name} is not defined", title="[ServiceFactory] ServiceNotDefinedError", )
 
             await asyncio.gather(*tasks)
 

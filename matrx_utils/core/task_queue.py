@@ -10,8 +10,6 @@ from typing import Any, Callable, Optional
 from concurrent.futures import ThreadPoolExecutor
 from matrx_utils import vcprint
 from matrx_utils.conf import settings
-from matrx_utils.error_handling.errors import ServiceNotDefinedError
-from matrx_utils.socket.utils.get_emitter import get_emitter
 
 # Ensure warnings are shown
 warnings.filterwarnings('always')
@@ -244,9 +242,6 @@ class TaskQueue:
                             else:
                                 await service.process_task(task.data or {}, context={"namespace": task.namespace})
 
-                except ServiceNotDefinedError as e:
-                    await e.send_error_via_socket(stream_handler=get_emitter(event_id=task.data.get("response_listener_event"), sid=task.sid, namespace=task.namespace), end_stream=True)
-                    print(f"[TASK QUEUE] Error processing undefined service:  {task.service_name} | User {task.user_id} | Error={str(e)}")
                 except Exception as e:
                     print(f"[TASK QUEUE] Error processing task | Service {task.service_name} | User {task.user_id} | Error={str(e)}")
                     traceback.print_exc()
