@@ -218,10 +218,21 @@ class ValidationSystem:
         return self.tasks.get(service_name, {}).get(task_name)
 
     def validate(self, data: Dict[str, Any], event: str, task: str, user_id: str):
+        # Initialize the result dictionary
         validation_result = {"event": event, "task": task, "context": {}, "errors": {}}
+
+        # Always set user_id in the context (available from method parameter)
+        validation_result["context"]["user_id"] = user_id
+
+        # Extract response_listener_event from data, fallback to default if not present
+        response_listener_event = data.get("response_listener_event", None)  # Default is None per schema
+        validation_result["context"]["response_listener_event"] = response_listener_event
+
+        # Proceed with validation
         try:
             initial_task_def = self.get_task_definition(event, task)
-            if not initial_task_def: raise SocketSchemaError(f"Task definition '{event}.{task}' not found.")
+            if not initial_task_def:
+                raise SocketSchemaError(f"Task definition '{event}.{task}' not found.")
 
             definition_to_validate = initial_task_def
             if "$ref" in initial_task_def:
@@ -231,16 +242,20 @@ class ValidationSystem:
 
             working_definition = copy.deepcopy(definition_to_validate)
             for field, field_def in STANDARD_FIELD_DEFINITIONS.items():
-                if field not in working_definition: working_definition[field] = field_def
+                if field not in working_definition:
+                    working_definition[field] = field_def
 
             validation_results = self._validate_recursive_data(data, working_definition, user_id)
-            validation_result["context"] = validation_results["data"]
+            validation_result["context"].update(validation_results["data"])
             validation_result["errors"] = validation_results["errors"]
         except SocketSchemaError as e:
             validation_result["errors"]["_schema"] = str(e)
         except Exception as e:
-             vcprint(f"Unexpected Validation Error for {event}.{task}: {e}", color="error"); import traceback; traceback.print_exc()
-             validation_result["errors"]["_internal"] = f"Internal validation error: {type(e).__name__}"
+            vcprint(f"Unexpected Validation Error for {event}.{task}: {e}", color="error")
+            import traceback
+            traceback.print_exc()
+            validation_result["errors"]["_internal"] = f"Internal validation error: {type(e).__name__}"
+
         return validation_result
 
     def _validate_recursive_data(self, data: Dict[str, Any], definition: Dict[str, Any], user_id: str, depth: int = 0):

@@ -23,7 +23,7 @@ class ServiceFactory:
 
     def create_service(self, service_name, force_new=False):
         if service_name not in self.services:
-            raise ServiceNotDefinedError(message=f"Unknown service type: {service_name}")
+            raise ServiceNotDefinedError(message=f"Service: {service_name} is not registered in Service factory or App service factory")
 
         if service_name in self.multi_instance_services or force_new:
             vcprint(
@@ -86,4 +86,4 @@ class ServiceFactory:
                     await instance.cleanup()
                 del instance
 
-        return self.create_service(service_name)
+        # return self.create_service(service_name)
