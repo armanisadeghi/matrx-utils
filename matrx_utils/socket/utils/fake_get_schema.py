@@ -1,10 +1,17 @@
 SCHEMA = {
     "definitions": {
         "scrape_urls": {
-            "REQUIRED": True, "DEFAULT": None, "VALIDATION": None, "DATA_TYPE": "array", "CONVERSION": None,
+            "REQUIRED": True,
+            "DEFAULT": None,
+            "VALIDATION": None,
+            "DATA_TYPE": "array",
+            "CONVERSION": None,
             "REFERENCE": None,
-            "COMPONENT": "arrayField", "COMPONENT_PROPS": {}, "DESCRIPTION": "Enter the urls to be scraped.",
-            "ICON_NAME": "Link", "TEST_VALUE": None
+            "COMPONENT": "arrayField",
+            "COMPONENT_PROPS": {},
+            "DESCRIPTION": "Enter the urls to be scraped.",
+            "ICON_NAME": "Link",
+            "TEST_VALUE": None
         },
         "scrape_get_organized_data": {
             "REQUIRED": False, "DEFAULT": False, "VALIDATION": None, "DATA_TYPE": "boolean", "CONVERSION": None,

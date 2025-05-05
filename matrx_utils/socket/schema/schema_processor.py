@@ -71,12 +71,13 @@ class ValidationSystem:
         """Performs structural validation of the loaded schema."""
         # --- 1. Validate Definitions Structure and References ---
         for def_key, definition in self.definitions.items():
+            is_field = not all(type(k)==dict for k,v in definition.items())
             path = f"definitions/{def_key}"
             if not isinstance(definition, dict):
                  raise SocketSchemaError(f"Invalid definition at '{path}'. Expected an object.")
 
             # Check if it's a named group (contains fields which are dicts) or a single field definition
-            is_named_group = any(isinstance(v, dict) for v in definition.values())
+            is_named_group = all(isinstance(v, dict) for v in definition.values())
 
             if is_named_group:
                 self._validate_definition_group(definition, path, set()) # Start cycle check here
@@ -119,8 +120,8 @@ class ValidationSystem:
         if canonical_path in visited:
             raise SocketSchemaError(f"Circular reference detected involving '{canonical_path}'. Path: {' -> '.join(list(visited)) + ' -> ' + canonical_path}")
         visited.add(canonical_path)
-        # --- End Cycle Detection ---
 
+        # --- End Cycle Detection ---
         for field_name, rules in definition_obj.items():
             field_path = f"{current_path}/{field_name}"
             if not isinstance(rules, dict):
@@ -134,7 +135,7 @@ class ValidationSystem:
                 # Field ref can point to single field or named group
                 resolved_ref = self._resolve_and_validate_ref(ref_path, field_path, allow_single_field=True, visited=visited)
                 # If resolved ref is a named group, recurse for cycle check
-                if isinstance(resolved_ref, dict) and any(isinstance(v, dict) for v in resolved_ref.values()):
+                if isinstance(resolved_ref, dict) and all(isinstance(v, dict) for v in resolved_ref.values()):
                     self._validate_definition_group(resolved_ref, ref_path, visited.copy())
 
             elif "REFERENCE" in rules and rules["REFERENCE"] is not None:
