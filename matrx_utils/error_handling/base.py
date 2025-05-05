@@ -8,10 +8,11 @@ class BaseAppError(Exception):
         super().__init__(message)  # This is crucial for Exception to work properly
 
     async def send_error_via_socket(self, stream_handler, end_stream=False):
-        await stream_handler.send_error(error_type=self.error_type,
-                                        message=self.message,
-                                        user_visible_message=self.user_visible_message,
-                                        code=self.code,
-                                        details=self.details)
-        if end_stream:
-            await stream_handler.send_end()
+        if stream_handler is not None:
+            await stream_handler.send_error(error_type=self.error_type,
+                                            message=self.message,
+                                            user_visible_message=self.user_visible_message,
+                                            code=self.code,
+                                            details=self.details)
+            if end_stream:
+                await stream_handler.send_end()

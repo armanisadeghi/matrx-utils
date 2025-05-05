@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from matrx_utils import vcprint
 from matrx_utils.conf import settings
 from matrx_utils.error_handling.errors import ServiceNotDefinedError
-
+from matrx_utils.socket.utils.get_emitter import get_emitter
 
 # Ensure warnings are shown
 warnings.filterwarnings('always')
@@ -223,8 +223,8 @@ class TaskQueue:
                                 service_factory = self.user_sessions.user_service_factories.get(task.user_id)
                             else:
                                 if not self.system_service_factory:
-                                    from matrx_utils.socket.core.service_factory import ServiceFactory
-                                    self.system_service_factory = ServiceFactory()
+                                    from matrx_utils.socket.core.app_factory import AppServiceFactory
+                                    self.system_service_factory = AppServiceFactory()
                                 service_factory = self.system_service_factory
                             if not service_factory:
                                 raise ValueError(f"No ServiceFactory for user {task.user_id}")
@@ -245,7 +245,7 @@ class TaskQueue:
                                 await service.process_task(task.data or {}, context={"namespace": task.namespace})
 
                 except ServiceNotDefinedError as e:
-                    await e.send_error_via_socket(stream_handler=task.stream_handler, end_stream=True)
+                    await e.send_error_via_socket(stream_handler=get_emitter(event_id=task.data.get("response_listener_event"), sid=task.sid, namespace=task.namespace), end_stream=True)
                     print(f"[TASK QUEUE] Error processing undefined service:  {task.service_name} | User {task.user_id} | Error={str(e)}")
                 except Exception as e:
                     print(f"[TASK QUEUE] Error processing task | Service {task.service_name} | User {task.user_id} | Error={str(e)}")

@@ -8,8 +8,6 @@ verbose = True
 debug = False
 info = False
 
-DEFINITION_NOT_REQUIRED = object()
-
 
 def validate_object_structure(obj):
     errors = []
