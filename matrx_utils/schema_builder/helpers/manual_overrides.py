@@ -4,17 +4,19 @@
 
 TABLE_ORDER_OVERRIDES = {
     "ai_provider": 2,
-    "data_input_component": 1,
-    "data_output_component": 2,
+    "data_input_component": 2,
+    "data_output_component": 3,
     "projects": 1,
     "scrape_job": 3,
     "scrape_cache_policy": 3,
     "scrape_cycle_tracker": 1,
     "scrape_path_pattern": 1,
     "scrape_path_pattern_cache_policy": 2,
-    "category": 1
-
+    "category": 1,
+    "field_components": 2,
+    "destination_component": 1,
 }
+
 
 SYSTEM_OVERRIDES_ENTITIES = {
     "recipe": {
