@@ -1,0 +1,19 @@
+[project]
+name = "matrx-utils"
+version = "0.1.0"
+description = "Basic utilities for matrx"
+readme = "README.md"
+authors = [
+    { email = "jatin.b.rx3@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "inflect>=7.5.0",
+]
+
+[project.scripts]
+matrx-utils = "matrx_utils:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
