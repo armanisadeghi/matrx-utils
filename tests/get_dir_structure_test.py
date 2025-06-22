@@ -5,8 +5,8 @@ import os
 
 
 class Settings:
-    BASE_DIR: Path = Path(__file__).resolve().parent
-    BASE_DIR_STR: str = str(Path(__file__).resolve().parent)
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent
+    BASE_DIR_STR: str = str(Path(__file__).resolve().parent.parent)
 
 configure_settings(Settings)
 
