@@ -1,0 +1,29 @@
+matrx_utils/
+├── conf.py
+├── data_handling/
+│   ├── data_transformer.py
+│   ├── utils.py
+│   ├── validation/
+│   │   ├── errors.py
+│   │   ├── validators.py
+├── fancy_prints/
+│   ├── colors.py
+│   ├── fancy_prints.py
+│   ├── matrx_print_logger.py
+│   ├── utils/
+│   │   ├── matrx_json_converter.py
+├── file_handling/
+│   ├── base_handler.py
+│   ├── batch_handler.py
+│   ├── file_handler.py
+│   ├── file_manager.py
+│   ├── specific_handlers/
+│   │   ├── code_handler.py
+│   │   ├── html_handler.py
+│   │   ├── image_handler.py
+│   │   ├── json_handler.py
+│   │   ├── markdown_handler.py
+│   │   ├── text_handler.py
+├── utils/
+│   ├── clear_terminal.py
+│   ├── get_dir_structure.py

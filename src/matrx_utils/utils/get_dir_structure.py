@@ -1,5 +1,6 @@
 import os
 import json
+from pathlib import Path
 import re
 import time
 from io import StringIO
@@ -164,9 +165,16 @@ def generate_and_save_directory_structure(config):
 
 
 if __name__ == "__main__":
+    from src.matrx_utils.conf import configure_settings, settings
+    class Settings:
+        BASE_DIR: Path = Path(__file__).resolve().parent
+        BASE_DIR_STR: str = str(Path(__file__).resolve().parent)
+        
+    configure_settings(Settings)
+    
     config = {
-        "root_directory": r"D:\app_dev\ai-matrx-admin\features\rich-text-editor",
-        "project_root": r"D:\app_dev\ai-matrx-admin",
+        "root_directory": r"D:\app_dev\matrx-utils\src\matrx_utils",
+        "project_root": r"D:\app_dev\matrx-utils\src\matrx_utils",
         "ignore_directories": [
             ".",
             "_dev",
