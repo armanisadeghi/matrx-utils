@@ -192,3 +192,11 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+.idea/
+
+
+# Ignore all files in temp directory and all subdirectories (unlimited depth)
+temp/**/*
+# But allow all directories in temp and all subdirectories (unlimited depth)
+!temp/**/
