@@ -261,7 +261,7 @@ def print_link(path):
         url_compatible_path = path.replace("\\", "/")
         print(colorize("file:///{}".format(url_compatible_path), "blue"))
 
-def plt(path, title):
+def plt(path, title): # Note For Armani: I have seen you use this in lot of places. Please tell me what to call this or it needs to be removed.
     print(colorize(f"\n{title}: ", "yellow"), end="")
     print_link(path)
 
