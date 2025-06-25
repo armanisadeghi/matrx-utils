@@ -1,11 +1,9 @@
-from pathlib import Path
+import os
 
 from matrx_utils import vcprint
 
-DEV_MODE = False
 
-
-class NotConfiguredError(Exception): 
+class NotConfiguredError(Exception):
     pass
 
 
@@ -14,37 +12,39 @@ class LazySettings:
     _configured = False
 
     def _ensure_configured(self):
-        if not self._configured: 
+        if not self._configured:
             raise NotConfiguredError("Call matrx_utils.conf.configure() first.")
 
     def __getattr__(self, name):
-        self._ensure_configured()
-        try:
-            return getattr(self._settings_object, name)
-        except AttributeError:
-            raise AttributeError(f"Setting '{name}' not found.")
+        if self._configured:
+            try:
+                return getattr(self._settings_object, name)
+            except AttributeError:
+                vcprint(f"Setting '{name}' not found in configured settings, checking environment", verbose=True,
+                        color="yellow")
+                env_value = os.getenv(name.upper())
+                if env_value is not None:
+                    vcprint(f"Found '{name.upper()}' in environment", color="yellow")
+                    return env_value
+                else:
+                    raise AttributeError(f"Setting '{name}' not found in configured settings or environment variables.")
+        else:
+            # Settings not configured, check environment directly
+            vcprint("Settings have not been configured, checking environment variables...", color="yellow")
+            env_value = os.getenv(name.upper())
+            if env_value is not None:
+                vcprint(f"Found '{name}' in environment variables", color="yellow")
+                return env_value
+            else:
+                raise NotConfiguredError(
+                    f"Settings not configured and '{name}' not found in environment variables. Either configure settings with matrx_utils.conf.configure() or set {name.upper()} environment variable.")
 
 
 settings = LazySettings()
 
 
 def configure_settings(settings_object):
-    if settings_object is None: 
+    if settings_object is None:
         raise ValueError("Settings object cannot be None.")
     settings._settings_object = settings_object
     settings._configured = True
-
-
-if DEV_MODE:
-    vcprint("DEV_MODE is being used in matrx_utils.conf", color="light_yellow")
-
-
-    class DevSettings:
-        BASE_DIR: Path = Path(r"D:\work\matrx-utils")
-        TEMP_DIR: Path = BASE_DIR / "temp"
-        LOG_VCPRINT: bool = True
-        DEBUG: bool = True
-        SAVE_DIRECT_SCHEMA = True
-
-
-    configure_settings(DevSettings())

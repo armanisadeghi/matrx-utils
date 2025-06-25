@@ -1,14 +1,10 @@
 from matrx_utils import generate_and_save_directory_structure, print_link, vcprint, clear_terminal
 from matrx_utils.conf import settings, configure_settings
-from pathlib import Path
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-class Settings:
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent
-    BASE_DIR_STR: str = str(Path(__file__).resolve().parent.parent)
-
-configure_settings(Settings)
 
 if __name__ == "__main__":
     clear_terminal()
