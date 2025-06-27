@@ -1,9 +1,7 @@
+import load_env_for_test
 from matrx_utils import generate_and_save_directory_structure, print_link, vcprint, clear_terminal
 from matrx_utils.conf import settings, configure_settings
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 if __name__ == "__main__":
