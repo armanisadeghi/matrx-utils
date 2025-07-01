@@ -29,19 +29,19 @@ def _convert_recursive(data):
 
     # Handle custom ORM/DTO by stringified type and special attribute
     type_name = str(type(data).__name__)
-    if hasattr(data, '_matrx_dto') and getattr(data, '_matrx_dto') is True and type_name == 'BaseDTO':
+    if type_name == 'BaseDTO':
         try:
             return _convert_recursive(data.to_dict())
         except Exception as e:
             print(f"Warning: Failed calling to_dict() on BaseDTO {type(data)}: {e}")
             # Fall through
-    if hasattr(data, '_matrx_model') and getattr(data, '_matrx_model') is True and type_name == 'Model':
+    if type_name == 'Model':
         try:
             return _convert_recursive(data.to_dict())
         except Exception as e:
             print(f"Warning: Failed calling to_dict() on Model {type(data)}: {e}")
             # Fall through
-    if hasattr(data, '_matrx_field') and getattr(data, '_matrx_field') is True and type_name == 'Field':
+    if type_name == 'Field':
         try:
             return _convert_recursive(data.to_dict())
         except Exception as e:

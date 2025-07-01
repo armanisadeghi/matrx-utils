@@ -4,17 +4,22 @@ from matrx_utils import vcprint
 info = True
 debug = False
 
+
 class NotConfiguredError(Exception):
     pass
+
 
 class LazySettings:
     _settings_object = None
     _configured = False
     _env_first = False  # Default: settings first
+    _reported_settings = set()  # Track reported missing settings
 
     def __init__(self, env_first=False):
         self._env_first = env_first
-        vcprint(f"Initialized LazySettings with env_first: {self._env_first}", verbose=info, color="blue")  # Critical: initialization
+        self._reported_settings = set()  # Initialize the set
+        vcprint(f"Initialized LazySettings with env_first: {self._env_first}", verbose=info,
+                color="blue")  # Critical: initialization
 
     def _ensure_configured(self):
         if not self._configured:
@@ -33,45 +38,67 @@ class LazySettings:
 
     def __getattr__(self, name):
         vcprint(f"Looking up setting '{name}'", verbose=debug, color="cyan")  # Non-critical: lookup start
-        
+
         if self._env_first:
-            vcprint("Checking environment variables first due to env_first=True", verbose=debug, color="yellow")  # Non-critical: precedence
+            vcprint("Checking environment variables first due to env_first=True", verbose=debug,
+                    color="yellow")  # Non-critical: precedence
             env_value = os.getenv(name.upper())
             if env_value is not None:
-                vcprint(f"Found '{name.upper()}' in environment variables", verbose=info, color="green")  # Critical: found value
+                vcprint(f"Found '{name.upper()}' in environment variables", verbose=info,
+                        color="green")  # Critical: found value
                 return self._convert_to_bool(env_value)
             if self._configured:
                 try:
-                    vcprint(f"Checking configured settings for '{name}'", verbose=debug, color="yellow")  # Non-critical: checking settings
+                    vcprint(f"Checking configured settings for '{name}'", verbose=debug,
+                            color="yellow")  # Non-critical: checking settings
                     return getattr(self._settings_object, name)
                 except AttributeError:
-                    vcprint(f"Setting '{name}' not found in configured settings", verbose=info, color="red")  # Critical: error
+                    if name not in self._reported_settings:
+                        vcprint(f"Setting '{name}' not found in configured settings", verbose=info,
+                                color="red")  # Critical: error
+                        self._reported_settings.add(name)  # Mark as reported
                     raise AttributeError(f"Setting '{name}' not found in environment or configured settings")
-            vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info, color="red")  # Critical: error
+            if name not in self._reported_settings:
+                vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info,
+                        color="red")  # Critical: error
+                self._reported_settings.add(name)  # Mark as reported
             raise NotConfiguredError(f"Settings not configured and '{name}' not found in environment variables")
-        
+
         else:
-            vcprint("Checking configured settings first due to env_first=False", verbose=debug, color="yellow")  # Non-critical: precedence
+            vcprint("Checking configured settings first due to env_first=False", verbose=debug,
+                    color="yellow")  # Non-critical: precedence
             if self._configured:
                 try:
-                    vcprint(f"Found '{name}' in configured settings", verbose=info, color="green")  # Critical: found value
+                    vcprint(f"Found '{name}' in configured settings", verbose=info,
+                            color="green")  # Critical: found value
                     return getattr(self._settings_object, name)
                 except AttributeError:
-                    vcprint(f"Setting '{name}' not found in configured settings, checking environment", verbose=debug, color="yellow")  # Non-critical: fallback
+                    vcprint(f"Setting '{name}' not found in configured settings, checking environment", verbose=debug,
+                            color="yellow")  # Non-critical: fallback
                     env_value = os.getenv(name.upper())
                     if env_value is not None:
-                        vcprint(f"Found '{name.upper()}' in environment variables", verbose=info, color="green")  # Critical: found value
+                        vcprint(f"Found '{name.upper()}' in environment variables", verbose=info,
+                                color="green")  # Critical: found value
                         return self._convert_to_bool(env_value)
-                    vcprint(f"Setting '{name}' not found in configured settings or environment", verbose=info, color="red")  # Critical: error
+                    if name not in self._reported_settings:
+                        vcprint(f"Setting '{name}' not found in configured settings or environment", verbose=info,
+                                color="red")  # Critical: error
+                        self._reported_settings.add(name)  # Mark as reported
                     raise AttributeError(f"Setting '{name}' not found in configured settings or environment")
             env_value = os.getenv(name.upper())
             if env_value is not None:
-                vcprint(f"Found '{name}' in environment variables", verbose=info, color="green")  # Critical: found value
+                vcprint(f"Found '{name}' in environment variables", verbose=info,
+                        color="green")  # Critical: found value
                 return self._convert_to_bool(env_value)
-            vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info, color="red")  # Critical: error
+            if name not in self._reported_settings:
+                vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info,
+                        color="red")  # Critical: error
+                self._reported_settings.add(name)  # Mark as reported
             raise NotConfiguredError(f"Settings not configured and '{name}' not found in environment variables")
 
+
 settings = LazySettings()
+
 
 def configure_settings(settings_object, env_first=False):
     if settings_object is None:
@@ -80,4 +107,5 @@ def configure_settings(settings_object, env_first=False):
     settings._settings_object = settings_object
     settings._configured = True
     settings._env_first = env_first
+    settings._reported_settings.clear()  # Clear reported settings on configuration
     vcprint(f"Configured settings with env_first: {env_first}", verbose=info, color="blue")  # Critical: configuration
