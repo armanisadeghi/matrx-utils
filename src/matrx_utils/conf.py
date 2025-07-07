@@ -1,9 +1,14 @@
 import os
 from matrx_utils import vcprint
+import inspect
 
 info = True
 debug = False
 
+_restricted_env_vars = {'PATH', 'HOME', 'USER', 'PYTHONPATH'} # Case Sensitive
+_restricted_service_names = {'admin', 'admin_service', 'log', 'log_service'} # Case Insensitive
+_restricted_task_and_definitions = {'mic_check', 'mic_check_definition','process_task', 'execute_task', '__init__', 'update_attributes', 'add_stream_handler'} # Case Insensitive
+_restricted_fields_names = {'stream_handler'}
 
 class NotConfiguredError(Exception):
     pass
@@ -12,100 +17,235 @@ class NotConfiguredError(Exception):
 class LazySettings:
     _settings_object = None
     _configured = False
-    _env_first = False  # Default: settings first
-    _reported_settings = set()  # Track reported missing settings
+    _env_first = False
+    _reported_settings = set()
+    _env_cache = {}
+    _env_cache_loaded = False
+    _restricted_env_vars = _restricted_env_vars
+    _verbose_mode = False
 
     def __init__(self, env_first=False):
         self._env_first = env_first
-        self._reported_settings = set()  # Initialize the set
-        vcprint(f"Initialized LazySettings with env_first: {self._env_first}", verbose=info,
-                color="blue")  # Critical: initialization
+        self._reported_settings = set()
+        self._env_cache = {}
+        self._env_cache_loaded = False
+        self._verbose_mode = False
 
     def _ensure_configured(self):
         if not self._configured:
-            vcprint("Settings not configured, raising NotConfiguredError", verbose=info, color="red")  # Critical: error
             raise NotConfiguredError("Call matrx_utils.conf.configure() first.")
+
+    def _load_env_cache(self):
+        """Load all environment variables into cache once"""
+        if not self._env_cache_loaded:
+            self._env_cache = dict(os.environ)
+            self._env_cache_loaded = True
+
+    def _get_env_with_fallback(self, name):
+        """Get environment variable with fallback to live lookup and caching"""
+        name_upper = name.upper()
+
+        # First check cache
+        if name_upper in self._env_cache:
+            return self._env_cache[name_upper]
+
+        # Fallback to live environment lookup
+        live_value = os.getenv(name_upper)
+        if live_value is not None:
+            # Cache the newly found value
+            self._env_cache[name_upper] = live_value
+            return live_value
+
+        return None
+
+    def _is_sensitive_setting(self, name):
+        """Check if a setting name suggests it contains sensitive data"""
+        sensitive_patterns = [
+            'password', 'secret', 'key', 'token', 'auth', 'credential',
+            'private', 'pass', 'pwd', 'api_key', 'access_key', 'secret_key'
+        ]
+        name_lower = name.lower()
+        return any(pattern in name_lower for pattern in sensitive_patterns)
+
+    def _redact_value(self, name, value):
+        """Smart redaction based on setting name and value length"""
+        if not self._is_sensitive_setting(name):
+            return value
+
+        str_value = str(value)
+        length = len(str_value)
+
+        if length <= 4:
+            return '*' * length
+        elif length <= 8:
+            return str_value[0] + '*' * (length - 2) + str_value[-1]
+        elif length <= 16:
+            return str_value[:2] + '*' * (length - 4) + str_value[-2:]
+        else:
+            return str_value[:3] + '*' * (length - 6) + str_value[-3:]
+
+    def _get_caller_info(self):
+        """Get information about who called the setting access"""
+        try:
+            # Skip current frame and __getattr__ frame to get actual caller
+            frame = inspect.stack()[2]
+            return {
+                'file': frame.filename,
+                'line': frame.lineno,
+                'function': frame.function,
+                'module': frame.filename.split('/')[-1] if '/' in frame.filename else frame.filename
+            }
+        except (IndexError, AttributeError):
+            return {'file': 'unknown', 'line': 0, 'function': 'unknown', 'module': 'unknown'}
 
     def _convert_to_bool(self, value):
         """Convert string values 'true' or 'false' (case-insensitive) to boolean."""
         if isinstance(value, str):
             if value.lower() == 'true':
-                vcprint(f"Converted '{value}' to True", verbose=debug, color="green")  # Non-critical: conversion
                 return True
             if value.lower() == 'false':
-                vcprint(f"Converted '{value}' to False", verbose=debug, color="green")  # Non-critical: conversion
+                return False
         return value
 
     def __getattr__(self, name):
-        vcprint(f"Looking up setting '{name}'", verbose=debug, color="cyan")  # Non-critical: lookup start
+        self._load_env_cache()  # Ensure env cache is loaded
 
         if self._env_first:
-            vcprint("Checking environment variables first due to env_first=True", verbose=debug,
-                    color="yellow")  # Non-critical: precedence
-            env_value = os.getenv(name.upper())
+            # Check environment first
+            env_value = self._get_env_with_fallback(name)
             if env_value is not None:
-                vcprint(f"Found '{name.upper()}' in environment variables", verbose=info,
-                        color="green")  # Critical: found value
-                return self._convert_to_bool(env_value)
+                converted_value = self._convert_to_bool(env_value)
+                return converted_value
+
+            # Then check configured settings
             if self._configured:
                 try:
-                    vcprint(f"Checking configured settings for '{name}'", verbose=debug,
-                            color="yellow")  # Non-critical: checking settings
-                    return getattr(self._settings_object, name)
+                    value = getattr(self._settings_object, name)
+                    return value
                 except AttributeError:
-                    if name not in self._reported_settings:
-                        vcprint(f"Setting '{name}' not found in configured settings", verbose=info,
-                                color="red")  # Critical: error
-                        self._reported_settings.add(name)  # Mark as reported
-                    raise AttributeError(f"Setting '{name}' not found in environment or configured settings")
+                    pass
+
+            # Final fallback - check environment one more time for edge cases
+            final_env_check = self._get_env_with_fallback(name)
+            if final_env_check is not None:
+                converted_value = self._convert_to_bool(final_env_check)
+                return converted_value
+
+            # Not found anywhere
             if name not in self._reported_settings:
-                vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info,
-                        color="red")  # Critical: error
-                self._reported_settings.add(name)  # Mark as reported
+                self._reported_settings.add(name)
+            if not self._configured:
+                raise NotConfiguredError(f"Settings not configured and '{name}' not found in environment variables")
+            else:
+                raise AttributeError(f"Setting '{name}' not found in environment or configured settings")
+        else:
+            # Check configured settings first
+            if self._configured:
+                try:
+                    value = getattr(self._settings_object, name)
+                    return value
+                except AttributeError:
+                    # Settings object doesn't have it, check environment
+                    env_value = self._get_env_with_fallback(name)
+                    if env_value is not None:
+                        converted_value = self._convert_to_bool(env_value)
+                        return converted_value
+
+                    # Not found anywhere
+                    if name not in self._reported_settings:
+                        self._reported_settings.add(name)
+                    raise AttributeError(f"Setting '{name}' not found in configured settings or environment")
+
+            # Not configured, check environment
+            env_value = self._get_env_with_fallback(name)
+            if env_value is not None:
+                converted_value = self._convert_to_bool(env_value)
+                return converted_value
+
+            # Not found anywhere
+            if name not in self._reported_settings:
+                self._reported_settings.add(name)
             raise NotConfiguredError(f"Settings not configured and '{name}' not found in environment variables")
 
-        else:
-            vcprint("Checking configured settings first due to env_first=False", verbose=debug,
-                    color="yellow")  # Non-critical: precedence
-            if self._configured:
-                try:
-                    vcprint(f"Found '{name}' in configured settings", verbose=info,
-                            color="green")  # Critical: found value
-                    return getattr(self._settings_object, name)
-                except AttributeError:
-                    vcprint(f"Setting '{name}' not found in configured settings, checking environment", verbose=debug,
-                            color="yellow")  # Non-critical: fallback
-                    env_value = os.getenv(name.upper())
-                    if env_value is not None:
-                        vcprint(f"Found '{name.upper()}' in environment variables", verbose=info,
-                                color="green")  # Critical: found value
-                        return self._convert_to_bool(env_value)
-                    if name not in self._reported_settings:
-                        vcprint(f"Setting '{name}' not found in configured settings or environment", verbose=info,
-                                color="red")  # Critical: error
-                        self._reported_settings.add(name)  # Mark as reported
-                    raise AttributeError(f"Setting '{name}' not found in configured settings or environment")
-            env_value = os.getenv(name.upper())
-            if env_value is not None:
-                vcprint(f"Found '{name}' in environment variables", verbose=info,
-                        color="green")  # Critical: found value
-                return self._convert_to_bool(env_value)
-            if name not in self._reported_settings:
-                vcprint(f"Settings not configured and '{name}' not found in environment variables", verbose=info,
-                        color="red")  # Critical: error
-                self._reported_settings.add(name)  # Mark as reported
-            raise NotConfiguredError(f"Settings not configured and '{name}' not found in environment variables")
+    def reset_env_variables(self):
+        """Reload all environment variables from system"""
+        self._env_cache = dict(os.environ)
+        self._env_cache_loaded = True
+        if self._verbose_mode:
+            vcprint(f"Reloaded {len(self._env_cache)} environment variables", verbose=True, color="blue")
+
+    def list_settings(self):
+        """List all settings as flat key-value pairs (unredacted)"""
+        self._load_env_cache()
+        all_settings = {}
+
+        # Add environment variables from cache
+        for key, value in self._env_cache.items():
+            all_settings[key] = self._convert_to_bool(value)
+
+        # Add settings object attributes
+        if self._configured and self._settings_object:
+            for attr_name in dir(self._settings_object):
+                if not attr_name.startswith('_'):
+                    try:
+                        value = getattr(self._settings_object, attr_name)
+                        if not callable(value):
+                            all_settings[attr_name.upper()] = value
+                    except AttributeError:
+                        pass
+
+        return all_settings
+
+    def list_settings_redacted(self):
+        """List all settings as flat key-value pairs (with smart redaction)"""
+        all_settings = self.list_settings()
+        return {key: self._redact_value(key, value) for key, value in all_settings.items()}
+
+    def set_env_setting(self, name, value):
+        """Set an environment variable setting (only for env vars, not settings object attrs)"""
+        name_upper = name.upper()
+
+        if name_upper in self._restricted_env_vars:
+            raise ValueError(f"Cannot modify restricted environment variable: {name_upper}")
+
+        # Convert value to string for environment variables
+        str_value = str(value)
+
+        # Update both cache and actual environment
+        self._env_cache[name_upper] = str_value
+        os.environ[name_upper] = str_value
+
+        if self._verbose_mode:
+            redacted_value = self._redact_value(name, str_value)
+            vcprint(f"Set environment variable {name_upper} = {redacted_value}", verbose=True, color="green")
+
+    def get_env_setting(self, name):
+        """Get an environment variable setting"""
+        return self._get_env_with_fallback(name)
+
+    def list_env_settings(self):
+        """List all cached environment variables"""
+        # Return live environment variables to ensure accuracy
+        return dict(os.environ)
+
 
 
 settings = LazySettings()
 
 
-def configure_settings(settings_object, env_first=False):
+def configure_settings(settings_object, env_first=False, verbose=False):
+    """Configure settings with optional verbose mode"""
+    if settings._configured:
+        raise RuntimeError("Settings have already been configured and cannot be reconfigured.")
+
     if settings_object is None:
-        vcprint("Settings object is None, raising ValueError", verbose=info, color="red")  # Critical: error
         raise ValueError("Settings object cannot be None.")
+
     settings._settings_object = settings_object
     settings._configured = True
     settings._env_first = env_first
+    settings._verbose_mode = verbose
     settings._reported_settings.clear()  # Clear reported settings on configuration
-    vcprint(f"Configured settings with env_first: {env_first}", verbose=info, color="blue")  # Critical: configuration
+
+    if verbose:
+        vcprint(f"Configured settings with env_first: {env_first}, verbose: {verbose}", verbose=True, color="blue")
