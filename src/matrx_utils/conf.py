@@ -1,6 +1,6 @@
 import os
-from matrx_utils import vcprint
-import inspect
+from matrx_utils import vcprint, redact_object
+
 
 info = True
 debug = False
@@ -57,46 +57,6 @@ class LazySettings:
             return live_value
 
         return None
-
-    def _is_sensitive_setting(self, name):
-        """Check if a setting name suggests it contains sensitive data"""
-        sensitive_patterns = [
-            'password', 'secret', 'key', 'token', 'auth', 'credential',
-            'private', 'pass', 'pwd', 'api_key', 'access_key', 'secret_key'
-        ]
-        name_lower = name.lower()
-        return any(pattern in name_lower for pattern in sensitive_patterns)
-
-    def _redact_value(self, name, value):
-        """Smart redaction based on setting name and value length"""
-        if not self._is_sensitive_setting(name):
-            return value
-
-        str_value = str(value)
-        length = len(str_value)
-
-        if length <= 4:
-            return '*' * length
-        elif length <= 8:
-            return str_value[0] + '*' * (length - 2) + str_value[-1]
-        elif length <= 16:
-            return str_value[:2] + '*' * (length - 4) + str_value[-2:]
-        else:
-            return str_value[:3] + '*' * (length - 6) + str_value[-3:]
-
-    def _get_caller_info(self):
-        """Get information about who called the setting access"""
-        try:
-            # Skip current frame and __getattr__ frame to get actual caller
-            frame = inspect.stack()[2]
-            return {
-                'file': frame.filename,
-                'line': frame.lineno,
-                'function': frame.function,
-                'module': frame.filename.split('/')[-1] if '/' in frame.filename else frame.filename
-            }
-        except (IndexError, AttributeError):
-            return {'file': 'unknown', 'line': 0, 'function': 'unknown', 'module': 'unknown'}
 
     def _convert_to_bool(self, value):
         """Convert string values 'true' or 'false' (case-insensitive) to boolean."""
@@ -199,7 +159,8 @@ class LazySettings:
     def list_settings_redacted(self):
         """List all settings as flat key-value pairs (with smart redaction)"""
         all_settings = self.list_settings()
-        return {key: self._redact_value(key, value) for key, value in all_settings.items()}
+        return redact_object(all_settings)
+    
 
     def set_env_setting(self, name, value):
         """Set an environment variable setting (only for env vars, not settings object attrs)"""
@@ -216,8 +177,7 @@ class LazySettings:
         os.environ[name_upper] = str_value
 
         if self._verbose_mode:
-            redacted_value = self._redact_value(name, str_value)
-            vcprint(f"Set environment variable {name_upper} = {redacted_value}", verbose=True, color="green")
+            vcprint(f"Set environment variable {name_upper} = {str_value}", verbose=True, color="green")
 
     def get_env_setting(self, name):
         """Get an environment variable setting"""
