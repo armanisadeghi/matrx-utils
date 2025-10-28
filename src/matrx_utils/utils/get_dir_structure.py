@@ -19,6 +19,7 @@ def generate_directory_structure(
     include_files_override=True,
     include_text_output=False,
     text_output_file=None,
+    project_root=None,
 ):
     ignore_dirs = ignore_dirs or []
     include_dirs = include_dirs or []
@@ -57,7 +58,17 @@ def generate_directory_structure(
             current_level["_files"] = []
 
         # Print the directory name with appropriate indentation and capture to buffer if enabled
-        line = f"{root_dir.split(os.path.sep)[-1]}/" if depth == 0 else "│   " * (depth - 1) + "├── " + os.path.basename(root) + "/"
+        if depth == 0:
+            # Show relative path from project root if provided, otherwise just the directory name
+            if project_root:
+                relative_from_project = os.path.relpath(root_dir, project_root)
+                # Normalize to forward slashes for consistency
+                relative_from_project = relative_from_project.replace(os.path.sep, "/")
+                line = f"{relative_from_project}/"
+            else:
+                line = f"{root_dir.split(os.path.sep)[-1]}/"
+        else:
+            line = "│   " * (depth - 1) + "├── " + os.path.basename(root) + "/"
         print(line)
         if output_buffer:
             output_buffer.write(line + "\n")
@@ -67,7 +78,9 @@ def generate_directory_structure(
             for file in files:
                 file_ext = os.path.splitext(file)[1]
                 if file not in ignore_files and file_ext not in ignore_extensions:
-                    if (not include_files or file in include_files) and (not include_extensions or file_ext in include_extensions):
+                    if (not include_files or file in include_files) and (
+                        not include_extensions or file_ext in include_extensions
+                    ):
                         line = "│   " * depth + "├── " + file
                         print(line)
                         if output_buffer:
@@ -125,11 +138,14 @@ def generate_and_save_directory_structure(config):
     include_files_override = config["include_files_override"]
     ignore_dir_with_no_files = config.get("ignore_dir_with_no_files", False)
     include_text_output = config.get("include_text_output", False)
+    project_root = config.get("project_root", None)
 
     # Generate unique filename suffix
     unique_suffix = time.strftime("%y%m%S")
     sanitized_root_directory = re.sub(r'[\\/:*?"<>|]', "-", root_directory)
-    output_json_file = os.path.join(config["root_save_path"], f"dir_{sanitized_root_directory}_{unique_suffix}.json")
+    output_json_file = os.path.join(
+        config["root_save_path"], f"dir_{sanitized_root_directory}_{unique_suffix}.json"
+    )
     os.makedirs(config["root_save_path"], exist_ok=True)
 
     # Define text output file path if text output is enabled
@@ -152,6 +168,7 @@ def generate_and_save_directory_structure(config):
         include_files_override=include_files_override,
         include_text_output=include_text_output,
         text_output_file=text_output_file,
+        project_root=project_root,
     )
 
     # Prune directories with no files if the option is set
@@ -162,7 +179,6 @@ def generate_and_save_directory_structure(config):
     save_structure_to_json(directory_structure, output_json_file)
 
     return directory_structure, output_json_file, text_output_file
-
 
 if __name__ == "__main__":
     from src.matrx_utils.conf import configure_settings, settings
