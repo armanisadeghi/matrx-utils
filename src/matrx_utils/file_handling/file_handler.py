@@ -19,7 +19,7 @@ class FileHandler(BaseHandler):
 
     def __init__(self, app_name, new_instance=False, batch_print=False, print_errors=True,
                  batch_handler=None):
-        self.base_dir = settings.BASE_DIR
+        self.base_dir = Path(settings.BASE_DIR)
         self.app_name = app_name
         self.temp_dir = self.base_dir / "temp" / app_name
         self.data_dir = self.base_dir / "data" / app_name

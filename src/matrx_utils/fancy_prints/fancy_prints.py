@@ -1,16 +1,17 @@
-
 import inspect
 import sys
 import re
 import json
 import random
 import logging
+
 from matrx_utils.fancy_prints.utils.matrx_json_converter import to_matrx_json
 from .colors import COLORS
 
 print_debug = False
 
 logger = logging.getLogger("vcprint")
+
 
 def clean_data_for_logging(data):
     """
@@ -20,6 +21,7 @@ def clean_data_for_logging(data):
     if isinstance(data, str):
         data = re.sub(r"[^\x00-\x7F]+", "", data)
     return data
+
 
 def colorize(text, color=None, background=None, style=None):
     # ANSI escape codes for colors
@@ -67,6 +69,7 @@ def colorize(text, color=None, background=None, style=None):
 
     return f"{color_code}{background_code}{style_code}{text}{reset}"
 
+
 def vcprint(
         data=None,
         title="Unnamed Data",
@@ -107,7 +110,8 @@ def vcprint(
             pretty = True
 
     # Prepare log message
-    log_message = clean_data_for_logging(f"{title}: {data}" if inline else f"\n{title}:\n{data}" if title != "Unnamed Data" else f"{data}")
+    log_message = clean_data_for_logging(
+        f"{title}: {data}" if inline else f"\n{title}:\n{data}" if title != "Unnamed Data" else f"{data}")
     try:
         logger.log(level=log_level, msg=log_message)
     except Exception as e:
@@ -180,6 +184,7 @@ def vcprint(
         print(f"Type of data: {type(data)}")
         print("==============================")
 
+
 def pretty_print(data,
                  title="Unnamed Data",
                  color="white",
@@ -191,7 +196,8 @@ def pretty_print(data,
     frame = inspect.currentframe()
     try:
         context = inspect.getouterframes(frame)
-        name = title if title != "Unnamed Data" else next((var_name for var_name, var_val in context[1].frame.f_locals.items() if var_val is data), title)
+        name = title if title != "Unnamed Data" else next(
+            (var_name for var_name, var_val in context[1].frame.f_locals.items() if var_val is data), title)
 
         if isinstance(data, str) and not data.strip().startswith(("{", "[")):
             if chunks:
@@ -236,6 +242,7 @@ def pretty_print(data,
     finally:
         del frame
 
+
 def print_link(path):
     from urllib.parse import urlparse
     import os
@@ -261,9 +268,12 @@ def print_link(path):
         url_compatible_path = path.replace("\\", "/")
         print(colorize("file:///{}".format(url_compatible_path), "blue"))
 
-def plt(path, title):
+
+def plt(path,
+        title):  # Note For Armani: I have seen you use this in lot of places. Please tell me what to call this or it needs to be removed.
     print(colorize(f"\n{title}: ", "yellow"), end="")
     print_link(path)
+
 
 def print_truncated(value, max_chars=250):
     """
@@ -278,8 +288,10 @@ def print_truncated(value, max_chars=250):
     else:
         print(value)
 
+
 def cool_print(text, color, background=None, style=None):
     print(colorize(text, color, background, style))
+
 
 class InlinePrinter:
     def __init__(self, prefix="", separator=" | "):
@@ -301,12 +313,15 @@ class InlinePrinter:
 
         sys.stdout.flush()
 
+
 def create_inline_printer(prefix="[AI Matrix] ", separator=" | "):
     return InlinePrinter(prefix, separator)
+
 
 def get_random_color():
     all_colors = list(COLORS.keys())
     return random.choice(all_colors)
+
 
 def is_empty(value):
     """
@@ -321,6 +336,7 @@ def is_empty(value):
     if isinstance(value, list):
         return all(is_empty(v) for v in value)
     return False
+
 
 def vclist(data=None, title="Unnamed Data", verbose=True, color=None, background=None, style=None, pretty=False,
            indent=4, inline=False):
