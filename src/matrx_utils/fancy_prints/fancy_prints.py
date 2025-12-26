@@ -73,8 +73,8 @@ def colorize(text, color=None, background=None, style=None):
 def vcprint(
         data=None,
         title="Unnamed Data",
-        verbose=True,
         color=None,
+        verbose=True,
         background=None,
         style=None,
         pretty=False,
@@ -88,10 +88,10 @@ def vcprint(
     Optionally prints data with styling based on verbosity and formatting preferences, and logs the output.
 
     Args:
-        verbose (bool): Controls verbosity of the print output. Default is True.
         data: The data to be printed. Can be of any type that can be converted to a string. Default is None.
         title (str): A title for the data being printed. Default is "Unnamed Data".
         color (str): Text color. Default is None.
+        verbose (bool): Controls verbosity of the print output. Default is True.
         background (str): Background color. Default is None.
         style (str): Text style (e.g., "bold"). Default is None.
         pretty (bool): Enables pretty printing of the data if True. Default is False.
@@ -99,6 +99,7 @@ def vcprint(
         inline (bool): Whether to print the title and data on the same line. Default is False.
         chunks (bool): Whether to print chunks on the same line without newlines, with color. Default is False.
         simple (bool): Prevents auto-enabling pretty printing for complex types when True. Default is False.
+        log_level: The logging level to use. Default is logging.INFO.
 
     Returns:
         None
@@ -338,7 +339,7 @@ def is_empty(value):
     return False
 
 
-def vclist(data=None, title="Unnamed Data", verbose=True, color=None, background=None, style=None, pretty=False,
+def vclist(data=None, title="Unnamed Data", color=None, verbose=True, background=None, style=None, pretty=False,
            indent=4, inline=False):
     """
     Wrapper for vcprint that handles lists of data.

@@ -101,6 +101,13 @@ def _convert_recursive(data):
         return f"<class '{data.__module__}.{data.__name__}'>"
 
     # 6. Fallback for other objects with common serialization methods
+    # Pydantic V2: model_dump() takes priority over deprecated dict()
+    if hasattr(data, "model_dump") and callable(data.model_dump):
+        try:
+            return _convert_recursive(data.model_dump())
+        except Exception as e:
+            print(f"Warning: Failed calling fallback model_dump() on {type(data)}: {e}")
+            # Fall through
     if hasattr(data, "to_dict") and callable(data.to_dict):
         try:
             return _convert_recursive(data.to_dict())
