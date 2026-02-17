@@ -244,30 +244,64 @@ def pretty_print(data,
         del frame
 
 
+def _is_vscode_terminal() -> bool:
+    """Detect if running inside a VS Code integrated terminal."""
+    import os
+    return os.environ.get("TERM_PROGRAM") == "vscode" or "VSCODE_PID" in os.environ
+
+
+def _format_file_link(path: str) -> str:
+    """
+    Convert a file system path into the best clickable representation for the
+    current environment.
+
+    - **VS Code terminal (any OS):** Plain absolute paths are auto-detected as
+      clickable links by the terminal. Wrapping them in ``file://`` or ANSI
+      color codes *breaks* that detection, so we return the raw path.
+    - **Windows (non-VS Code):** Return a ``file:///C:/...`` URI — the standard
+      format that Windows terminals (PowerShell, Windows Terminal, CMD) recognise.
+    - **Linux / macOS (non-VS Code):** Return a ``file:///path/...`` URI with
+      exactly three slashes before the absolute path (which itself starts with
+      ``/``, giving ``file:///path``). Most modern terminals (iTerm2, GNOME
+      Terminal, Kitty, Alacritty, Warp) recognise this as a clickable link.
+    """
+    import os
+    import sys
+
+    if not os.path.isabs(path):
+        path = os.path.abspath(path)
+
+    if _is_vscode_terminal():
+        return path
+
+    if sys.platform == "win32":
+        url_path = path.replace("\\", "/")
+        return f"file:///{url_path}"
+
+    return f"file://{path}"
+
+
 def print_link(path):
     from urllib.parse import urlparse
-    import os
 
     if not isinstance(path, str):
         path = str(path)
+
+    parsed_path = urlparse(path)
+    if parsed_path.scheme in ("http", "https", "ftp"):
+        print(path)
+        return
 
     if any(suffix in path.lower() for suffix in {".com", ".org", ".net", ".io", ".us", ".gov"}):
         print(path)
         return
 
-    if not isinstance(path, str):
-        raise ValueError("The provided path must be a string.")
+    link = _format_file_link(path)
 
-    parsed_path = urlparse(path)
-
-    if parsed_path.scheme and parsed_path.netloc:
-        print(path)
-
+    if _is_vscode_terminal():
+        print(link)
     else:
-        if not os.path.isabs(path):
-            path = os.path.abspath(path)
-        url_compatible_path = path.replace("\\", "/")
-        print(colorize("file:///{}".format(url_compatible_path), "blue"))
+        print(colorize(link, "blue", style="underline"))
 
 
 def plt(path,

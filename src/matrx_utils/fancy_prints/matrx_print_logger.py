@@ -344,23 +344,40 @@ class MatrixPrintLog:
         colored_text = self._colorize(self.full_text)
         print(colored_text)
 
+    @staticmethod
+    def _is_vscode_terminal() -> bool:
+        return os.environ.get("TERM_PROGRAM") == "vscode" or "VSCODE_PID" in os.environ
+
+    @staticmethod
+    def _format_file_link(path: str) -> str:
+        if not os.path.isabs(path):
+            path = os.path.abspath(path)
+
+        if MatrixPrintLog._is_vscode_terminal():
+            return path
+
+        if sys.platform == "win32":
+            url_path = path.replace("\\", "/")
+            return f"file:///{url_path}"
+
+        return f"file://{path}"
+
     def print_link(self, path):
         self.path = path
         if not isinstance(self.path, str):
             self.path = str(self.path)
-        if os.path.isfile(self.path):
-            abs_path = os.path.abspath(self.path)
-            url_compatible_path = abs_path.replace("\\", "/")
-            print(f"file:///{url_compatible_path}")
-            return
+
         parsed_path = urlparse(self.path)
-        if parsed_path.scheme and parsed_path.netloc:
+        if parsed_path.scheme in ("http", "https", "ftp"):
             print(self.path)
+            return
+
+        link = self._format_file_link(self.path)
+
+        if self._is_vscode_terminal():
+            print(link)
         else:
-            if not os.path.isabs(self.path):
-                self.path = os.path.abspath(self.path)
-            url_compatible_path = self.path.replace("\\", "/")
-            print(f"file:///{url_compatible_path}")
+            print(self._colorize(link))
 
     def print_truncated(self, value, max_chars=250):
         if isinstance(value, str):
