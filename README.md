@@ -73,6 +73,7 @@ The package automatically publishes to PyPI when you push a version tag. Here's 
    version = "1.0.3"  # Increment appropriately
    ```
 
+
 3. **Commit and push changes**
    ```bash
    git add .
