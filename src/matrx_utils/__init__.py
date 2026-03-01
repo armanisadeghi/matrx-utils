@@ -152,6 +152,7 @@ from .local_dev_utils.next_test_dir_config import (
     save_typescript_code,
 )
 from .code_context.generate_module_readme import run as generate_module_readme, run_cascade
+from .code_context.generate_module_readme import readme_orchestrator
 
 __all__ = [
     # fancy_prints
@@ -285,4 +286,5 @@ __all__ = [
     "save_typescript_code",
     "generate_module_readme",
     "run_cascade",
+    "readme_orchestrator",
 ]
