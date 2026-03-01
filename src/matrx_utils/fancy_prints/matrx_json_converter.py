@@ -16,8 +16,15 @@ def _convert_recursive(data):
     parsing of embedded JSON strings.
     """
     # 1. Handle specific complex object types first -> convert to dict/list/value
-    # Handle dataclasses (must come before generic hasattr checks)
+    # Handle dataclasses — but prefer to_dict() when available, since asdict()
+    # deep-copies all nested attributes and will recurse into ORM Model instances
+    # (which store related objects in _dynamic_data), causing infinite recursion.
     if is_dataclass(data) and not isinstance(data, type):
+        if hasattr(data, "to_dict") and callable(data.to_dict):
+            try:
+                return _convert_recursive(data.to_dict())
+            except Exception:
+                pass
         return _convert_recursive(asdict(data))
 
     # Handle custom ORM/DTO by stringified type and special attribute
