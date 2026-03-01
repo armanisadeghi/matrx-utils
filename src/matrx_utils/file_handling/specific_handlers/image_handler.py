@@ -104,18 +104,19 @@ class ImageHandler(FileHandler):
         return False
 
     def merge_images(self, root, path_list, output_path):
-        images = [self.read_image(root, path) for path in path_list]
-        if all(images):
-            widths, heights = zip(*(i.size for i in images))
-            total_width = sum(widths)
-            max_height = max(heights)
-            merged_image = Image.new('RGB', (total_width, max_height))
-            x_offset = 0
-            for img in images:
-                merged_image.paste(img, (x_offset, 0))
-                x_offset += img.width
-            return self.write_image(root, output_path, merged_image)
-        return False
+        loaded = [self.read_image(root, path) for path in path_list]
+        images: list[Image.Image] = [img for img in loaded if img is not None]
+        if not images or len(images) != len(loaded):
+            return False
+        widths, heights = zip(*(img.size for img in images))
+        total_width = sum(widths)
+        max_height = max(heights)
+        merged_image = Image.new('RGB', (total_width, max_height))
+        x_offset = 0
+        for img in images:
+            merged_image.paste(img, (x_offset, 0))
+            x_offset += img.width
+        return self.write_image(root, output_path, merged_image)
 
     def add_watermark(self, root, path, watermark_path, position=(0, 0), opacity=128):
         image = self.read_image(root, path)

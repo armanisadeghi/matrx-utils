@@ -1,5 +1,5 @@
 import os
-from matrx_utils import vcprint, redact_object
+from matrx_utils.fancy_prints import vcprint, redact_object
 
 
 info = True

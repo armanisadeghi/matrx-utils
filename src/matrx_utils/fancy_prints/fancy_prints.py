@@ -5,7 +5,7 @@ import json
 import random
 import logging
 
-from matrx_utils.fancy_prints.utils.matrx_json_converter import to_matrx_json
+from .matrx_json_converter import to_matrx_json
 from .colors import COLORS
 
 print_debug = False
@@ -71,18 +71,18 @@ def colorize(text, color=None, background=None, style=None):
 
 
 def vcprint(
-        data=None,
-        title="Unnamed Data",
-        color=None,
-        verbose=True,
-        background=None,
-        style=None,
-        pretty=False,
-        indent=4,
-        inline=False,
-        chunks=False,
-        simple=False,
-        log_level=logging.INFO
+    data=None,
+    title="Unnamed Data",
+    color=None,
+    verbose=True,
+    background=None,
+    style=None,
+    pretty=False,
+    indent=4,
+    inline=False,
+    chunks=False,
+    simple=False,
+    log_level=logging.INFO,
 ) -> None:
     """
     Optionally prints data with styling based on verbosity and formatting preferences, and logs the output.
@@ -112,7 +112,12 @@ def vcprint(
 
     # Prepare log message
     log_message = clean_data_for_logging(
-        f"{title}: {data}" if inline else f"\n{title}:\n{data}" if title != "Unnamed Data" else f"{data}")
+        f"{title}: {data}"
+        if inline
+        else f"\n{title}:\n{data}"
+        if title != "Unnamed Data"
+        else f"{data}"
+    )
     try:
         logger.log(level=log_level, msg=log_message)
     except Exception as e:
@@ -161,7 +166,9 @@ def vcprint(
                         )
                 else:
                     if chunks:
-                        colored_text = colorize(f"{title}: {data}", color, background, style)
+                        colored_text = colorize(
+                            f"{title}: {data}", color, background, style
+                        )
                         sys.stdout.write(colored_text)
                         sys.stdout.flush()
                     elif inline:
@@ -186,19 +193,31 @@ def vcprint(
         print("==============================")
 
 
-def pretty_print(data,
-                 title="Unnamed Data",
-                 color="white",
-                 background="black",
-                 style=None,
-                 indent=4,
-                 inline=False,
-                 chunks=False):
+def pretty_print(
+    data,
+    title="Unnamed Data",
+    color="white",
+    background="black",
+    style=None,
+    indent=4,
+    inline=False,
+    chunks=False,
+):
     frame = inspect.currentframe()
     try:
         context = inspect.getouterframes(frame)
-        name = title if title != "Unnamed Data" else next(
-            (var_name for var_name, var_val in context[1].frame.f_locals.items() if var_val is data), title)
+        name = (
+            title
+            if title != "Unnamed Data"
+            else next(
+                (
+                    var_name
+                    for var_name, var_val in context[1].frame.f_locals.items()
+                    if var_val is data
+                ),
+                title,
+            )
+        )
 
         if isinstance(data, str) and not data.strip().startswith(("{", "[")):
             if chunks:
@@ -207,9 +226,19 @@ def pretty_print(data,
                 sys.stdout.flush()
             elif color:
                 if inline:
-                    cool_print(text=f"{name}: {data}", color=color, background=background, style=style)
+                    cool_print(
+                        text=f"{name}: {data}",
+                        color=color,
+                        background=background,
+                        style=style,
+                    )
                 else:
-                    cool_print(text=f"\n{name}:\n{data}", color=color, background=background, style=style)
+                    cool_print(
+                        text=f"\n{name}:\n{data}",
+                        color=color,
+                        background=background,
+                        style=style,
+                    )
             else:
                 if inline:
                     print(f"{name}: {data}")
@@ -221,19 +250,32 @@ def pretty_print(data,
         json_string = json.dumps(converted_data, indent=indent)
         compact_json_string = re.sub(r'"\\"([^"]*)\\""', r'"\1"', json_string)
         compact_json_string = re.sub(
-            r"\[\n\s+((?:\d+,?\s*)+)\n\s+\]", lambda m: "[" + m.group(1).replace("\n", "").replace(" ", "") + "]",
-            compact_json_string
+            r"\[\n\s+((?:\d+,?\s*)+)\n\s+\]",
+            lambda m: "[" + m.group(1).replace("\n", "").replace(" ", "") + "]",
+            compact_json_string,
         )
 
         if chunks:
-            colored_text = colorize(f"{name}: {compact_json_string}", color, background, style)
+            colored_text = colorize(
+                f"{name}: {compact_json_string}", color, background, style
+            )
             sys.stdout.write(colored_text)
             sys.stdout.flush()
         elif color:
             if inline:
-                cool_print(text=f"{name}: {compact_json_string}", color=color, background=background, style=style)
+                cool_print(
+                    text=f"{name}: {compact_json_string}",
+                    color=color,
+                    background=background,
+                    style=style,
+                )
             else:
-                cool_print(text=f"\n{name}:\n{compact_json_string}", color=color, background=background, style=style)
+                cool_print(
+                    text=f"\n{name}:\n{compact_json_string}",
+                    color=color,
+                    background=background,
+                    style=style,
+                )
         else:
             if inline:
                 print(f"{name}: {compact_json_string}")
@@ -247,6 +289,7 @@ def pretty_print(data,
 def _is_vscode_terminal() -> bool:
     """Detect if running inside a VS Code integrated terminal."""
     import os
+
     return os.environ.get("TERM_PROGRAM") == "vscode" or "VSCODE_PID" in os.environ
 
 
@@ -292,7 +335,10 @@ def print_link(path):
         print(path)
         return
 
-    if any(suffix in path.lower() for suffix in {".com", ".org", ".net", ".io", ".us", ".gov"}):
+    if any(
+        suffix in path.lower()
+        for suffix in {".com", ".org", ".net", ".io", ".us", ".gov"}
+    ):
         print(path)
         return
 
@@ -304,8 +350,9 @@ def print_link(path):
         print(colorize(link, "blue", style="underline"))
 
 
-def plt(path,
-        title):  # Note For Armani: I have seen you use this in lot of places. Please tell me what to call this or it needs to be removed.
+def plt(
+    path, title
+):  # Note For Armani: I have seen you use this in lot of places. Please tell me what to call this or it needs to be removed.
     print(colorize(f"\n{title}: ", "yellow"), end="")
     print_link(path)
 
@@ -373,8 +420,17 @@ def is_empty(value):
     return False
 
 
-def vclist(data=None, title="Unnamed Data", color=None, verbose=True, background=None, style=None, pretty=False,
-           indent=4, inline=False):
+def vclist(
+    data=None,
+    title="Unnamed Data",
+    color=None,
+    verbose=True,
+    background=None,
+    style=None,
+    pretty=False,
+    indent=4,
+    inline=False,
+):
     """
     Wrapper for vcprint that handles lists of data.
     Calls vcprint for each item in the list, only including the title for the first item.

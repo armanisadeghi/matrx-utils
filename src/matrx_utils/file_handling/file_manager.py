@@ -6,6 +6,7 @@ from .specific_handlers.markdown_handler import MarkdownHandler
 from .specific_handlers.text_handler import TextHandler
 from .specific_handlers.image_handler import ImageHandler
 from .batch_handler import BatchHandler
+from .backends import BackendRouter, is_cloud_uri, parse_storage_url, is_storage_url
 
 from datetime import datetime
 import uuid
@@ -27,6 +28,7 @@ class FileManager:
         self.html_handler = HtmlHandler(app_name, batch_print=batch_print)
         self.image_handler = ImageHandler(app_name, batch_print=batch_print)
         self.markdown_handler = MarkdownHandler(app_name, batch_print=batch_print)
+        self.cloud = BackendRouter()
 
     @classmethod
     def get_instance(cls, app_name, new_instance=False, batch_print=False, print_errors=True, batch_handler=None):
@@ -39,13 +41,68 @@ class FileManager:
             cls._instances[key] = instance
         return instance
 
-    def read(self, root, path, file_type='text'):
+    def read(self, root, path=None, file_type='text'):
+        """Read a file from local storage or a cloud URI.
+
+        Local usage (unchanged):
+            fm.read("base", "report.json", file_type="json")
+
+        Cloud usage — pass a full URI as the first argument:
+            fm.read("s3://bucket/report.json")
+            fm.read("supabase://bucket/avatar.png")
+            fm.read("server://uploads/data.csv")
+        """
+        if is_cloud_uri(root):
+            return self.cloud.read(root)
         handler = getattr(self, f"{file_type}_handler")
         return getattr(handler, f"read_{file_type}")(root, path)
 
-    def write(self, root, path, content, file_type='text', clean=True):
+    def write(self, root, path=None, content=None, file_type='text', clean=True, **kwargs):
+        """Write content to local storage or a cloud URI.
+
+        Local usage (unchanged):
+            fm.write("base", "report.json", data, file_type="json")
+
+        Cloud usage — pass a full URI as the first argument:
+            fm.write("s3://bucket/report.json", content=data)
+            fm.write("supabase://bucket/avatar.png", content=image_bytes)
+            fm.write("server://uploads/data.csv", content=csv_text)
+        """
+        if is_cloud_uri(root):
+            if content is None:
+                raise ValueError("write() requires 'content' when using a cloud URI.")
+            return self.cloud.write(root, content, **kwargs)
         handler = getattr(self, f"{file_type}_handler")
         return getattr(handler, f"write_{file_type}")(root, path, content, clean=clean)
+
+    def append(self, root, path=None, content=None, file_type='text', **kwargs):
+        """Append to a file in local storage or a cloud URI.
+
+        Cloud usage:
+            fm.append("s3://bucket/log.txt", content=new_lines)
+        """
+        if is_cloud_uri(root):
+            if content is None:
+                raise ValueError("append() requires 'content' when using a cloud URI.")
+            return self.cloud.append(root, content)
+        handler = getattr(self, f"{file_type}_handler")
+        append_method = getattr(handler, f"append_{file_type}", None)
+        if append_method is None:
+            raise NotImplementedError(
+                f"append() is not implemented for file_type='{file_type}'."
+            )
+        return append_method(root, path, content)
+
+    def delete(self, root, path=None, file_type='text'):
+        """Delete a file from local storage or a cloud URI.
+
+        Cloud usage:
+            fm.delete("s3://bucket/old-report.json")
+        """
+        if is_cloud_uri(root):
+            return self.cloud.delete(root)
+        handler = getattr(self, f"{file_type}_handler")
+        return handler.delete_file(root, path)
 
     def file_exists(self, root, path, file_type='text'):
         handler = getattr(self, f"{file_type}_handler")
@@ -56,8 +113,80 @@ class FileManager:
         return handler.delete_file(root, path)
 
     def list_files(self, root, path="", file_type='text'):
+        """List files in local storage or a cloud URI prefix.
+
+        Cloud usage:
+            fm.list_files("s3://bucket/reports/")
+            fm.list_files("supabase://bucket/avatars/")
+        """
+        if is_cloud_uri(root):
+            return self.cloud.list_files(root)
         handler = getattr(self, f"{file_type}_handler")
         return handler.list_files(root, path)
+
+    def get_url(self, uri: str, expires_in: int = 3600) -> str:
+        """Return a time-limited URL for a cloud-stored file.
+
+        Usage:
+            url = fm.get_url("s3://bucket/report.pdf", expires_in=600)
+            url = fm.get_url("supabase://avatars/user1.png")
+            url = fm.get_url("server://uploads/document.pdf")
+        """
+        if not is_cloud_uri(uri):
+            raise ValueError(
+                f"get_url() requires a cloud URI (s3://, supabase://, server://). Got: '{uri}'"
+            )
+        return self.cloud.get_url(uri, expires_in=expires_in)
+
+    def read_url(self, url: str) -> bytes:
+        """Read bytes from any URL format a client (React/mobile) might send.
+
+        This is the recommended entry point for FastAPI route handlers that
+        receive a file URL from the frontend. It accepts every URL format —
+        public, signed/presigned, expired signed, or native storage URI —
+        and reads the file via server-side credentials, making token expiry
+        and URL format completely irrelevant.
+
+        Supported inputs
+        ----------------
+            # Native storage URIs
+            fm.read_url("supabase://bucket/users/user-id/report.pdf")
+            fm.read_url("s3://bucket/uploads/image.png")
+
+            # Supabase HTTPS URLs (public or signed — token is ignored)
+            fm.read_url("https://abc.supabase.co/storage/v1/object/public/bucket/path")
+            fm.read_url("https://abc.supabase.co/storage/v1/object/sign/bucket/path?token=EXPIRED")
+
+            # S3 HTTPS URLs (with or without presigned query params)
+            fm.read_url("https://bucket.s3.us-east-2.amazonaws.com/key")
+            fm.read_url("https://bucket.s3.us-east-2.amazonaws.com/key?X-Amz-Signature=...")
+
+        Raises
+        ------
+        ValueError
+            If the URL cannot be recognised as a supported storage URL.
+        RuntimeError
+            If the relevant backend is not configured (missing credentials).
+        """
+        return self.cloud.read_url(url)
+
+    def parse_url(self, url: str):
+        """Parse any cloud storage URL and return a ParsedStorageUrl.
+
+        Useful when you need to inspect what backend and path a URL refers to
+        before deciding whether to read it.
+
+        Returns a ParsedStorageUrl with .scheme, .storage_path, .to_native_uri()
+        """
+        return parse_storage_url(url)
+
+    def is_storage_url(self, url: str) -> bool:
+        """Return True if *url* is a recognisable cloud storage URL."""
+        return is_storage_url(url)
+
+    def configured_backends(self) -> list[str]:
+        """Return the names of all cloud backends that have valid credentials."""
+        return self.cloud.configured_backends()
 
     def print_batch(self):
         self.file_handler.print_batch()

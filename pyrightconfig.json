@@ -1,0 +1,15 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Linux",
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "extraPaths": ["."],
+  "reportCallIssue": "none",
+  "reportArgumentType": "none",
+  "reportOperatorIssue": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportIndexIssue": "none",
+  "reportReturnType": "none",
+  "reportMissingTypeArgument": "none"
+}

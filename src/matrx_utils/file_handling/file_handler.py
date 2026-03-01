@@ -10,15 +10,18 @@ from matrx_utils.file_handling.batch_handler import BatchHandler
 from matrx_utils.conf import settings
 
 
-
-# Note: Jatin removed Cloud storage functions from file handling.
-
 class FileHandler(BaseHandler):
     _instances = {}
     _log_intro = "[MATRIX FILE HANDLER]"
 
-    def __init__(self, app_name, new_instance=False, batch_print=False, print_errors=True,
-                 batch_handler=None):
+    def __init__(
+        self,
+        app_name,
+        new_instance=False,
+        batch_print=False,
+        print_errors=True,
+        batch_handler=None,
+    ):
         self.base_dir = Path(settings.BASE_DIR)
         self.app_name = app_name
         self.temp_dir = self.base_dir / "temp" / app_name
@@ -28,8 +31,12 @@ class FileHandler(BaseHandler):
         self.debug = False
         self.batch_print = batch_print
         self.print_errors = print_errors
-        self.batch_handler = batch_handler or BatchHandler.get_instance(enable_batch=batch_print)
-        self.batch_print_enabled = self.batch_handler.is_batch_print_enabled()  # Use method instead of accessing private variable
+        self.batch_handler = batch_handler or BatchHandler.get_instance(
+            enable_batch=batch_print
+        )
+        self.batch_print_enabled = (
+            self.batch_handler.is_batch_print_enabled()
+        )  # Use method instead of accessing private variable
         self.s3_client = None
         self.s3_bucket_name = None
         self.supabase = None
@@ -38,8 +45,14 @@ class FileHandler(BaseHandler):
             self.batch_handler.enable_batch()
 
     @classmethod
-    def get_instance(cls, app_name, new_instance=False, batch_print=False, print_errors=True,
-                     batch_handler=None):
+    def get_instance(
+        cls,
+        app_name,
+        new_instance=False,
+        batch_print=False,
+        print_errors=True,
+        batch_handler=None,
+    ):
         key = (app_name, batch_print, print_errors, id(batch_handler))
         if not new_instance and key in cls._instances:
             return cls._instances[key]
@@ -54,11 +67,12 @@ class FileHandler(BaseHandler):
             "base": self.base_dir,
             "temp": self.temp_dir,
             "data": self.data_dir,
-            "config": self.config_dir
+            "config": self.config_dir,
         }
         if root not in root_map:
             raise ValueError(
-                f"[FILE HANDLER ERROR!] Invalid root: {root}. Valid 'root' options are: 'base', 'temp', 'data' or 'config'.")
+                f"[FILE HANDLER ERROR!] Invalid root: {root}. Valid 'root' options are: 'base', 'temp', 'data' or 'config'."
+            )
         full_path = root_map[root] / path
         return Path(os.path.normpath(str(full_path)))
 
@@ -71,7 +85,14 @@ class FileHandler(BaseHandler):
 
     def _print(self, path, message=None, color=None):
         if color == "red":
-            vcprint(data="\n" + "=" * 35 + f"  {self._log_intro} ERROR!  " + "=" * 35 + "\n", color=color)
+            vcprint(
+                data="\n"
+                + "=" * 35
+                + f"  {self._log_intro} ERROR!  "
+                + "=" * 35
+                + "\n",
+                color=color,
+            )
         if message is not None:
             vcprint(data=f"{self._log_intro} {message}:", color=color)
         print_link(path)
@@ -101,14 +122,16 @@ class FileHandler(BaseHandler):
         self.batch_handler.disable_batch()
         self.batch_print_enabled = False  # Keep local state in sync with BatchHandler
 
-    def read(self, path, mode='r', encoding='utf-8'):
+    def read(self, path, mode="r", encoding="utf-8"):
         try:
             with open(path, mode, encoding=encoding) as file:
                 content = file.read()
             self._print_link(path=path, message="Read file")
             return content
         except FileNotFoundError:
-            self._print_link(path=path, message="READ FILE ERROR! File not found at", color="red")
+            self._print_link(
+                path=path, message="READ FILE ERROR! File not found at", color="red"
+            )
             return None
         except Exception as e:
             self._print_link(path=path, message="Error reading file", color="red")
@@ -119,10 +142,10 @@ class FileHandler(BaseHandler):
         self._ensure_directory(Path(path))
         try:
             if isinstance(content, bytes):
-                with open(path, 'wb') as file:
+                with open(path, "wb") as file:
                     file.write(content)
             elif isinstance(content, str):
-                with open(path, 'w', encoding='utf-8') as file:
+                with open(path, "w", encoding="utf-8") as file:
                     file.write(content)
 
             self._print_link(path=path, message="File written")
@@ -135,7 +158,7 @@ class FileHandler(BaseHandler):
     def append(self, path, content):
         self._ensure_directory(Path(path))
         try:
-            with open(path, 'a', encoding='utf-8') as file:
+            with open(path, "a", encoding="utf-8") as file:
                 file.write(content)
             self._print_link(path=path, message="Appended to file")
             return True
@@ -150,21 +173,39 @@ class FileHandler(BaseHandler):
             self._print_link(path=path, message="File deleted")
             return True
         except FileNotFoundError:
-            self._print_link(path=path, message="DELETE FILE ERROR! File not found at ", color="red")
+            self._print_link(
+                path=path, message="DELETE FILE ERROR! File not found at ", color="red"
+            )
             return False
         except Exception as e:
             self._print_link(path=path, message="Error deleting file", color="red")
             print(f" Error: {str(e)}")
             return False
 
-    def read_from_base(self, root, path, ):
+    def read_from_base(
+        self,
+        root,
+        path,
+    ):
         full_path = self._get_full_path(root, path)
         return self.read(str(full_path))
 
-    def write_to_base(self, root, path, content, clean=True, remove_html=False, normalize_whitespace=False):
+    def write_to_base(
+        self,
+        root,
+        path,
+        content,
+        clean=True,
+        remove_html=False,
+        normalize_whitespace=False,
+    ):
         full_path = self._get_full_path(root, path)
         if clean:
-            content = self.clean(content, remove_html=remove_html, normalize_whitespace=normalize_whitespace)
+            content = self.clean(
+                content,
+                remove_html=remove_html,
+                normalize_whitespace=normalize_whitespace,
+            )
         return self.write(str(full_path), content)
 
     def append_to_base(self, root, path, content):
@@ -185,25 +226,31 @@ class FileHandler(BaseHandler):
             if normalize_whitespace:
                 content = self._normalize_whitespace(content)
         elif isinstance(content, dict):
-            return {k: self.clean(v, remove_html, normalize_whitespace) for k, v in content.items()}
+            return {
+                k: self.clean(v, remove_html, normalize_whitespace)
+                for k, v in content.items()
+            }
         elif isinstance(content, list):
-            return [self.clean(item, remove_html, normalize_whitespace) for item in content]
+            return [
+                self.clean(item, remove_html, normalize_whitespace) for item in content
+            ]
         return content
 
     def _remove_html_tags(self, content):
-        content = re.sub(r'(<[^>]+>)', r' \1 ', content)
-        return re.sub(r'<[^>]+>', '', content)
+        content = re.sub(r"(<[^>]+>)", r" \1 ", content)
+        return re.sub(r"<[^>]+>", "", content)
 
     def _normalize_unicode(self, content):
-        return unicodedata.normalize('NFKC', content)
+        return unicodedata.normalize("NFKC", content)
 
     def _filter_unwanted_characters(self, content):
-        return ''.join(
-            char if char.isprintable() or char in ['\n', '\t'] else ' ' for char in content
+        return "".join(
+            char if char.isprintable() or char in ["\n", "\t"] else " "
+            for char in content
         )
 
     def _normalize_whitespace(self, content):
-        content = re.sub(r'\s+', ' ', content)
+        content = re.sub(r"\s+", " ", content)
         return content.strip()
 
     def file_exists(self, root, path):
@@ -222,7 +269,9 @@ class FileHandler(BaseHandler):
             self._print_link(full_path, message="File deleted")
             return True
         except FileNotFoundError:
-            self._print_link(full_path, message="DELETE FILE ERROR! File not found at ", color="red")
+            self._print_link(
+                full_path, message="DELETE FILE ERROR! File not found at ", color="red"
+            )
             return False
         except Exception as e:
             self._print_link(full_path, message="Error deleting file", color="red")

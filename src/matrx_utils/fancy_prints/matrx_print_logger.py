@@ -2,18 +2,23 @@ import json
 import re
 import inspect
 import sys
-from .utils.matrx_json_converter import to_matrx_json
+from .matrx_json_converter import to_matrx_json
 from matrx_utils.conf import settings
 import logging
 import os
 from urllib.parse import urlparse
+
 
 class MatrixPrintLog:
     def __init__(self, system_level, class_name, outro=None):
         self.level_options = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "PRINT"]
         self.logger = logging.getLogger("matrx_print_logger")
         self.log_vcprint = settings.LOG_VCPRINT
-        self.system_level = system_level.upper() if system_level.upper() in self.level_options else "INFO"
+        self.system_level = (
+            system_level.upper()
+            if system_level.upper() in self.level_options
+            else "INFO"
+        )
         self.class_name = class_name
         self.module_intro = f"[MATRIX {self.class_name}]"
         self.outro = outro if outro else "[MATRIX OUTRO]"
@@ -48,9 +53,13 @@ class MatrixPrintLog:
         frame = inspect.currentframe()
         caller_frame = inspect.getouterframes(frame)[number]
         method_name = caller_frame.function
-        class_name_module = caller_frame.frame.f_globals.get("__name__", "UnknownModule")
-        cls_obj = caller_frame.frame.f_locals.get('self', None)
-        class_name = cls_obj.__class__.__name__ if cls_obj else class_name_module.split(".")[-1]
+        class_name_module = caller_frame.frame.f_globals.get(
+            "__name__", "UnknownModule"
+        )
+        cls_obj = caller_frame.frame.f_locals.get("self", None)
+        class_name = (
+            cls_obj.__class__.__name__ if cls_obj else class_name_module.split(".")[-1]
+        )
         proper_class_name = self.camel_case_to_title(class_name)
         proper_method_name = self.snake_case_to_title(method_name.split(".")[-1])
         caller_info = f"[MATRIX {proper_class_name} {proper_method_name}]"
@@ -94,12 +103,19 @@ class MatrixPrintLog:
                 if effective_level not in self.level_options:
                     effective_level = self.system_level
 
-        if effective_level in self.level_options and self.override_level in self.level_options:
-            if self.level_options.index(effective_level) > self.level_options.index(self.override_level):
+        if (
+            effective_level in self.level_options
+            and self.override_level in self.level_options
+        ):
+            if self.level_options.index(effective_level) > self.level_options.index(
+                self.override_level
+            ):
                 effective_level = self.override_level
         elif effective_level not in self.level_options:
             effective_level = self.system_level
-            if self.level_options.index(effective_level) > self.level_options.index(self.override_level):
+            if self.level_options.index(effective_level) > self.level_options.index(
+                self.override_level
+            ):
                 effective_level = self.override_level
 
         return effective_level
@@ -110,13 +126,17 @@ class MatrixPrintLog:
             return False
         if effective_level not in self.level_options:
             return False
-        return self.level_options.index(effective_level) <= self.level_options.index("ERROR")
+        return self.level_options.index(effective_level) <= self.level_options.index(
+            "ERROR"
+        )
 
     def should_print(self, message_level=None):
         effective_level = self.get_effective_level(message_level)
         if effective_level not in self.level_options:
             return False
-        return self.level_options.index(effective_level) <= self.level_options.index(self.system_level)
+        return self.level_options.index(effective_level) <= self.level_options.index(
+            self.system_level
+        )
 
     def _clean_for_log(self):
         if isinstance(self.full_text, str):
@@ -128,52 +148,279 @@ class MatrixPrintLog:
         try:
             self.logger.info(self.message_for_log)
         except Exception as e:
-            self.logger.error(f"[MATRIX LOGGER INTERNAL] Logging failed: {e}", exc_info=True)
+            self.logger.error(
+                f"[MATRIX LOGGER INTERNAL] Logging failed: {e}", exc_info=True
+            )
 
-    def vcprint(self, data=None, title="no title", level=None, color=None, background=None, style=None, pretty=True, indent=4, inline=False, chunks=False, exc_info=None):
+    def vcprint(
+        self,
+        data=None,
+        title="no title",
+        level=None,
+        color=None,
+        background=None,
+        style=None,
+        pretty=True,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or title == "no title":
             title = self.method_into(2)
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def pretty_print(self, data=None, title=None, level=None, color=None, background=None, style=None, pretty=True, indent=4, inline=False, chunks=False, exc_info=None):
+    def pretty_print(
+        self,
+        data=None,
+        title=None,
+        level=None,
+        color=None,
+        background=None,
+        style=None,
+        pretty=True,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or not title:
             title = self.method_into(2)
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def inline_print(self, data=None, title=None, level=None, color=None, background=None, style=None, pretty=False, indent=4, inline=True, chunks=False, exc_info=None):
+    def inline_print(
+        self,
+        data=None,
+        title=None,
+        level=None,
+        color=None,
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=True,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or not title:
             title = self.method_into(2)
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def print(self, data=None, title=None, level="PRINT", color=None, background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def print(
+        self,
+        data=None,
+        title=None,
+        level="PRINT",
+        color=None,
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or not title:
             title = self.method_into(2)
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def debug_print(self, data=None, title=None, level="DEBUG", color="gray", background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def debug_print(
+        self,
+        data=None,
+        title=None,
+        level="DEBUG",
+        color="gray",
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or not title:
             title = self.method_into(2)
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def info_print(self, data=None, title="Info", level="INFO", color="light_blue", background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def info_print(
+        self,
+        data=None,
+        title="Info",
+        level="INFO",
+        color="light_blue",
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or title == "Info":
             title = self.method_into(2, start_text="INFO")
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def warning_print(self, data=None, title="Warning!", level="WARNING", color="yellow", background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def warning_print(
+        self,
+        data=None,
+        title="Warning!",
+        level="WARNING",
+        color="yellow",
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or title == "Warning!":
             title = self.method_into(2, start_text="WARNING!")
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def error_print(self, data=None, title="Error!", level="ERROR", color="red", background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def error_print(
+        self,
+        data=None,
+        title="Error!",
+        level="ERROR",
+        color="red",
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or title == "Error!":
             title = self.method_into(2, start_text="ERROR!")
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
-    def critical_print(self, data=None, title="critical!", level="CRITICAL", color="red", background=None, style=None, pretty=False, indent=4, inline=False, chunks=False, exc_info=None):
+    def critical_print(
+        self,
+        data=None,
+        title="critical!",
+        level="CRITICAL",
+        color="red",
+        background=None,
+        style=None,
+        pretty=False,
+        indent=4,
+        inline=False,
+        chunks=False,
+        exc_info=None,
+    ):
         if title == "me" or title == "critical!":
             title = self.method_into(2, start_text="CRITICAL!")
-        self._print_and_or_log(data=data, title=title, level=level, color=color, background=background, style=style, pretty=pretty, indent=indent, inline=inline, chunks=chunks, exc_info=exc_info)
+        self._print_and_or_log(
+            data=data,
+            title=title,
+            level=level,
+            color=color,
+            background=background,
+            style=style,
+            pretty=pretty,
+            indent=indent,
+            inline=inline,
+            chunks=chunks,
+            exc_info=exc_info,
+        )
 
     def _print_and_or_log(
         self,
@@ -203,7 +450,9 @@ class MatrixPrintLog:
             return
 
         if data is not None:
-            self.data = data  # Direct assignment, rely on to_matrx_json in _pretty_print
+            self.data = (
+                data  # Direct assignment, rely on to_matrx_json in _pretty_print
+            )
 
         if title is not None:
             try:
@@ -229,7 +478,11 @@ class MatrixPrintLog:
         if self.title == "Unnamed Data":
             self.full_text = f"{self.data}"
         else:
-            self.full_text = f"{self.title}: {self.data}" if self.inline else f"\n{self.title}:\n{self.data}"
+            self.full_text = (
+                f"{self.title}: {self.data}"
+                if self.inline
+                else f"\n{self.title}:\n{self.data}"
+            )
 
         if should_print:
             self._print()
@@ -265,8 +518,12 @@ class MatrixPrintLog:
             else:
                 name = self.title
 
-            if isinstance(self.data, str) and not self.data.strip().startswith(("{", "[")):
-                output = f"{name}: {self.data}" if self.inline else f"\n{name}:\n{self.data}"
+            if isinstance(self.data, str) and not self.data.strip().startswith(
+                ("{", "[")
+            ):
+                output = (
+                    f"{name}: {self.data}" if self.inline else f"\n{name}:\n{self.data}"
+                )
                 if self.chunks:
                     colored_text = self._colorize(output)
                     sys.stdout.write(colored_text)
@@ -286,11 +543,19 @@ class MatrixPrintLog:
                     r"\[\n\s+((?:[\w\d]+(?:,?\s*))+)\n\s+\]",
                     lambda m: "[" + "".join(m.group(1).split()) + "]",
                     compact_json_string,
-                    flags=re.MULTILINE
+                    flags=re.MULTILINE,
                 )
-                output = f"{name}: {compact_json_string}" if self.inline else f"\n{name}:\n{compact_json_string}"
+                output = (
+                    f"{name}: {compact_json_string}"
+                    if self.inline
+                    else f"\n{name}:\n{compact_json_string}"
+                )
             except Exception as e:
-                output = f"{name}: [Error converting/dumping data: {e}]" if self.inline else f"\n{name}:\n[Error converting/dumping data: {e}]"
+                output = (
+                    f"{name}: [Error converting/dumping data: {e}]"
+                    if self.inline
+                    else f"\n{name}:\n[Error converting/dumping data: {e}]"
+                )
 
             if self.chunks:
                 colored_text = self._colorize(output)
@@ -302,30 +567,69 @@ class MatrixPrintLog:
             else:
                 print(output)
         finally:
-            if 'frame' in locals() and frame is not None:
+            if "frame" in locals() and frame is not None:
                 del frame
 
     def _colorize(self, text):
         COLORS = {
-            "black": "\033[30m", "light_red": "\033[31m", "light_green": "\033[32m", "light_yellow": "\033[33m",
-            "light_blue": "\033[34m", "light_magenta": "\033[35m", "light_cyan": "\033[36m", "gray": "\033[37m",
-            "dark_gray": "\033[90m", "red": "\033[91m", "green": "\033[92m", "yellow": "\033[93m",
-            "blue": "\033[94m", "magenta": "\033[95m", "cyan": "\033[96m", "white": "\033[97m",
-            "bright_orange": "\033[38;5;208m", "bright_pink": "\033[38;5;205m", "pink": "\033[38;5;200m",
-            "bright_purple": "\033[38;5;129m", "bright_lime": "\033[38;5;118m", "bright_teal": "\033[38;5;51m",
-            "bright_lavender": "\033[38;5;183m", "bright_turquoise": "\033[38;5;45m", "bright_gold": "\033[38;5;220m",
-            "bright_silver": "\033[38;5;250m", "bright_red": "\033[38;5;196m", "bright_green": "\033[38;5;46m",
-            "bright_blue": "\033[38;5;27m", "bright_yellow": "\033[38;5;226m",
+            "black": "\033[30m",
+            "light_red": "\033[31m",
+            "light_green": "\033[32m",
+            "light_yellow": "\033[33m",
+            "light_blue": "\033[34m",
+            "light_magenta": "\033[35m",
+            "light_cyan": "\033[36m",
+            "gray": "\033[37m",
+            "dark_gray": "\033[90m",
+            "red": "\033[91m",
+            "green": "\033[92m",
+            "yellow": "\033[93m",
+            "blue": "\033[94m",
+            "magenta": "\033[95m",
+            "cyan": "\033[96m",
+            "white": "\033[97m",
+            "bright_orange": "\033[38;5;208m",
+            "bright_pink": "\033[38;5;205m",
+            "pink": "\033[38;5;200m",
+            "bright_purple": "\033[38;5;129m",
+            "bright_lime": "\033[38;5;118m",
+            "bright_teal": "\033[38;5;51m",
+            "bright_lavender": "\033[38;5;183m",
+            "bright_turquoise": "\033[38;5;45m",
+            "bright_gold": "\033[38;5;220m",
+            "bright_silver": "\033[38;5;250m",
+            "bright_red": "\033[38;5;196m",
+            "bright_green": "\033[38;5;46m",
+            "bright_blue": "\033[38;5;27m",
+            "bright_yellow": "\033[38;5;226m",
         }
         BACKGROUNDS = {
-            "black": "\033[40m", "light_red": "\033[41m", "light_green": "\033[42m", "light_yellow": "\033[43m",
-            "light_blue": "\033[44m", "light_magenta": "\033[45m", "light_cyan": "\033[46m", "gray": "\033[47m",
-            "dark_gray": "\033[100m", "red": "\033[101m", "green": "\033[102m", "yellow": "\033[103m",
-            "blue": "\033[104m", "magenta": "\033[105m", "cyan": "\033[106m", "white": "\033[107m",
+            "black": "\033[40m",
+            "light_red": "\033[41m",
+            "light_green": "\033[42m",
+            "light_yellow": "\033[43m",
+            "light_blue": "\033[44m",
+            "light_magenta": "\033[45m",
+            "light_cyan": "\033[46m",
+            "gray": "\033[47m",
+            "dark_gray": "\033[100m",
+            "red": "\033[101m",
+            "green": "\033[102m",
+            "yellow": "\033[103m",
+            "blue": "\033[104m",
+            "magenta": "\033[105m",
+            "cyan": "\033[106m",
+            "white": "\033[107m",
         }
         STYLES = {
-            "bold": "\033[1m", "dim": "\033[2m", "italic": "\033[3m", "underline": "\033[4m",
-            "blink": "\033[5m", "reverse": "\033[7m", "hidden": "\033[8m", "strikethrough": "\033[9m",
+            "bold": "\033[1m",
+            "dim": "\033[2m",
+            "italic": "\033[3m",
+            "underline": "\033[4m",
+            "blink": "\033[5m",
+            "reverse": "\033[7m",
+            "hidden": "\033[8m",
+            "strikethrough": "\033[9m",
         }
         RESET = "\033[0m"
 

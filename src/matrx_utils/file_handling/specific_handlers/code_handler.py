@@ -36,7 +36,7 @@ class CodeHandler(FileManager):
         code_subdirectory = f"{self.code_root}/{file_save_path}/{file_name}"
         self.file_handler.write_to_base("temp", code_subdirectory, code_object["code"], clean=False)
 
-        self.append_json(self.session_filename, {"generated_code": [code_object]})
+        self.append_json(root="temp", path=self.session_filename, data={"generated_code": [code_object]})
 
     def get_json(self, file_name):
         return self.read("temp", file_name, "json")
@@ -47,8 +47,6 @@ class CodeHandler(FileManager):
     def write_to_json(self, path, data, root="temp", clean=True):
         return self.write_json(root=root, path=path, data=data, clean=clean)
 
-    def append_json(self, file_name, new_data, root="temp", clean=True):
-        return self.append_json(root, file_name, new_data, clean)
 
     def get_list(self, directory, file_type="json"):
         path = f"{directory}"

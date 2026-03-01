@@ -6,7 +6,7 @@ import datetime
 import uuid
 import decimal
 from matrx_utils import vcprint
-from matrx_utils.data_handling.validation.validators import URLValidator, validate_email
+from .validators import URLValidator, validate_email
 import inflect
 from .utils import get_random_text_entry
 
@@ -373,8 +373,11 @@ class DataTransformer(metaclass=SingletonMeta):
                             color='red'
                         )
 
-    def method_name(self):
-        return inspect.currentframe().f_back.f_code.co_name
+    def method_name(self) -> str:
+        frame = inspect.currentframe()
+        if frame is not None and frame.f_back is not None:
+            return frame.f_back.f_code.co_name
+        return "unknown"
 
     def to_rdx_model_format(self, value, data_type):
         if value is None:
@@ -676,7 +679,7 @@ class DataTransformer(metaclass=SingletonMeta):
         except Exception as e:
             print(f"Error converting value to data type: {e}")
             print(f"Value: {value}, Data Type: {data_type}")
-            print(f"Returning value as string and proceeding...")
+            print("Returning value as string and proceeding...")
             return str(value)
 
     @property

@@ -115,6 +115,7 @@ if __name__ == "__main__":
     # test_path = r"D:\OneDrive\Downloads Office\Sadeghi settlement agreement - signed by Arman.pdf"
     test_path = "https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf"
 
+    file_obj = None
     try:
         filename, file_obj = open_any_file(test_path)
         print(f"Successfully opened: {filename}")
@@ -124,5 +125,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
     finally:
-        if 'file_obj' in locals() and hasattr(file_obj, 'close'):
+        if file_obj is not None:
             file_obj.close()

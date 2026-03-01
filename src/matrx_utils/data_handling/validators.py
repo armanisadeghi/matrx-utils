@@ -714,10 +714,10 @@ class StepValueValidator(BaseValidator):
         if not is_multiple:
             raise ValidationError(self.message, code=self.code, params=params)
 
-    def compare(self, a, b):
+    def compare(self, a, b) -> bool:
         # This method isn't really used directly due to the override of __call__
         # The logic is now inside __call__
-        pass
+        return False
 
 
 # --- Min/Max Length Validators ---

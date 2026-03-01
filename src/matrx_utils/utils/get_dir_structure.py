@@ -94,7 +94,7 @@ def generate_directory_structure(
     # Write the buffer to the specified text file if include_text_output is enabled
     if include_text_output and text_output_file:
         with open(text_output_file, "w", encoding="utf-8") as f:
-            f.write(output_buffer.getvalue())
+            f.write(output_buffer.getvalue() if output_buffer else "")
 
     return directory_structure
 

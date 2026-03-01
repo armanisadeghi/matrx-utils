@@ -1,0 +1,241 @@
+exclude_directories:
+  exact:
+    # Version control
+    - ".git"
+    - ".github"
+    - ".git-rewrite"
+    # Python virtual environments
+    - "venv"
+    - ".venv"
+    # JS/Node dependencies
+    - "node_modules"
+    # Python bytecode
+    - "__pycache__"
+    - ".pytest_cache"
+    # Build artifacts - JS
+    - ".next"
+    - "dist"
+    - "build"
+    - "out"
+    - ".parcel-cache"
+    - ".turbo"
+    - ".nuxt"
+    - ".expo"
+    # Build artifacts - Python
+    - "eggs"
+    - "lib64"
+    # IDE settings
+    - ".idea"
+    - ".vscode"
+    - ".history"
+    # OS artifacts
+    - ".DS_Store"
+    - "Thumbs.db"
+    # Coverage / test output
+    - ".coverage"
+    - "coverage"
+    - "htmlcov"
+    - "test-results"
+    # CI/CD
+    - ".circleci"
+    - ".travis"
+    - ".azure"
+    - ".docker"
+    # Linter caches
+    - ".eslintcache"
+    - ".stylelintcache"
+    - ".cache"
+    - ".storybook"
+    # Common project-specific noise
+    - "migrations"
+    - "staticfiles"
+    - "static"
+    - "media"
+    - "assets"
+    - "uploads"
+    - "templates"
+    - "docs"
+    - "playground"
+    - "scratches"
+    - "consoles"
+    - "external libraries"
+    - "logs"
+    - "tmp"
+    - "new_dir"
+    - "previous_versions"
+    - "bin"
+
+  containing:
+    # Directories whose names contain these substrings (word-boundary matched)
+    - "temp"
+
+exclude_files:
+  exact:
+    - "debug.log"
+    - "package-lock.json"
+    - "yarn.lock"
+    - "next-env.d.ts"
+    - ".nvmrc"
+    - ".npmrc"
+    - ".jshintrc"
+    - ".gitignore"
+    - ".editorconfig"
+    - ".env"
+    - "README.md"
+    - "Dockerfile"
+    - "Makefile"
+
+  containing:
+    # Filenames whose names contain these substrings (word-boundary matched)
+    []
+
+exclude_extensions:
+  - ".xml"
+  - ".py-tpl"
+  - ".map"
+  - ".tmp"
+  - ".swp"
+  - ".log"
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".gif"
+  - ".svg"
+  - ".ico"
+  - ".avif"
+  - ".webp"
+  - ".tiff"
+  - ".sketch"
+  - ".woff"
+  - ".woff2"
+  - ".eot"
+  - ".ttf"
+  - ".otf"
+  - ".gz"
+  - ".zip"
+  - ".bin"
+  - ".wav"
+  - ".mp3"
+  - ".mp4"
+  - ".pdf"
+  - ".csv"
+  - ".txt"
+  - ".md"
+  - ".MD"
+  - ".mdx"
+  - ".css"
+  - ".scss"
+  - ".sass"
+  - ".less"
+  - ".json"
+  - ".yaml"
+  - ".yml"
+  - ".toml"
+  - ".ini"
+  - ".conf"
+  - ".cfg"
+  - ".env"
+  - ".local"
+  - ".lock"
+  - ".sql"
+  - ".pkl"
+  - ".db"
+  - ".sqlite"
+  - ".jsonl"
+  - ".tsbuildinfo"
+  - ".webmanifest"
+  - ".mjs"
+  - ".cjs"
+  - ".bak"
+  - ".orig"
+  - ".icns"
+  - ".plist"
+  - ".nib"
+  - ".strings"
+  - ".car"
+  - ".scpt"
+  - ".lproj"
+  - ".params"
+  - ".dict"
+  - ".rules"
+  - ".armanonly"
+  - ".helpindex"
+  - ".xap"
+  - ".swf"
+  - ".example"
+
+# ---------------------------------------------------------------------------
+# Call graph — project-specific noise suppression
+# These names are merged with the built-in _DEFAULT_CALL_GRAPH_IGNORE list.
+# Add project-level debug/print utilities that appear everywhere but carry no signal.
+# ---------------------------------------------------------------------------
+call_graph_project_noise:
+  - "vcprint"
+  - "clear_terminal"
+
+# ---------------------------------------------------------------------------
+# Allowlists — if non-empty, these act as whitelists (all other values excluded).
+# ---------------------------------------------------------------------------
+
+# Only files with these extensions are included. Overrides exclude_extensions.
+include_extensions: []
+
+# Only directories with these exact names are traversed.
+include_directories: []
+
+# Only files with these exact names are included.
+include_files: []
+
+# ---------------------------------------------------------------------------
+# Output settings
+# ---------------------------------------------------------------------------
+
+output:
+  save_combined: true
+  save_individual: false
+  export_directory: "./output"
+  # "tree_only"  — directory tree only, no file content          (~1% tokens)
+  # "signatures" — function/class/method signatures, no bodies  (~5-10% tokens)
+  # "clean"      — full content with comments stripped           (~70-80% tokens)
+  # "original"   — full content, completely unmodified            (100% tokens)
+  output_mode: "clean"
+  show_all_tree_directories: false
+  prune_empty_directories: false
+  include_text_output: true      # write ASCII tree .txt alongside JSON structure file
+  project_root_display: true     # show path relative to project root in tree header
+
+# ---------------------------------------------------------------------------
+# Named presets — reusable profiles, applied on top of base config above.
+# ---------------------------------------------------------------------------
+#
+# Usage in CodeContextBuilder: preset="python_only"
+#
+# Preset fields:
+#   override: false       — if true, replaces base lists; if false, merges into them
+#   exclude_directories, include_extensions, etc. — same structure as base config
+#   output:               — optional output setting overrides
+#
+presets:
+  python_only:
+    override: false
+    include_extensions:
+      - ".py"
+    output:
+      output_mode: "signatures"
+
+  frontend:
+    override: false
+    include_extensions:
+      - ".ts"
+      - ".tsx"
+      - ".js"
+      - ".jsx"
+    output:
+      output_mode: "clean"
+
+  tree_overview:
+    override: false
+    output:
+      output_mode: "tree_only"
+      show_all_tree_directories: true
+      prune_empty_directories: true

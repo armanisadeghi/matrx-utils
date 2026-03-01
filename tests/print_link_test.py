@@ -8,8 +8,7 @@ import os
 import sys
 import platform
 
-from matrx_utils import print_link
-from matrx_utils.fancy_prints.fancy_prints import plt
+from matrx_utils import print_link, plt
 
 
 def print_header(text: str) -> None:
