@@ -273,3 +273,45 @@ class S3Backend(StorageBackend):
         bucket, key = self._parse_path(s3_path)
         self._get_client().upload_fileobj(file_obj, bucket, key, ExtraArgs={"ACL": acl})
         return True
+
+    # ------------------------------------------------------------------
+    # Asynchronous API
+    # ------------------------------------------------------------------
+    # boto3 is synchronous and aioboto3 cannot be pinned alongside our
+    # boto3 version. The correct non-blocking pattern for boto3 in async
+    # applications is to run sync calls in a thread-pool executor — the
+    # event loop is never blocked; I/O waits happen in worker threads.
+
+    async def read_async(self, path: str) -> bytes:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.read, path)
+
+    async def write_async(self, path: str, content: bytes | str, acl: str = "private") -> bool:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.write, path, content, acl)
+
+    async def append_async(self, path: str, content: bytes | str) -> bool:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.append, path, content)
+
+    async def delete_async(self, path: str) -> bool:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.delete, path)
+
+    async def get_url_async(self, path: str, expires_in: int = 3600) -> str:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(
+            None, self.get_url, path, expires_in
+        )
+
+    async def list_files_async(self, prefix: str = "") -> list[str]:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.list_files, prefix)
+
+    async def copy_async(self, src_path: str, dst_path: str) -> bool:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.copy, src_path, dst_path)
+
+    async def get_metadata_async(self, path: str) -> dict[str, Any]:
+        import asyncio
+        return await asyncio.get_event_loop().run_in_executor(None, self.get_metadata, path)

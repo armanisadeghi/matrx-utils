@@ -6,7 +6,18 @@ from .specific_handlers.markdown_handler import MarkdownHandler
 from .specific_handlers.text_handler import TextHandler
 from .specific_handlers.image_handler import ImageHandler
 from .batch_handler import BatchHandler
-from .backends import BackendRouter, is_cloud_uri, parse_storage_url, is_storage_url
+from .backends import (
+    BackendRouter,
+    is_cloud_uri,
+    parse_storage_url,
+    is_storage_url,
+    get_for_llm,
+    get_for_llm_async,
+    push_from_llm,
+    push_from_llm_async,
+    LLMInputMode,
+    LLMOutputFormat,
+)
 
 from datetime import datetime
 import uuid
@@ -29,6 +40,19 @@ class FileManager:
         self.image_handler = ImageHandler(app_name, batch_print=batch_print)
         self.markdown_handler = MarkdownHandler(app_name, batch_print=batch_print)
         self.cloud = BackendRouter()
+
+        # Inject the shared router into every handler so they can call
+        # cloud methods (self.cloud_read, self.cloud_write_async, etc.)
+        # without constructing their own BackendRouter.
+        for _handler in (
+            self.file_handler,
+            self.text_handler,
+            self.json_handler,
+            self.html_handler,
+            self.image_handler,
+            self.markdown_handler,
+        ):
+            _handler.set_cloud_router(self.cloud)
 
     @classmethod
     def get_instance(cls, app_name, new_instance=False, batch_print=False, print_errors=True, batch_handler=None):
@@ -187,6 +211,170 @@ class FileManager:
     def configured_backends(self) -> list[str]:
         """Return the names of all cloud backends that have valid credentials."""
         return self.cloud.configured_backends()
+
+    # ------------------------------------------------------------------
+    # Async cloud API — use these in FastAPI routes
+    # ------------------------------------------------------------------
+
+    async def read_async(self, uri: str) -> bytes:
+        """Non-blocking read. Always use this inside FastAPI routes."""
+        return await self.cloud.read_async(uri)
+
+    async def write_async(self, uri: str, content: bytes | str, **kwargs) -> bool:
+        """Non-blocking write."""
+        return await self.cloud.write_async(uri, content, **kwargs)
+
+    async def append_async(self, uri: str, content: bytes | str) -> bool:
+        """Non-blocking append."""
+        return await self.cloud.append_async(uri, content)
+
+    async def delete_async(self, uri: str) -> bool:
+        """Non-blocking delete."""
+        return await self.cloud.delete_async(uri)
+
+    async def get_url_async(self, uri: str, expires_in: int = 3600) -> str:
+        """Non-blocking signed/presigned URL generation."""
+        return await self.cloud.get_url_async(uri, expires_in=expires_in)
+
+    async def list_files_async(self, uri_prefix: str) -> list[str]:
+        """Non-blocking file listing."""
+        return await self.cloud.list_files_async(uri_prefix)
+
+    async def read_url_async(self, url: str) -> bytes:
+        """Non-blocking read from any URL format a client might send."""
+        return await self.cloud.read_url_async(url)
+
+    # ------------------------------------------------------------------
+    # ensure_url — smart URL refresh (sync + async)
+    # ------------------------------------------------------------------
+
+    def ensure_url(self, url: str, expires_in: int = 3600) -> str:
+        """Return a guaranteed-valid URL for a cloud file.
+
+        Reads expiry from the URL itself (no network call) and only
+        regenerates the URL if it has expired or has < 60 s remaining.
+
+        Works with:
+        - Native URIs (s3://, supabase://)          → always generates fresh URL
+        - Supabase signed URLs (JWT token in ?token) → checks 'exp' claim
+        - S3 presigned URLs (X-Amz-Date/Expires)    → checks query params
+        - Public HTTPS URLs (no expiry info)         → returned as-is
+
+        Usage in a FastAPI route (sync helper version):
+            url = fm.ensure_url(url_from_client, expires_in=3600)
+            response = openai.chat(..., image_url=url)
+        """
+        return self.cloud.ensure_url(url, expires_in=expires_in)
+
+    async def ensure_url_async(self, url: str, expires_in: int = 3600) -> str:
+        """Async version of ensure_url(). Use this in FastAPI routes."""
+        return await self.cloud.ensure_url_async(url, expires_in=expires_in)
+
+    # ------------------------------------------------------------------
+    # LLM helpers — get_for_llm / push_from_llm (sync + async)
+    # ------------------------------------------------------------------
+
+    def get_for_llm(
+        self,
+        url: str,
+        mode: LLMInputMode = "base64",
+        expires_in: int = 300,
+    ) -> str | bytes:
+        """Return a cloud file in the format an LLM provider needs.
+
+        Parameters
+        ----------
+        url:
+            Any cloud URL or URI (public, signed, presigned, native).
+        mode:
+            "url"    → fresh signed URL (auto-refreshed if expired).
+                       Use for providers that fetch files directly
+                       (OpenAI vision, Gemini file API, etc.)
+            "base64" → raw bytes encoded as base64 string.
+                       Use for providers that require inline data
+                       (Anthropic, most multi-modal APIs).
+            "bytes"  → raw bytes. Use when you encode yourself.
+        expires_in:
+            Expiry for generated signed URLs in seconds (default 300).
+
+        Examples
+        --------
+            # Provider fetches URL directly
+            url = fm.get_for_llm(file_url, mode="url")
+            openai.chat(messages=[{"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": url}}
+            ]}])
+
+            # Provider needs inline base64
+            b64 = fm.get_for_llm(file_url, mode="base64")
+            anthropic.messages.create(messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64",
+                 "media_type": "image/png", "data": b64}}
+            ]}])
+        """
+        return get_for_llm(url, self.cloud, mode=mode, expires_in=expires_in)
+
+    async def get_for_llm_async(
+        self,
+        url: str,
+        mode: LLMInputMode = "base64",
+        expires_in: int = 300,
+    ) -> str | bytes:
+        """Async version of get_for_llm(). Use this in FastAPI routes."""
+        return await get_for_llm_async(url, self.cloud, mode=mode, expires_in=expires_in)
+
+    def push_from_llm(
+        self,
+        data: str | bytes,
+        dest_uri: str,
+        source_format: LLMOutputFormat = "base64",
+        **write_kwargs,
+    ) -> bool:
+        """Write LLM-generated content directly to cloud storage.
+
+        Parameters
+        ----------
+        data:
+            The LLM's output — base64 string, a URL, or raw bytes.
+        dest_uri:
+            Destination in cloud storage.
+            e.g. "supabase://bucket/users/{user_id}/output.png"
+            e.g. "s3://bucket/generated/image.png"
+        source_format:
+            "base64" → decode and write (OpenAI, Stability AI, etc.)
+            "url"    → download then write (DALL-E response URLs, Gemini, etc.)
+            "bytes"  → write directly
+
+        Examples
+        --------
+            # OpenAI image generation → Supabase
+            result = openai.images.generate(...)
+            fm.push_from_llm(
+                result.data[0].b64_json,
+                "supabase://bucket/users/123/avatar.png",
+                source_format="base64",
+            )
+
+            # DALL-E URL → S3
+            fm.push_from_llm(
+                result.data[0].url,
+                "s3://bucket/generated/image.png",
+                source_format="url",
+            )
+        """
+        return push_from_llm(data, dest_uri, self.cloud, source_format=source_format, **write_kwargs)
+
+    async def push_from_llm_async(
+        self,
+        data: str | bytes,
+        dest_uri: str,
+        source_format: LLMOutputFormat = "base64",
+        **write_kwargs,
+    ) -> bool:
+        """Async version of push_from_llm(). Use this in FastAPI routes."""
+        return await push_from_llm_async(
+            data, dest_uri, self.cloud, source_format=source_format, **write_kwargs
+        )
 
     def print_batch(self):
         self.file_handler.print_batch()

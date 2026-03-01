@@ -235,3 +235,105 @@ class ServerBackend(StorageBackend):
             return response.ok
         except Exception:
             return False
+
+    # ------------------------------------------------------------------
+    # Asynchronous API — httpx.AsyncClient
+    # ------------------------------------------------------------------
+
+    def _async_headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Accept": "application/octet-stream",
+        }
+
+    async def read_async(self, path: str) -> bytes:
+        self._require_configured()
+        import httpx
+        async with httpx.AsyncClient(headers=self._async_headers(), timeout=self._timeout) as client:
+            response = await client.get(self._file_url(path))
+            self._raise_for_status(response, f"read_async '{path}'")  # type: ignore[arg-type]
+            return response.content
+
+    async def write_async(self, path: str, content: bytes | str) -> bool:
+        self._require_configured()
+        if isinstance(content, str):
+            content = content.encode()
+        import httpx
+        headers = {**self._async_headers(), "Content-Type": "application/octet-stream"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.put(self._file_url(path), content=content, headers=headers)
+            self._raise_for_status(response, f"write_async '{path}'")  # type: ignore[arg-type]
+            return True
+
+    async def append_async(self, path: str, content: bytes | str) -> bool:
+        self._require_configured()
+        if isinstance(content, str):
+            content = content.encode()
+        import httpx
+        headers = {**self._async_headers(), "Content-Type": "application/octet-stream"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            # Try server-side append first
+            response = await client.patch(
+                self._file_url(path),
+                params={"append": "1"},
+                content=content,
+                headers=headers,
+            )
+            if response.status_code in (200, 201, 204):
+                return True
+        # Fall back: read → concat → write
+        try:
+            existing = await self.read_async(path)
+        except Exception:
+            existing = b""
+        return await self.write_async(path, existing + content)
+
+    async def delete_async(self, path: str) -> bool:
+        self._require_configured()
+        import httpx
+        async with httpx.AsyncClient(headers=self._async_headers(), timeout=self._timeout) as client:
+            response = await client.delete(self._file_url(path))
+            self._raise_for_status(response, f"delete_async '{path}'")  # type: ignore[arg-type]
+            return True
+
+    async def get_url_async(self, path: str, expires_in: int = 3600) -> str:
+        self._require_configured()
+        import httpx, json as _json
+        url = self._file_url(path)
+        headers = {**self._async_headers(), "Accept": "application/json"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(url, params={"url": "1", "expires": str(expires_in)}, headers=headers)
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if isinstance(data, dict):
+                        return data.get("url") or data.get("signedUrl") or url
+                except (_json.JSONDecodeError, ValueError):
+                    pass
+        return url
+
+    async def list_files_async(self, prefix: str = "") -> list[str]:
+        self._require_configured()
+        import httpx
+        base = f"{self._base_url}/files"
+        params: dict[str, str] = {"prefix": prefix} if prefix else {}
+        headers = {**self._async_headers(), "Accept": "application/json"}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(base, params=params, headers=headers)
+            self._raise_for_status(response, f"list_files_async prefix='{prefix}'")  # type: ignore[arg-type]
+            data = response.json()
+            if isinstance(data, list):
+                return [str(item) for item in data]
+            if isinstance(data, dict):
+                return [str(item) for item in data.get("files", data.get("items", []))]
+            return []
+
+    async def health_check_async(self) -> bool:
+        try:
+            self._require_configured()
+            import httpx
+            async with httpx.AsyncClient(headers=self._async_headers(), timeout=self._timeout) as client:
+                response = await client.get(f"{self._base_url}/health")
+                return response.is_success
+        except Exception:
+            return False

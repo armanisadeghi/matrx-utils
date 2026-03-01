@@ -1,6 +1,8 @@
 
-from PIL import Image, ImageEnhance
+import base64
+from io import BytesIO
 from pathlib import Path
+from PIL import Image, ImageEnhance
 from matrx_utils.file_handling.file_handler import FileHandler
 
 
@@ -165,3 +167,182 @@ class ImageHandler(FileHandler):
                 return False
             return self.write_image(root, path, flipped_image)
         return False
+
+    def custom_base64_to_png(self, base64_string, path):
+        try:
+            # Remove data:image/... prefix if present
+            if base64_string.startswith("data:image"):
+                base64_string = base64_string.split(",")[1]
+
+            # Ensure path has .png extension
+            path = Path(path)
+            if path.suffix.lower() != ".png":
+                path = path.with_suffix(".png")
+
+            # Simple approach: decode and write directly
+            self._ensure_directory(path)
+            with open(path, "wb") as f:
+                f.write(base64.b64decode(base64_string))
+
+            self._print_link(path=path, message="Base64 converted to PNG")
+            return True
+
+        except Exception as e:
+            print(f"Error converting base64 to PNG at {path}: {str(e)}")
+            self._print_link(
+                path=path, message=f"BASE64 TO PNG ERROR {str(e)}", color="red"
+            )
+            return False
+
+    def custom_base64_to_webp(self, base64_string, path):
+        try:
+            # Remove data:image/... prefix if present
+            if base64_string.startswith("data:image"):
+                base64_string = base64_string.split(",")[1]
+
+            # For WebP, we need PIL to convert from the original format
+            image_data = base64.b64decode(base64_string)
+            image = Image.open(BytesIO(image_data))
+
+            # Ensure path has .webp extension
+            path = Path(path)
+            if path.suffix.lower() != ".webp":
+                path = path.with_suffix(".webp")
+
+            # Save as WebP
+            self._ensure_directory(path)
+            image.save(path, "WEBP", quality=85)
+            self._print_link(path=path, message="Base64 converted to WebP")
+            return True
+
+        except Exception as e:
+            print(f"Error converting base64 to WebP at {path}: {str(e)}")
+            self._print_link(
+                path=path, message=f"BASE64 TO WEBP ERROR {str(e)}", color="red"
+            )
+            return False
+
+    def base64_to_png(self, root, path, base64_string):
+        full_path = self._get_full_path(root, path)
+        return self.custom_base64_to_png(base64_string, full_path)
+
+    def base64_to_webp(self, root, path, base64_string):
+        full_path = self._get_full_path(root, path)
+        return self.custom_base64_to_webp(base64_string, full_path)
+
+    # ------------------------------------------------------------------
+    # Cloud I/O — require FileManager construction (CloudMixin)
+    # ------------------------------------------------------------------
+
+    def base64_to_cloud(self, base64_string: str, dest_uri: str) -> bool:
+        """Decode a base64 image and write it directly to cloud storage.
+
+        Accepts base64 strings with or without the ``data:image/...;base64,``
+        prefix. Writes raw bytes — no format conversion — to any configured
+        backend via *dest_uri*.
+
+        Parameters
+        ----------
+        base64_string:
+            Base64-encoded image data, optionally prefixed with a data URI
+            header (``data:image/png;base64,...``).
+        dest_uri:
+            Full cloud storage URI, e.g.
+            ``"supabase://bucket/users/123/avatar.png"``
+            ``"s3://bucket/generated/image.webp"``
+
+        Examples
+        --------
+            # From an OpenAI image generation response
+            handler.base64_to_cloud(result.data[0].b64_json, "s3://bucket/out.png")
+
+            # From a multipart form upload (already base64-encoded client-side)
+            handler.base64_to_cloud(form_data.image_b64, "supabase://media/img.jpg")
+        """
+        try:
+            if base64_string.startswith("data:image"):
+                base64_string = base64_string.split(",", 1)[1]
+            file_bytes = base64.b64decode(base64_string)
+            return self.cloud_write(dest_uri, file_bytes)
+        except Exception as e:
+            print(f"[ImageHandler] base64_to_cloud failed for {dest_uri}: {e}")
+            return False
+
+    async def base64_to_cloud_async(self, base64_string: str, dest_uri: str) -> bool:
+        """Async version of base64_to_cloud(). Use this in FastAPI routes."""
+        try:
+            if base64_string.startswith("data:image"):
+                base64_string = base64_string.split(",", 1)[1]
+            file_bytes = base64.b64decode(base64_string)
+            return await self.cloud_write_async(dest_uri, file_bytes)
+        except Exception as e:
+            print(f"[ImageHandler] base64_to_cloud_async failed for {dest_uri}: {e}")
+            return False
+
+    def read_image_from_cloud(self, uri_or_url: str) -> "Image.Image | None":
+        """Read an image from any cloud URI or URL and return a PIL Image.
+
+        Accepts native URIs (``s3://``, ``supabase://``), public HTTPS URLs,
+        and signed/expired URLs. Reads via server-side credentials so token
+        expiry is irrelevant.
+
+        Parameters
+        ----------
+        uri_or_url:
+            Any cloud storage URI or URL pointing to an image file.
+
+        Examples
+        --------
+            img = handler.read_image_from_cloud("supabase://bucket/avatar.png")
+            img = handler.read_image_from_cloud(signed_url_from_client)
+        """
+        try:
+            raw = self.cloud_read_url(uri_or_url)
+            return Image.open(BytesIO(raw))
+        except Exception as e:
+            print(f"[ImageHandler] read_image_from_cloud failed for {uri_or_url}: {e}")
+            return None
+
+    async def read_image_from_cloud_async(self, uri_or_url: str) -> "Image.Image | None":
+        """Async version of read_image_from_cloud(). Use this in FastAPI routes."""
+        try:
+            raw = await self.cloud_read_url_async(uri_or_url)
+            return Image.open(BytesIO(raw))
+        except Exception as e:
+            print(f"[ImageHandler] read_image_from_cloud_async failed for {uri_or_url}: {e}")
+            return None
+
+    def write_image_to_cloud(self, image: "Image.Image", dest_uri: str, fmt: str = "PNG") -> bool:
+        """Encode a PIL Image and write it to cloud storage.
+
+        Parameters
+        ----------
+        image:
+            A PIL Image object to upload.
+        dest_uri:
+            Full cloud storage URI (s3://, supabase://, server://).
+        fmt:
+            Pillow format string used for encoding, e.g. ``"PNG"``, ``"WEBP"``,
+            ``"JPEG"``. Defaults to ``"PNG"``.
+
+        Examples
+        --------
+            handler.write_image_to_cloud(resized_img, "s3://bucket/thumb.webp", fmt="WEBP")
+        """
+        try:
+            buf = BytesIO()
+            image.save(buf, format=fmt)
+            return self.cloud_write(dest_uri, buf.getvalue())
+        except Exception as e:
+            print(f"[ImageHandler] write_image_to_cloud failed for {dest_uri}: {e}")
+            return False
+
+    async def write_image_to_cloud_async(self, image: "Image.Image", dest_uri: str, fmt: str = "PNG") -> bool:
+        """Async version of write_image_to_cloud(). Use this in FastAPI routes."""
+        try:
+            buf = BytesIO()
+            image.save(buf, format=fmt)
+            return await self.cloud_write_async(dest_uri, buf.getvalue())
+        except Exception as e:
+            print(f"[ImageHandler] write_image_to_cloud_async failed for {dest_uri}: {e}")
+            return False

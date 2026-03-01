@@ -7,10 +7,11 @@ import unicodedata
 from matrx_utils import print_link, vcprint
 from matrx_utils.file_handling.base_handler import BaseHandler
 from matrx_utils.file_handling.batch_handler import BatchHandler
+from matrx_utils.file_handling.cloud_mixin import CloudMixin
 from matrx_utils.conf import settings
 
 
-class FileHandler(BaseHandler):
+class FileHandler(CloudMixin, BaseHandler):
     _instances = {}
     _log_intro = "[MATRIX FILE HANDLER]"
 
@@ -37,10 +38,6 @@ class FileHandler(BaseHandler):
         self.batch_print_enabled = (
             self.batch_handler.is_batch_print_enabled()
         )  # Use method instead of accessing private variable
-        self.s3_client = None
-        self.s3_bucket_name = None
-        self.supabase = None
-        self.supabase_bucket_name = None
         if batch_print:
             self.batch_handler.enable_batch()
 

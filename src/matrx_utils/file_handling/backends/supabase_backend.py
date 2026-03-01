@@ -35,14 +35,16 @@ from typing import TYPE_CHECKING, Any
 from .base_backend import StorageBackend
 
 if TYPE_CHECKING:
-    from supabase import Client
+    from supabase import Client, AsyncClient
     from storage3._sync.file_api import SyncBucket
     from storage3._sync.file_api import SyncBucketActionsMixin
+    from storage3._async.file_api import AsyncBucketActionsMixin
 
 
 class SupabaseBackend(StorageBackend):
     def __init__(self) -> None:
         self._client: Client | None = None
+        self._async_client: AsyncClient | None = None
         self._url: str = ""
         self._key: str = ""
         self._configured: bool = False
@@ -90,11 +92,25 @@ class SupabaseBackend(StorageBackend):
             self._client = create_client(self._url, self._key)
         return self._client  # type: ignore[return-value]
 
+    async def _get_async_client(self) -> AsyncClient:
+        if self._async_client is None:
+            from supabase import acreate_client
+            self._async_client = await acreate_client(self._url, self._key)
+        return self._async_client  # type: ignore[return-value]
+
     def _get_storage(self):
         return self._get_client().storage
 
+    async def _get_async_storage(self):
+        client = await self._get_async_client()
+        return client.storage
+
     def _bucket(self, bucket_name: str) -> SyncBucketActionsMixin:
         return self._get_storage().from_(bucket_name)  # type: ignore[return-value]
+
+    async def _async_bucket(self, bucket_name: str) -> AsyncBucketActionsMixin:
+        storage = await self._get_async_storage()
+        return storage.from_(bucket_name)  # type: ignore[return-value]
 
     def is_configured(self) -> bool:
         return self._configured
@@ -259,8 +275,106 @@ class SupabaseBackend(StorageBackend):
         bucket, file_path = self._parse_path(path)
         folder: str = file_path.rsplit("/", 1)[0] if "/" in file_path else ""
         filename: str = file_path.rsplit("/", 1)[-1]
-        # list() returns list[dict[str, Any]]
         items: list[dict[str, Any]] = self._bucket(bucket).list(folder)
+        for item in items:
+            if item.get("name") == filename:
+                return item
+        return {}
+
+    # ------------------------------------------------------------------
+    # Asynchronous API — native AsyncClient (no thread pool needed)
+    # ------------------------------------------------------------------
+
+    async def read_async(self, path: str) -> bytes:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        bucket_api = await self._async_bucket(bucket)
+        data: bytes = await bucket_api.download(file_path)
+        return data
+
+    async def write_async(self, path: str, content: bytes | str, upsert: bool = True) -> bool:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        raw: bytes = content.encode() if isinstance(content, str) else content
+        bucket_api = await self._async_bucket(bucket)
+        if upsert:
+            await bucket_api.upload(file_path, raw, file_options={"upsert": "true"})
+        else:
+            await bucket_api.upload(file_path, raw)
+        return True
+
+    async def append_async(self, path: str, content: bytes | str) -> bool:
+        self._require_configured()
+        try:
+            existing: bytes = await self.read_async(path)
+        except Exception:
+            existing = b""
+        raw: bytes = content.encode() if isinstance(content, str) else content
+        return await self.write_async(path, existing + raw, upsert=True)
+
+    async def delete_async(self, path: str) -> bool:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        bucket_api = await self._async_bucket(bucket)
+        await bucket_api.remove([file_path])
+        return True
+
+    async def get_url_async(self, path: str, expires_in: int = 3600) -> str:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        bucket_api = await self._async_bucket(bucket)
+        try:
+            response = await bucket_api.create_signed_url(file_path, expires_in)
+            signed: str = response["signedURL"]
+            if signed:
+                return signed
+        except Exception:
+            pass
+        return await self.get_public_url_async(path)
+
+    async def get_public_url_async(self, path: str) -> str:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        bucket_api = await self._async_bucket(bucket)
+        url: str = await bucket_api.get_public_url(file_path)
+        return url
+
+    async def list_files_async(self, prefix: str = "") -> list[str]:
+        self._require_configured()
+        if "/" not in prefix:
+            raise ValueError(
+                f"Supabase list_files_async() prefix '{prefix}' must include the bucket."
+            )
+        bucket, _, path_prefix = prefix.partition("/")
+        bucket_api = await self._async_bucket(bucket)
+        items: list[dict[str, Any]] = await bucket_api.list(path_prefix)
+        results: list[str] = []
+        for item in items:
+            name: str = item.get("name", "")
+            if name:
+                full_path: str = f"{path_prefix}/{name}".lstrip("/")
+                results.append(f"{bucket}/{full_path}")
+        return results
+
+    async def copy_async(self, src_path: str, dst_path: str) -> bool:
+        self._require_configured()
+        src_bucket, src_file = self._parse_path(src_path)
+        dst_bucket, dst_file = self._parse_path(dst_path)
+        if src_bucket != dst_bucket:
+            raise ValueError(
+                "Supabase copy_async() requires source and destination in the same bucket."
+            )
+        bucket_api = await self._async_bucket(src_bucket)
+        await bucket_api.copy(src_file, dst_file)
+        return True
+
+    async def get_metadata_async(self, path: str) -> dict[str, Any]:
+        self._require_configured()
+        bucket, file_path = self._parse_path(path)
+        folder: str = file_path.rsplit("/", 1)[0] if "/" in file_path else ""
+        filename: str = file_path.rsplit("/", 1)[-1]
+        bucket_api = await self._async_bucket(bucket)
+        items: list[dict[str, Any]] = await bucket_api.list(folder)
         for item in items:
             if item.get("name") == filename:
                 return item

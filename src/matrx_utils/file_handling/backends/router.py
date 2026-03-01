@@ -92,6 +92,56 @@ def _is_transient(exc: Exception) -> bool:
     return isinstance(exc, (ConnectionError, TimeoutError, OSError))
 
 
+def _url_seconds_remaining(url: str) -> float | None:
+    """Return seconds until *url* expires, or None if it has no expiry.
+
+    Reads expiry purely from the URL itself — no network call, no secret key.
+
+    Supabase signed URLs: JWT token in ?token= query param; read 'exp' claim.
+    S3 presigned URLs: X-Amz-Date + X-Amz-Expires in query params.
+    Public/unknown URLs: return None (treat as non-expiring).
+    """
+    import time
+    import base64
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+    from datetime import datetime, timezone
+
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+
+    # Supabase signed URL — JWT token
+    token_parts = qs.get("token", [""])[0]
+    if token_parts:
+        parts = token_parts.split(".")
+        if len(parts) == 3:
+            try:
+                padding = 4 - len(parts[1]) % 4
+                payload = _json.loads(
+                    base64.urlsafe_b64decode(parts[1] + "=" * padding)
+                )
+                exp = payload.get("exp")
+                if exp:
+                    return float(exp) - time.time()
+            except Exception:
+                pass
+
+    # S3 presigned URL — X-Amz-Date + X-Amz-Expires
+    amz_date = qs.get("X-Amz-Date", [""])[0]
+    amz_expires = qs.get("X-Amz-Expires", [""])[0]
+    if amz_date and amz_expires:
+        try:
+            issued = datetime.strptime(amz_date, "%Y%m%dT%H%M%SZ").replace(
+                tzinfo=timezone.utc
+            )
+            expires_at = issued.timestamp() + int(amz_expires)
+            return expires_at - time.time()
+        except Exception:
+            pass
+
+    return None  # no expiry information found
+
+
 def _with_retry(fn, *args, **kwargs):
     """Call *fn* with retry/backoff on transient errors.
 
@@ -119,6 +169,32 @@ def _with_retry(fn, *args, **kwargs):
                     delay,
                 )
                 time.sleep(delay)
+    raise last_exc  # type: ignore[misc]
+
+
+async def _with_retry_async(fn, *args, **kwargs):
+    """Async version of _with_retry — same policy, awaits the coroutine."""
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            return await fn(*args, **kwargs)
+        except (ValueError, RuntimeError):
+            raise
+        except Exception as exc:
+            if not _is_transient(exc):
+                raise
+            last_exc = exc
+            if attempt < _MAX_RETRIES - 1:
+                import asyncio
+                delay = _RETRY_BACKOFF[min(attempt, len(_RETRY_BACKOFF) - 1)]
+                logger.warning(
+                    "Transient error on attempt %d/%d (%s). Retrying in %.1fs…",
+                    attempt + 1,
+                    _MAX_RETRIES,
+                    exc,
+                    delay,
+                )
+                await asyncio.sleep(delay)
     raise last_exc  # type: ignore[misc]
 
 
@@ -318,3 +394,116 @@ class BackendRouter:
         if self.server.is_configured():
             result.append("server")
         return result
+
+    # ------------------------------------------------------------------
+    # Async routing API
+    # ------------------------------------------------------------------
+
+    async def read_async(self, uri: str) -> bytes:
+        """Non-blocking read. Use in FastAPI routes and all async contexts."""
+        backend, path = self._resolve(uri)
+        return await _with_retry_async(backend.read_async, path)
+
+    async def write_async(self, uri: str, content: bytes | str, **kwargs) -> bool:
+        """Non-blocking write."""
+        backend, path = self._resolve(uri)
+        return await _with_retry_async(backend.write_async, path, content, **kwargs)
+
+    async def append_async(self, uri: str, content: bytes | str) -> bool:
+        backend, path = self._resolve(uri)
+        return await _with_retry_async(backend.append_async, path, content)
+
+    async def delete_async(self, uri: str) -> bool:
+        backend, path = self._resolve(uri)
+        return await backend.delete_async(path)
+
+    async def get_url_async(self, uri: str, expires_in: int = 3600) -> str:
+        backend, path = self._resolve(uri)
+        return await backend.get_url_async(path, expires_in=expires_in)
+
+    async def list_files_async(self, uri_prefix: str = "") -> list[str]:
+        if not uri_prefix:
+            raise ValueError(
+                "list_files_async() requires a URI prefix with a scheme."
+            )
+        backend, path = self._resolve(uri_prefix)
+        raw: list[str] = await backend.list_files_async(path)
+        scheme = uri_prefix.split("://", 1)[0].lower()
+        return [f"{scheme}://{item}" for item in raw]
+
+    async def read_url_async(self, url: str) -> bytes:
+        """Non-blocking read from any URL format a client might send."""
+        return await _with_retry_async(self._read_url_once_async, url)
+
+    async def _read_url_once_async(self, url: str) -> bytes:
+        backend, path = self._resolve(url)
+        return await backend.read_async(path)
+
+    # ------------------------------------------------------------------
+    # ensure_url — smart URL refresh without unnecessary network calls
+    # ------------------------------------------------------------------
+
+    def ensure_url(self, url: str, expires_in: int = 3600) -> str:
+        """Return a guaranteed-valid URL for a cloud file.
+
+        Logic (zero network calls when URL is still fresh):
+        1. If *url* is a native cloud URI (s3://, supabase://) — generate
+           a fresh signed URL directly. No expiry check needed.
+        2. If *url* is a Supabase signed URL — decode the JWT payload and
+           read the 'exp' claim without any network call or secret key.
+           Return the original URL if it has ≥ *buffer_seconds* remaining.
+        3. If *url* is an S3 presigned URL — read X-Amz-Date + X-Amz-Expires
+           from the query string. Return the original if still valid.
+        4. If *url* is a public (non-expiring) HTTPS URL — return it as-is.
+        5. If expired (or unrecognised format) — parse to storage path,
+           generate a fresh signed URL via backend credentials, return it.
+
+        Parameters
+        ----------
+        url:
+            Any URL or URI for a cloud file.
+        expires_in:
+            Expiry for the *new* URL when one needs to be generated (seconds).
+        """
+        from .url_parser import parse_storage_url
+        import time
+
+        # Native URIs have no expiry — generate a fresh signed URL
+        parsed_scheme = url.split("://", 1)[0].lower() if "://" in url else ""
+        if parsed_scheme in CLOUD_SCHEMES:
+            result = parse_storage_url(url)
+            backend, path = self._resolve(url)
+            return backend.get_url(path, expires_in=expires_in)
+
+        # HTTPS URL — check if it carries expiry information
+        remaining = _url_seconds_remaining(url)
+        if remaining is None:
+            # Public / non-expiring URL — return as-is
+            return url
+        if remaining > 60:
+            # More than 60 s left — safe to use as-is
+            return url
+
+        # Expired or about to expire — regenerate via credentials
+        result = parse_storage_url(url)
+        backend, path = self._resolve(result.to_native_uri())
+        return backend.get_url(path, expires_in=expires_in)
+
+    async def ensure_url_async(self, url: str, expires_in: int = 3600) -> str:
+        """Async version of ensure_url()."""
+        from .url_parser import parse_storage_url
+
+        parsed_scheme = url.split("://", 1)[0].lower() if "://" in url else ""
+        if parsed_scheme in CLOUD_SCHEMES:
+            backend, path = self._resolve(url)
+            return await backend.get_url_async(path, expires_in=expires_in)
+
+        remaining = _url_seconds_remaining(url)
+        if remaining is None:
+            return url
+        if remaining > 60:
+            return url
+
+        result = parse_storage_url(url)
+        backend, path = self._resolve(result.to_native_uri())
+        return await backend.get_url_async(path, expires_in=expires_in)

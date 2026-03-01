@@ -1,381 +1,296 @@
-# `` — Module Overview
+# matrx-utils — Cloud Storage
 
-> This document is partially auto-generated. Sections tagged `<!-- AUTO:id -->` are refreshed by the generator.
-> Everything else is yours to edit freely and will never be overwritten.
+Everything runs through `FileManager`. Never instantiate a backend directly in app code.
 
-<!-- AUTO:meta -->
-## About This Document
+---
 
-This file is **partially auto-generated**. Sections wrapped in `<!-- AUTO:id -->` tags
-are overwritten each time the generator runs. Everything else is yours to edit freely.
+## Setup
 
-| Field | Value |
-|-------|-------|
-| Module | `` |
-| Last generated | 2026-02-28 14:46 |
-| Output file | `MODULE_README.md` |
-| Signature mode | `signatures` |
+### 1. Environment variables
 
+Set the variables for whichever backends you use. Unconfigured backends are silently ignored — no errors until you actually call one.
 
-**Child READMEs detected** (signatures collapsed — see links for detail):
-
-| README | |
-|--------|---|
-| [`src/MODULE_README.md`](src/MODULE_README.md) | last generated 2026-02-28 14:46 |
-| [`tests/MODULE_README.md`](tests/MODULE_README.md) | last generated 2026-02-28 14:46 |
-**To refresh auto-sections:**
 ```bash
-python utils/code_context/generate_module_readme.py  --mode signatures
+# S3
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-2
+AWS_S3_DEFAULT_BUCKET=my-bucket          # optional default
+
+# Supabase (new key format — use one of the two)
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...        # preferred — backend / service-level
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_ # low-privilege, client-safe
+
+# Legacy Supabase keys (still accepted, lower priority)
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_ANON_KEY=...
+
+# Custom file server (optional)
+FILE_SERVER_BASE_URL=https://files.myapp.com
+FILE_SERVER_API_KEY=...
 ```
 
-**To add permanent notes:** Write anywhere outside the `<!-- AUTO:... -->` blocks.
-<!-- /AUTO:meta -->
+### 2. Instantiate
 
-<!-- HUMAN-EDITABLE: This section is yours. Agents & Humans can edit this section freely — it will not be overwritten. -->
+```python
+from matrx_utils.file_handling import FileManager
 
-## Architecture
+fm = FileManager("my_service")
 
-> **Fill this in.** Describe the execution flow and layer map for this module.
-> See `utils/code_context/MODULE_README_SPEC.md` for the recommended format.
->
-> Suggested structure:
->
-> ### Layers
-> | File | Role |
-> |------|------|
-> | `entry.py` | Public entry point — receives requests, returns results |
-> | `engine.py` | Core dispatch logic |
-> | `models.py` | Shared data types |
->
-> ### Call Flow (happy path)
-> ```
-> entry_function() → engine.dispatch() → implementation()
-> ```
-
-
-<!-- AUTO:tree -->
-## Directory Tree
-
-> Auto-generated. 45 files across 12 directories.
-
+# Check what's live
+print(fm.configured_backends())  # e.g. ['s3', 'supabase']
 ```
-./
-├── .python-version
-├── main.py
-├── release.sh
-├── src/
-│   ├── MODULE_README.md
-│   ├── matrx_utils/
-│   │   ├── __init__.py
-│   │   ├── conf.py
-│   │   ├── data_handling/
-│   │   │   ├── __init__.py
-│   │   │   ├── data_transformer.py
-│   │   │   ├── utils.py
-│   │   │   ├── validation/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── errors.py
-│   │   │   │   ├── validators.py
-│   │   ├── fancy_prints/
-│   │   │   ├── __init__.py
-│   │   │   ├── colors.py
-│   │   │   ├── fancy_prints.py
-│   │   │   ├── matrx_print_logger.py
-│   │   │   ├── redaction.py
-│   │   │   ├── utils/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── matrx_json_converter.py
-│   │   ├── field_processing/
-│   │   │   ├── __init__.py
-│   │   │   ├── dataclass_generator.py
-│   │   │   ├── field_handler.py
-│   │   ├── file_handling/
-│   │   │   ├── __init__.py
-│   │   │   ├── base_handler.py
-│   │   │   ├── batch_handler.py
-│   │   │   ├── file_handler.py
-│   │   │   ├── file_manager.py
-│   │   │   ├── local_files.py
-│   │   │   ├── specific_handlers/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── code_handler.py
-│   │   │   │   ├── html_handler.py
-│   │   │   │   ├── image_handler.py
-│   │   │   │   ├── json_handler.py
-│   │   │   │   ├── markdown_handler.py
-│   │   │   │   ├── text_handler.py
-│   │   ├── utils/
-│   │   │   ├── __init__.py
-│   │   │   ├── clear_terminal.py
-│   │   │   ├── get_dir_structure.py
-│   │   │   ├── testing.py
-├── tests/
-│   ├── MODULE_README.md
-│   ├── field_generation.py
-│   ├── field_processing.py
-│   ├── get_dir_structure_test.py
-│   ├── load_env_for_test.py
-│   ├── print_link_test.py
-# excluded: 8 .md, 1 (no ext), 1 .toml, 1 .lock
-```
-<!-- /AUTO:tree -->
-
-<!-- AUTO:signatures -->
-## API Signatures
-
-> Auto-generated via `output_mode="{mode}"`. ~5-10% token cost vs full source.
-> For full source, open the individual files directly.
-> Submodules with their own `MODULE_README.md` are collapsed to a single stub line.
-
-```
----
-Filepath: .python-version  [unknown ()]
-
-  # signature extraction not supported for this language
-
-
 
 ---
-Filepath: release.sh  [unknown (.sh)]
 
-  # signature extraction not supported for this language
+## URI format
 
+All cloud paths use a URI scheme. The bucket is always explicit — there is no global default for Supabase.
 
+```
+s3://bucket-name/path/to/file.ext
+supabase://bucket-name/path/to/file.ext
+server://path/to/file.ext
+```
 
 ---
-Filepath: main.py  [python]
 
+## Core I/O — FileManager (use in FastAPI routes)
 
+Always prefer the `_async` variants inside FastAPI. S3 uses `run_in_executor` (non-blocking), Supabase uses its native `AsyncClient`, and the custom server uses `httpx.AsyncClient`.
 
+### Read
+
+```python
+# From a URI
+raw: bytes = await fm.read_async("s3://bucket/report.pdf")
+raw: bytes = await fm.read_async("supabase://bucket/users/123/avatar.png")
+
+# From any URL the frontend sends (public, signed, expired — all handled)
+raw: bytes = await fm.read_url_async(url_from_react)
+```
+
+### Write
+
+```python
+ok = await fm.write_async("s3://bucket/output.json", json_bytes)
+ok = await fm.write_async("supabase://bucket/users/123/doc.pdf", pdf_bytes)
+ok = await fm.write_async("supabase://bucket/log.txt", "text content")
+```
+
+### Append, Delete, List
+
+```python
+ok    = await fm.append_async("s3://bucket/log.txt", new_line)
+ok    = await fm.delete_async("supabase://bucket/old-file.png")
+files = await fm.list_files_async("s3://bucket/reports/")
+```
+
+### Signed / presigned URLs
+
+```python
+url = await fm.get_url_async("s3://bucket/private.pdf", expires_in=3600)
+url = await fm.get_url_async("supabase://bucket/user/file.png", expires_in=300)
+```
+
+### Parallel I/O
+
+```python
+import asyncio
+
+a, b, c = await asyncio.gather(
+    fm.read_async("s3://bucket/a.pdf"),
+    fm.read_async("supabase://bucket/b.txt"),
+    fm.read_async("s3://bucket/c.csv"),
+)
+```
 
 ---
-Submodule: tests/  [5 files — full detail in tests/MODULE_README.md]
+
+## ensure_url — smart URL refresh
+
+Call this when a URL from long-lived storage (chat history, database record) might be stale. It reads the expiry **from the URL itself** — zero network calls when still fresh.
+
+| URL type | How expiry is detected |
+|---|---|
+| Native URI (`s3://`, `supabase://`) | Always generates a fresh URL |
+| Supabase signed URL | Decodes JWT `exp` claim from `?token=` |
+| S3 presigned URL | Reads `X-Amz-Date` + `X-Amz-Expires` query params |
+| Public HTTPS (no expiry) | Returned as-is |
+
+```python
+# In a FastAPI route — safe to call every time, free when URL is fresh
+url = await fm.ensure_url_async(url_from_db, expires_in=3600)
+
+# Then pass to LLM or return to client
+```
 
 ---
-Submodule: src/  [35 files — full detail in src/MODULE_README.md]
 
-```
-<!-- /AUTO:signatures -->
+## LLM helpers
 
-<!-- AUTO:call_graph -->
-## Call Graph
+### get_for_llm — fetch a file in the format a provider needs
 
-> Auto-generated. All Python files
-> Covered submodules shown as stubs — see child READMEs for full detail: `src`, `tests`
-> Excluded from call graph: `tests`.
-> Shows which functions call which. `async` prefix = caller is an async function.
-> Method calls shown as `receiver.method()`. Private methods (`_`) excluded by default.
+```python
+# Provider fetches the URL directly (OpenAI vision, Gemini File API)
+url = await fm.get_for_llm_async(file_url, mode="url", expires_in=300)
+openai_client.chat.completions.create(messages=[{
+    "role": "user",
+    "content": [{"type": "image_url", "image_url": {"url": url}}]
+}])
 
-### Call graph: src.matrx_utils.conf
+# Provider needs inline base64 (Anthropic, most multi-modal APIs)
+b64 = await fm.get_for_llm_async(file_url, mode="base64")
+anthropic_client.messages.create(messages=[{
+    "role": "user",
+    "content": [{"type": "image", "source": {
+        "type": "base64", "media_type": "image/png", "data": b64
+    }}]
+}])
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.conf._ensure_configured → src.matrx_utils.conf.NotConfiguredError('Call matrx_utils.conf.configure() first.') (line 36)` → ... → `...clear() (line 208)`
-```
-
-### Call graph: src.matrx_utils.fancy_prints.redaction
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.fancy_prints.redaction.is_sensitive → sensitive_patterns.extend(additional_keys) (line 8)` → ... → `src.matrx_utils.fancy_prints.redaction.redact_object(item, redact_keys) (line 34)`
+# Raw bytes (when you handle encoding yourself)
+raw = await fm.get_for_llm_async(file_url, mode="bytes")
 ```
 
-### Call graph: src.matrx_utils.fancy_prints.matrx_print_logger
+`file_url` can be anything the frontend sends — native URI, public HTTPS, signed, or expired.
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+### push_from_llm — store LLM-generated content
 
-```
-`src.matrx_utils.fancy_prints.matrx_print_logger.__init__ → logging.getLogger('matrx_print_logger') (line 14)` → ... → `src.matrx_utils.fancy_prints.matrx_print_logger.urlparse(self.path) (line 370)`
-```
+```python
+result = await openai_client.images.generate(model="dall-e-3", ...)
 
-### Call graph: src.matrx_utils.fancy_prints.fancy_prints
+# LLM returned base64
+await fm.push_from_llm_async(
+    result.data[0].b64_json,
+    "supabase://bucket/users/123/generated.png",
+    source_format="base64",
+)
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+# LLM returned a temporary URL (DALL-E, Gemini)
+await fm.push_from_llm_async(
+    result.data[0].url,
+    "s3://bucket/generated/image.png",
+    source_format="url",
+)
 
-```
-`Global Scope → logging.getLogger('vcprint') (line 13)` → ... → `src.matrx_utils.fancy_prints.fancy_prints.is_empty(item) (line 388)`
-```
-
-### Call graph: src.matrx_utils.fancy_prints.utils.matrx_json_converter
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.fancy_prints.utils.matrx_json_converter._convert_recursive → src.matrx_utils.fancy_prints.utils.matrx_json_converter.is_dataclass(data) (line 27)` → ... → `src.matrx_utils.fancy_prints.utils.matrx_json_converter.validate_basic_types(converted_data) (line 203)`
-```
-
-### Call graph: src.matrx_utils.data_handling.utils
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.data_handling.utils.get_random_text_entry → random.choice(words) (line 14)`
+# LLM returned raw bytes
+await fm.push_from_llm_async(audio_bytes, "s3://bucket/tts/clip.mp3", source_format="bytes")
 ```
 
-### Call graph: src.matrx_utils.data_handling.data_transformer
+---
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+## Cloud methods inside handlers
 
-```
-`Global Scope → strftime('%Y%m%d%H%M%S') (line 13)` → ... → `transformer.to_type_annotation(sql_type, 'python') (line 895)`
-```
+Every handler (`PDFHandler`, `ImageHandler`, etc.) built through `FileManager` automatically receives the same `BackendRouter` and exposes identical cloud methods prefixed with `cloud_`. Use these when writing pipeline logic inside a handler subclass.
 
-### Call graph: src.matrx_utils.data_handling.validation.validators
+```python
+class MyHandler(FileHandler):
+    async def process(self, url_from_client: str) -> bytes:
+        # Read via credentials — works even if URL is expired
+        raw = await self.cloud_read_url_async(url_from_client)
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+        # Ensure a URL is fresh before passing to an LLM
+        fresh_url = await self.cloud_ensure_url_async(url_from_client)
 
-```
-`src.matrx_utils.data_handling.validation.validators.compile_regex → re.compile(regex, flags) (line 13)` → ... → `src.matrx_utils.data_handling.validation.validators.Decimal('1.25') (line 1072)`
-```
+        # Write result back to cloud
+        await self.cloud_write_async("s3://bucket/output.bin", raw)
 
-### Call graph: src.matrx_utils.file_handling.file_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.file_handler.__init__ → src.matrx_utils.file_handling.file_handler.Path(settings.BASE_DIR) (line 22)` → ... → `...add_print(full_path, _message, color) (line 249)`
-```
-
-### Call graph: src.matrx_utils.file_handling.batch_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.batch_handler.get_instance → src.matrx_utils.file_handling.batch_handler.cls(enable_batch) (line 17)` → ... → `...clear() (line 77)`
+        # Full LLM helpers
+        b64 = await self.get_for_llm_async(url_from_client, mode="base64")
+        await self.push_from_llm_async(b64_response, "supabase://bucket/out.png")
 ```
 
-### Call graph: src.matrx_utils.file_handling.file_manager
+Available methods on every handler:
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+| Method | Async version | Description |
+|---|---|---|
+| `cloud_read(uri)` | `cloud_read_async` | Read raw bytes from URI |
+| `cloud_write(uri, content)` | `cloud_write_async` | Write bytes or str |
+| `cloud_append(uri, content)` | `cloud_append_async` | Append to object |
+| `cloud_delete(uri)` | `cloud_delete_async` | Delete object |
+| `cloud_get_url(uri)` | `cloud_get_url_async` | Signed/presigned URL |
+| `cloud_list_files(prefix)` | `cloud_list_files_async` | List under prefix |
+| `cloud_read_url(url)` | `cloud_read_url_async` | Read from any URL format |
+| `cloud_ensure_url(url)` | `cloud_ensure_url_async` | Refresh if expired |
+| `get_for_llm(url, mode)` | `get_for_llm_async` | Fetch for LLM provider |
+| `push_from_llm(data, uri)` | `push_from_llm_async` | Store LLM output |
 
-```
-`src.matrx_utils.file_handling.file_manager.__init__ → BatchHandler.get_instance() (line 22)` → ... → `...public_get_full_path(root, path) (line 167)`
-```
+---
 
-### Call graph: src.matrx_utils.file_handling.local_files
+## ImageHandler cloud methods
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+`ImageHandler` adds higher-level helpers that work with PIL `Image` objects directly:
 
-```
-`src.matrx_utils.file_handling.local_files.is_wsl → ...startswith('linux') (line 11)` → ... → `file_obj.close() (line 128)`
-```
+```python
+# Decode base64 → write to cloud (no intermediate local file)
+await image_handler.base64_to_cloud_async(b64_string, "s3://bucket/avatar.png")
 
-### Call graph: src.matrx_utils.file_handling.specific_handlers.code_handler
+# Fetch from cloud → PIL Image
+img = await image_handler.read_image_from_cloud_async("supabase://bucket/photo.jpg")
+img_resized = img.resize((256, 256))
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.specific_handlers.code_handler.print_all_batched → ...print_batch() (line 21)` → ... → `self.generate_and_save_code(temp_path, main_code, file_location, import_lines, additional_top_lines, additional_bottom_lines, additional_code, path) (line 107)`
-```
-
-### Call graph: src.matrx_utils.file_handling.specific_handlers.image_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.specific_handlers.image_handler.custom_read_image → Image.open(path) (line 14)` → ... → `self.write_image(root, path, flipped_image) (line 165)`
-```
-
-### Call graph: src.matrx_utils.file_handling.specific_handlers.markdown_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.specific_handlers.markdown_handler.custom_read_markdown → self.read(path) (line 12)` → ... → `escape_pattern.sub('\\\\\\1', text) (line 129)`
+# PIL Image → encode → upload
+await image_handler.write_image_to_cloud_async(img_resized, "s3://bucket/thumb.webp", fmt="WEBP")
 ```
 
-### Call graph: src.matrx_utils.file_handling.specific_handlers.text_handler
+---
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+## PDFHandler pipeline
 
-```
-`src.matrx_utils.file_handling.specific_handlers.text_handler.custom_read_text → self.read(path) (line 10)` → ... → `content.split() (line 45)`
-```
+`PdfPipelineOptions.upload_result_to` accepts any cloud URI prefix. The extracted text is uploaded after processing.
 
-### Call graph: src.matrx_utils.file_handling.specific_handlers.json_handler
+```python
+from matrx_utils.file_handling.specific_handlers.pdf_handler import (
+    PDFHandler, PdfPipelineOptions
+)
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+handler = PDFHandler("my_service")
+handler.set_cloud_router(fm.cloud)  # or construct via FileManager
 
-```
-`src.matrx_utils.file_handling.specific_handlers.json_handler.custom_read_json → self.read(path) (line 12)` → ... → `json.dumps(serializable_data) (line 130)`
-```
+result = await handler.full_pipeline(
+    source="https://signed-url-or-local-path/doc.pdf",
+    options=PdfPipelineOptions(
+        extract_text=True,
+        chunk_and_process_with_ai=True,
+        upload_result_to="supabase://bucket/pdf_results/",
+    ),
+    ai_processor=my_async_ai_fn,
+)
 
-### Call graph: src.matrx_utils.file_handling.specific_handlers.html_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.file_handling.specific_handlers.html_handler.custom_read_html → self.read(path) (line 11)` → ... → `re.sub('<[^>]+>', '', content) (line 44)`
-```
-
-### Call graph: src.matrx_utils.utils.get_dir_structure
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.utils.get_dir_structure.generate_directory_structure → src.matrx_utils.utils.get_dir_structure.StringIO() (line 34)` → ... → `src.matrx_utils.utils.get_dir_structure.print_link(text_output_file) (line 238)`
+print(result.raw_text)    # extracted text
+print(result.cloud_uri)   # where it was uploaded, e.g. supabase://bucket/pdf_results/<uuid>.txt
 ```
 
-### Call graph: src.matrx_utils.utils.clear_terminal
+---
 
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
+## Async strategy per backend
 
+| Backend | Async implementation | Notes |
+|---|---|---|
+| S3 | `run_in_executor` (thread pool) | boto3 is sync; thread pool is genuinely non-blocking to the event loop — standard production pattern |
+| Supabase | Native `AsyncClient` (`acreate_client`) | True async, no thread pool |
+| Custom server | `httpx.AsyncClient` | True async |
+
+---
+
+## Direct backend access (advanced)
+
+For operations not exposed on `FileManager`, the raw backends are accessible:
+
+```python
+s3  = fm.cloud.s3        # S3Backend
+sup = fm.cloud.supabase  # SupabaseBackend
+srv = fm.cloud.server    # ServerBackend
+
+# S3-specific
+buckets = s3.list_buckets()
+s3.copy("bucket/src.txt", "bucket/dst.txt")
+meta = s3.get_metadata("bucket/file.pdf")
+s3.upload_file("/local/large.zip", "bucket/archive.zip")
+
+# Supabase-specific
+buckets = sup.list_buckets()
+pub_url = sup.get_public_url("bucket/public-asset.png")
+await sup.copy_async("bucket/src.png", "bucket/dst.png")
 ```
-`src.matrx_utils.utils.clear_terminal.clear_terminal → os.system('cls') (line 6)` → ... → `os.system('clear') (line 8)`
-```
-
-### Call graph: src.matrx_utils.utils.testing
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.utils.testing.cleanup_async_resources → warnings.catch_warnings() (line 26)` → ... → `src.matrx_utils.utils.testing.cleanup_async_resources() (line 77)`
-```
-
-### Call graph: src.matrx_utils.field_processing.dataclass_generator
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.field_processing.dataclass_generator.to_snake_case → lower() (line 21)` → ... → `src.matrx_utils.field_processing.dataclass_generator.print_link(file_path) (line 292)`
-```
-
-### Call graph: src.matrx_utils.field_processing.field_handler
-
-> Full detail in [`src/MODULE_README.md`](src/MODULE_README.md)
-
-```
-`src.matrx_utils.field_processing.field_handler.camel_to_snake → re.sub('(.)([A-Z][a-z]+)', '\\1_\\2', name) (line 7)` → ... → `src.matrx_utils.field_processing.field_handler.process_object_field_definitions(field_definitions, obj) (line 169)`
-```
-<!-- /AUTO:call_graph -->
-
-<!-- AUTO:dependencies -->
-## Dependencies
-
-**External packages:** IPython, OpenSSL, PIL, PyQt6, PySide6, annotationlib, backports, brotli, brotlicffi, certifi, chardet, charset_normalizer, click, compression, cryptography, defusedxml, dotenv, dummy_threading, h2, idna, importlib_metadata, inflect, js, load_env_for_test, matrx_utils, more_itertools, numpy, olefile, packaging, psycopg2, pyodide, pytest, requests, simplejson, socks, typeguard, typeshed, typing_extensions, urllib3
-**Internal modules:** src.matrx_utils
-<!-- /AUTO:dependencies -->
-
-<!-- AUTO:config -->
-## Generation Config
-
-> Auto-managed. Contains the exact parameters used to generate this README.
-> Used by parent modules to auto-refresh this file when it is stale.
-> Do not edit manually — changes will be overwritten on the next run.
-
-```json
-{
-  "subdirectory": "",
-  "mode": "signatures",
-  "scope": null,
-  "project_noise": null,
-  "include_call_graph": true,
-  "entry_points": null,
-  "call_graph_exclude": [
-    "tests"
-  ]
-}
-```
-<!-- /AUTO:config -->
