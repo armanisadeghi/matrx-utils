@@ -66,10 +66,25 @@ from pathlib import Path
 
 from matrx_utils.code_context import CodeContextBuilder
 from matrx_utils.code_context.code_context import OutputMode
+from matrx_utils import vcprint
 
-logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+def find_project_root(start: Path | None = None) -> Path:
+    """Walk up from *start* (default: cwd) to find the nearest project root.
+
+    A directory is considered the project root if it contains a ``pyproject.toml``,
+    ``setup.py``, or ``.git`` marker.  Falls back to the current working directory
+    if no marker is found.
+    """
+    current = (start or Path.cwd()).resolve()
+    for directory in (current, *current.parents):
+        if any(
+            (directory / marker).exists()
+            for marker in ("pyproject.toml", "setup.py", ".git")
+        ):
+            return directory
+    return current
+
 
 # ---------------------------------------------------------------------------
 # AUTO sentinel regex
@@ -82,7 +97,16 @@ _AUTO_PATTERN = re.compile(
 # ---------------------------------------------------------------------------
 # Section ordering — determines append order for new sections
 # ---------------------------------------------------------------------------
-_SECTION_ORDER = ["meta", "architecture", "tree", "signatures", "call_graph", "callers", "dependencies", "config"]
+_SECTION_ORDER = [
+    "meta",
+    "architecture",
+    "tree",
+    "signatures",
+    "call_graph",
+    "callers",
+    "dependencies",
+    "config",
+]
 
 # ---------------------------------------------------------------------------
 # Architecture stub (inserted once, then becomes human-owned)
@@ -115,7 +139,8 @@ _ARCHITECTURE_STUB = """\
 # Child README detection
 # ---------------------------------------------------------------------------
 
-def _find_child_readmes(subdirectory: str) -> list[Path]:
+
+def _find_child_readmes(subdirectory: str, project_root: Path) -> list[Path]:
     """
     Return paths of MODULE_README.md files found in immediate *and* nested
     subdirectories of `subdirectory`, sorted for stable output.
@@ -126,7 +151,7 @@ def _find_child_readmes(subdirectory: str) -> list[Path]:
         ai/tools/MODULE_README.md           → found
         ai/tools/implementations/MODULE_README.md  → NOT found (tools already has one)
     """
-    target = PROJECT_ROOT / subdirectory
+    target = project_root / subdirectory
     found: list[Path] = []
 
     def _walk(directory: Path) -> None:
@@ -149,11 +174,13 @@ def _find_child_readmes(subdirectory: str) -> list[Path]:
 # Section generators
 # ---------------------------------------------------------------------------
 
+
 def _build_meta(
     subdirectory: str,
     output_path: Path,
     mode: str,
     scope: list[str] | None,
+    project_root: Path,
     child_readmes: list[Path] | None = None,
 ) -> str:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -162,13 +189,17 @@ def _build_meta(
         f"python utils/code_context/generate_module_readme.py {subdirectory}"
         f" --mode {mode}{scope_arg}"
     )
-    rel_output = output_path.relative_to(PROJECT_ROOT) if output_path.is_relative_to(PROJECT_ROOT) else output_path
+    rel_output = (
+        output_path.relative_to(project_root)
+        if output_path.is_relative_to(project_root)
+        else output_path
+    )
 
     child_readme_rows = ""
     if child_readmes:
         rows: list[str] = []
         for p in child_readmes:
-            rel = p.relative_to(PROJECT_ROOT) if p.is_relative_to(PROJECT_ROOT) else p
+            rel = p.relative_to(project_root) if p.is_relative_to(project_root) else p
             # Read its last-generated timestamp from inside the file if available
             child_ts = _read_child_timestamp(p)
             ts_note = f"last generated {child_ts}" if child_ts else ""
@@ -176,8 +207,7 @@ def _build_meta(
         child_readme_rows = (
             "\n\n**Child READMEs detected** (signatures collapsed — see links for detail):\n\n"
             "| README | |\n"
-            "|--------|---|\n"
-            + "\n".join(rows)
+            "|--------|---|\n" + "\n".join(rows)
         )
 
     child_section = child_readme_rows if child_readme_rows else ""
@@ -223,6 +253,7 @@ def _build_config_block(
     include_call_graph: bool,
     entry_points: list[str] | None,
     call_graph_exclude: list[str] | None = None,
+    signatures_exclude: list[str] | None = None,
 ) -> str:
     """
     Build a machine-readable config block embedded at the bottom of every README.
@@ -240,6 +271,7 @@ def _build_config_block(
         "include_call_graph": include_call_graph,
         "entry_points": entry_points,
         "call_graph_exclude": call_graph_exclude,
+        "signatures_exclude": signatures_exclude,
     }
     payload = json.dumps(cfg, indent=2)
     return f"""\
@@ -270,7 +302,9 @@ def _read_child_config(readme_path: Path) -> dict | None:
         )
         if not block_match:
             return None
-        json_match = re.search(r"```json\s*(\{.*?\})\s*```", block_match.group(1), re.DOTALL)
+        json_match = re.search(
+            r"```json\s*(\{.*?\})\s*```", block_match.group(1), re.DOTALL
+        )
         if not json_match:
             return None
         return json.loads(json_match.group(1))
@@ -278,7 +312,9 @@ def _read_child_config(readme_path: Path) -> dict | None:
         return None
 
 
-def _check_child_staleness(child_readmes: list[Path]) -> list[tuple[Path, str]]:
+def _check_child_staleness(
+    child_readmes: list[Path], project_root: Path
+) -> list[tuple[Path, str]]:
     """
     For each child README, find the newest .py file modification time in that
     submodule and compare it against the README's embedded 'Last generated'
@@ -311,36 +347,44 @@ def _check_child_staleness(child_readmes: list[Path]) -> list[tuple[Path, str]]:
 
         # Compare at minute granularity — the embedded timestamp only has minute
         # precision, so sub-minute differences are noise (e.g. touch during the run).
-        newest_dt = datetime.fromtimestamp(newest_mtime).replace(second=0, microsecond=0)
+        newest_dt = datetime.fromtimestamp(newest_mtime).replace(
+            second=0, microsecond=0
+        )
         if newest_dt > readme_dt:
             try:
-                rel_readme = readme.relative_to(PROJECT_ROOT)
-                rel_file = newest_file.relative_to(PROJECT_ROOT)
+                rel_readme = readme.relative_to(project_root)
+                rel_file = newest_file.relative_to(project_root)
             except ValueError:
                 rel_readme = readme
                 rel_file = newest_file
-            delta_minutes = int((newest_dt - readme_dt).total_seconds() / 60)
-            age = f"{delta_minutes}m" if delta_minutes < 120 else f"{delta_minutes // 60}h"
-            msg = (
-                f"  ⚠  {rel_readme} is STALE — "
-                f"{rel_file} modified {age} after last generation"
-            )
-            stale.append((readme, msg))
+                delta_minutes = int((newest_dt - readme_dt).total_seconds() / 60)
+                age = (
+                    f"{delta_minutes}m"
+                    if delta_minutes < 120
+                    else f"{delta_minutes // 60}h"
+                )
+                msg = (
+                    f"  ⚠  {rel_readme} is STALE — "
+                    f"{rel_file} modified {age} after last generation"
+                )
+                stale.append((readme, msg))
 
     return stale
 
 
-def _build_tree(subdirectory: str, child_readmes: list[Path] | None = None) -> str:
+def _build_tree(
+    subdirectory: str, project_root: Path, child_readmes: list[Path] | None = None
+) -> str:
     # Always include MODULE_README.md files as additional_files so they appear
     # in the tree even though .md is in the excluded extensions list.
     readme_paths = [str(p) for p in (child_readmes or [])]
     # Also include the target module's own README if it exists (for self-referential display)
-    own_readme = PROJECT_ROOT / subdirectory / "MODULE_README.md"
+    own_readme = project_root / subdirectory / "MODULE_README.md"
     if own_readme.exists() and str(own_readme) not in readme_paths:
         readme_paths.append(str(own_readme))
 
     builder = CodeContextBuilder(
-        project_root=PROJECT_ROOT,
+        project_root=project_root,
         subdirectory=subdirectory,
         output_mode="tree_only",
         export_directory="/tmp/module_readme_gen",
@@ -354,7 +398,12 @@ def _build_tree(subdirectory: str, child_readmes: list[Path] | None = None) -> s
     in_tree = False
     for ln in result.combined_text.splitlines():
         if not in_tree:
-            if ln and not ln.startswith("Code Context") and not ln.startswith("Scanned:") and not ln.startswith("Files:"):
+            if (
+                ln
+                and not ln.startswith("Code Context")
+                and not ln.startswith("Scanned:")
+                and not ln.startswith("Files:")
+            ):
                 in_tree = True
         if in_tree:
             tree_lines.append(ln)
@@ -391,20 +440,44 @@ def _build_tree(subdirectory: str, child_readmes: list[Path] | None = None) -> s
 def _build_signatures(
     subdirectory: str,
     mode: OutputMode,
+    project_root: Path,
     child_readmes: list[Path] | None = None,
+    signatures_exclude: list[str] | None = None,
 ) -> str:
+    # Translate signatures_exclude entries into CodeContextBuilder overrides.
+    # Convention (mirrors call_graph_exclude):
+    #   "tests"          — bare name without extension → exclude_directories (exact name)
+    #   "utils/helpers"  — path with slash → exclude_directories (exact name of the last segment)
+    #   "debug.py"       — name ending in .py → exclude_files (exact filename)
+    overrides: dict | None = None
+    if signatures_exclude:
+        excl_dirs: list[str] = []
+        excl_files: list[str] = []
+        for entry in signatures_exclude:
+            entry = entry.strip("/\\")
+            if entry.endswith(".py") or ("." in entry.split("/")[-1]):
+                excl_files.append(entry.split("/")[-1])
+            else:
+                excl_dirs.append(entry.split("/")[-1] if "/" in entry else entry)
+        overrides = {}
+        if excl_dirs:
+            overrides["exclude_directories"] = {"add": excl_dirs}
+        if excl_files:
+            overrides["exclude_files"] = {"add": excl_files}
+
     builder = CodeContextBuilder(
-        project_root=PROJECT_ROOT,
+        project_root=project_root,
         subdirectory=subdirectory,
         output_mode=mode,
         export_directory="/tmp/module_readme_gen",
+        overrides=overrides,
     )
     result = builder.build()
     # Strip the header block — extract just the per-file content
     text = result.combined_text
     sep_idx = text.find("\n---\n")
     if sep_idx >= 0:
-        content = text[sep_idx + 1:].strip()
+        content = text[sep_idx + 1 :].strip()
     else:
         lines = text.splitlines()
         content = "\n".join(lines[4:]).strip()
@@ -417,15 +490,17 @@ def _build_signatures(
     # We group consecutive sections by their covered subdirectory prefix and replace
     # the whole group with a one-liner.
     if child_readmes:
-        content = _collapse_covered_sections(content, subdirectory, child_readmes)
+        content = _collapse_covered_sections(
+            content, subdirectory, child_readmes, project_root
+        )
 
     label = "API Signatures" if mode == "signatures" else "File Contents"
     note = (
-        "> Auto-generated via `output_mode=\"{mode}\"`. ~5-10% token cost vs full source.\n"
+        '> Auto-generated via `output_mode="{mode}"`. ~5-10% token cost vs full source.\n'
         "> For full source, open the individual files directly.\n"
         "> Submodules with their own `MODULE_README.md` are collapsed to a single stub line."
-        if child_readmes else
-        f"> Auto-generated via `output_mode=\"{mode}\"`. ~5-10% token cost vs full source.\n"
+        if child_readmes
+        else f'> Auto-generated via `output_mode="{mode}"`. ~5-10% token cost vs full source.\n'
         "> For full source, open the individual files directly."
     )
     return f"""\
@@ -443,6 +518,7 @@ def _collapse_covered_sections(
     content: str,
     subdirectory: str,
     child_readmes: list[Path],
+    project_root: Path,
 ) -> str:
     """
     Replace all per-file signature sections that belong to a covered submodule
@@ -460,7 +536,7 @@ def _collapse_covered_sections(
     for readme in child_readmes:
         subdir_path = readme.parent
         try:
-            rel = subdir_path.relative_to(PROJECT_ROOT)
+            rel = subdir_path.relative_to(project_root)
         except ValueError:
             rel = subdir_path
         prefix = rel.as_posix() + "/"  # e.g. "ai/tools/"
@@ -504,13 +580,14 @@ def _collapse_covered_sections(
         # Emit a single stub for the whole submodule
         readme_path = covered[matched_prefix]
         try:
-            readme_rel = readme_path.relative_to(PROJECT_ROOT).as_posix()
+            readme_rel = readme_path.relative_to(project_root).as_posix()
         except ValueError:
             readme_rel = str(readme_path)
 
         # Count files in this submodule (from the content, not filesystem, for accuracy)
         file_count = sum(
-            1 for b in blocks
+            1
+            for b in blocks
             if re.search(rf"^Filepath:\s*{re.escape(matched_prefix)}", b, re.MULTILINE)
         )
         stub = (
@@ -525,14 +602,16 @@ def _collapse_covered_sections(
     return "\n".join(output_blocks)
 
 
-def _covered_readme_for_module(module_dotted: str, child_readmes: list[Path]) -> Path | None:
+def _covered_readme_for_module(
+    module_dotted: str, child_readmes: list[Path], project_root: Path
+) -> Path | None:
     """
     Given a dotted module name (e.g. "ai.tools.executor") and a list of child README
     paths, return the README whose subdirectory prefix matches, or None.
     """
     for readme in child_readmes:
         try:
-            rel = readme.parent.relative_to(PROJECT_ROOT)
+            rel = readme.parent.relative_to(project_root)
         except ValueError:
             rel = readme.parent
         # Convert path to dotted prefix: "ai/tools" → "ai.tools"
@@ -542,7 +621,9 @@ def _covered_readme_for_module(module_dotted: str, child_readmes: list[Path]) ->
     return None
 
 
-def _collapse_call_graph_block(header: str, entries: list[str], readme: Path) -> str:
+def _collapse_call_graph_block(
+    header: str, entries: list[str], readme: Path, project_root: Path
+) -> str:
     """
     Collapse a covered submodule's call graph block to a single stub line:
 
@@ -551,7 +632,7 @@ def _collapse_call_graph_block(header: str, entries: list[str], readme: Path) ->
         > `first_call` → ... → `last_call`
     """
     try:
-        readme_rel = readme.relative_to(PROJECT_ROOT).as_posix()
+        readme_rel = readme.relative_to(project_root).as_posix()
     except ValueError:
         readme_rel = str(readme)
 
@@ -586,6 +667,7 @@ def _build_call_graph(
     subdirectory: str,
     scope: list[str] | None,
     project_noise: list[str] | None,
+    project_root: Path,
     child_readmes: list[Path] | None = None,
     call_graph_exclude: list[str] | None = None,
 ) -> str:
@@ -609,8 +691,8 @@ def _build_call_graph(
     #
     # Entries containing a "/" are treated as explicit dotted prefixes.
     # Entries without a "/" are treated as bare segment names to match anywhere.
-    exclude_prefixes: set[str] = set()   # full dotted prefixes  (e.g. "ai.tests")
-    exclude_segments: set[str] = set()   # bare segment names    (e.g. "tests")
+    exclude_prefixes: set[str] = set()  # full dotted prefixes  (e.g. "ai.tests")
+    exclude_segments: set[str] = set()  # bare segment names    (e.g. "tests")
     if call_graph_exclude:
         for excl in call_graph_exclude:
             cleaned = excl.strip("/\\")
@@ -621,7 +703,7 @@ def _build_call_graph(
                 exclude_segments.add(cleaned)
 
     builder = CodeContextBuilder(
-        project_root=PROJECT_ROOT,
+        project_root=project_root,
         subdirectory=subdirectory,
         output_mode="tree_only",
         call_graph=True,
@@ -663,6 +745,7 @@ def _build_call_graph(
 
     # Drop explicitly excluded subdirectories (call_graph_exclude)
     if exclude_prefixes or exclude_segments:
+
         def _is_excluded(module_name: str) -> bool:
             # Full prefix match: "ai.tests" matches "ai.tests" and "ai.tests.foo"
             for p in exclude_prefixes:
@@ -677,8 +760,11 @@ def _build_call_graph(
                         return True
             return False
 
-        raw_blocks = [(h, e) for h, e in raw_blocks
-                      if not _is_excluded(h[len("# Call graph: "):].strip())]
+        raw_blocks = [
+            (h, e)
+            for h, e in raw_blocks
+            if not _is_excluded(h[len("# Call graph: ") :].strip())
+        ]
 
     if not raw_blocks:
         return ""
@@ -687,11 +773,17 @@ def _build_call_graph(
     blocks: list[str] = []
     for header, entries in raw_blocks:
         # module name is everything after "# Call graph: "
-        module_name = header[len("# Call graph: "):].strip()
-        covered_readme = _covered_readme_for_module(module_name, child_readmes or [])
+        module_name = header[len("# Call graph: ") :].strip()
+        covered_readme = _covered_readme_for_module(
+            module_name, child_readmes or [], project_root
+        )
 
         if covered_readme:
-            blocks.append(_collapse_call_graph_block(header, entries, covered_readme))
+            blocks.append(
+                _collapse_call_graph_block(
+                    header, entries, covered_readme, project_root
+                )
+            )
         else:
             entry_text = "\n".join(entries).strip()
             if entry_text:
@@ -708,7 +800,9 @@ def _build_call_graph(
             f"see child READMEs for full detail: `{'`, `'.join(covered_names)}`"
         )
     if call_graph_exclude:
-        scope_note += f"\n> Excluded from call graph: `{'`, `'.join(call_graph_exclude)}`"
+        scope_note += (
+            f"\n> Excluded from call graph: `{'`, `'.join(call_graph_exclude)}`"
+        )
 
     body = "\n\n".join(blocks)
     return f"""\
@@ -722,7 +816,7 @@ def _build_call_graph(
 """
 
 
-def _build_dependencies(subdirectory: str) -> str:
+def _build_dependencies(subdirectory: str, project_root: Path) -> str:
     """
     Scan all Python files in the target module for import statements and produce
     two lists:
@@ -738,51 +832,229 @@ def _build_dependencies(subdirectory: str) -> str:
     import warnings as _warnings
 
     # Python 3.10+ has sys.stdlib_module_names
-    _STDLIB: frozenset[str] = getattr(_sys, "stdlib_module_names", frozenset({
-        "abc", "aifc", "argparse", "array", "ast", "asynchat", "asyncio",
-        "asyncore", "atexit", "base64", "bdb", "binascii", "binhex",
-        "bisect", "builtins", "bz2", "calendar", "cgi", "cgitb", "chunk",
-        "cmath", "cmd", "code", "codecs", "codeop", "colorsys", "compileall",
-        "concurrent", "configparser", "contextlib", "contextvars", "copy",
-        "copyreg", "cProfile", "csv", "ctypes", "curses", "dataclasses",
-        "datetime", "dbm", "decimal", "difflib", "dis", "doctest", "email",
-        "encodings", "enum", "errno", "faulthandler", "fcntl", "filecmp",
-        "fileinput", "fnmatch", "fractions", "ftplib", "functools", "gc",
-        "getopt", "getpass", "gettext", "glob", "grp", "gzip", "hashlib",
-        "heapq", "hmac", "html", "http", "idlelib", "imaplib", "imghdr",
-        "imp", "importlib", "inspect", "io", "ipaddress", "itertools", "json",
-        "keyword", "lib2to3", "linecache", "locale", "logging", "lzma",
-        "mailbox", "mailcap", "marshal", "math", "mimetypes", "mmap",
-        "modulefinder", "multiprocessing", "netrc", "nis", "nntplib",
-        "numbers", "operator", "optparse", "os", "pathlib", "pdb", "pickle",
-        "pickletools", "pipes", "pkgutil", "platform", "plistlib", "poplib",
-        "posix", "posixpath", "pprint", "profile", "pstats", "pty", "pwd",
-        "py_compile", "pyclbr", "pydoc", "queue", "quopri", "random", "re",
-        "readline", "reprlib", "resource", "rlcompleter", "runpy", "sched",
-        "secrets", "select", "selectors", "shelve", "shlex", "shutil",
-        "signal", "site", "smtpd", "smtplib", "sndhdr", "socket",
-        "socketserver", "spwd", "sqlite3", "sre_compile", "sre_constants",
-        "sre_parse", "ssl", "stat", "statistics", "string", "stringprep",
-        "struct", "subprocess", "sunau", "symtable", "sys", "sysconfig",
-        "syslog", "tabnanny", "tarfile", "telnetlib", "tempfile", "termios",
-        "test", "textwrap", "threading", "time", "timeit", "tkinter",
-        "token", "tokenize", "tomllib", "trace", "traceback", "tracemalloc",
-        "tty", "turtle", "turtledemo", "types", "typing", "unicodedata",
-        "unittest", "urllib", "uu", "uuid", "venv", "warnings", "wave",
-        "weakref", "webbrowser", "wsgiref", "xdrlib", "xml", "xmlrpc",
-        "zipapp", "zipfile", "zipimport", "zlib", "zoneinfo", "_thread",
-        "__future__",
-    }))
+    _STDLIB: frozenset[str] = getattr(
+        _sys,
+        "stdlib_module_names",
+        frozenset(
+            {
+                "abc",
+                "aifc",
+                "argparse",
+                "array",
+                "ast",
+                "asynchat",
+                "asyncio",
+                "asyncore",
+                "atexit",
+                "base64",
+                "bdb",
+                "binascii",
+                "binhex",
+                "bisect",
+                "builtins",
+                "bz2",
+                "calendar",
+                "cgi",
+                "cgitb",
+                "chunk",
+                "cmath",
+                "cmd",
+                "code",
+                "codecs",
+                "codeop",
+                "colorsys",
+                "compileall",
+                "concurrent",
+                "configparser",
+                "contextlib",
+                "contextvars",
+                "copy",
+                "copyreg",
+                "cProfile",
+                "csv",
+                "ctypes",
+                "curses",
+                "dataclasses",
+                "datetime",
+                "dbm",
+                "decimal",
+                "difflib",
+                "dis",
+                "doctest",
+                "email",
+                "encodings",
+                "enum",
+                "errno",
+                "faulthandler",
+                "fcntl",
+                "filecmp",
+                "fileinput",
+                "fnmatch",
+                "fractions",
+                "ftplib",
+                "functools",
+                "gc",
+                "getopt",
+                "getpass",
+                "gettext",
+                "glob",
+                "grp",
+                "gzip",
+                "hashlib",
+                "heapq",
+                "hmac",
+                "html",
+                "http",
+                "idlelib",
+                "imaplib",
+                "imghdr",
+                "imp",
+                "importlib",
+                "inspect",
+                "io",
+                "ipaddress",
+                "itertools",
+                "json",
+                "keyword",
+                "lib2to3",
+                "linecache",
+                "locale",
+                "logging",
+                "lzma",
+                "mailbox",
+                "mailcap",
+                "marshal",
+                "math",
+                "mimetypes",
+                "mmap",
+                "modulefinder",
+                "multiprocessing",
+                "netrc",
+                "nis",
+                "nntplib",
+                "numbers",
+                "operator",
+                "optparse",
+                "os",
+                "pathlib",
+                "pdb",
+                "pickle",
+                "pickletools",
+                "pipes",
+                "pkgutil",
+                "platform",
+                "plistlib",
+                "poplib",
+                "posix",
+                "posixpath",
+                "pprint",
+                "profile",
+                "pstats",
+                "pty",
+                "pwd",
+                "py_compile",
+                "pyclbr",
+                "pydoc",
+                "queue",
+                "quopri",
+                "random",
+                "re",
+                "readline",
+                "reprlib",
+                "resource",
+                "rlcompleter",
+                "runpy",
+                "sched",
+                "secrets",
+                "select",
+                "selectors",
+                "shelve",
+                "shlex",
+                "shutil",
+                "signal",
+                "site",
+                "smtpd",
+                "smtplib",
+                "sndhdr",
+                "socket",
+                "socketserver",
+                "spwd",
+                "sqlite3",
+                "sre_compile",
+                "sre_constants",
+                "sre_parse",
+                "ssl",
+                "stat",
+                "statistics",
+                "string",
+                "stringprep",
+                "struct",
+                "subprocess",
+                "sunau",
+                "symtable",
+                "sys",
+                "sysconfig",
+                "syslog",
+                "tabnanny",
+                "tarfile",
+                "telnetlib",
+                "tempfile",
+                "termios",
+                "test",
+                "textwrap",
+                "threading",
+                "time",
+                "timeit",
+                "tkinter",
+                "token",
+                "tokenize",
+                "tomllib",
+                "trace",
+                "traceback",
+                "tracemalloc",
+                "tty",
+                "turtle",
+                "turtledemo",
+                "types",
+                "typing",
+                "unicodedata",
+                "unittest",
+                "urllib",
+                "uu",
+                "uuid",
+                "venv",
+                "warnings",
+                "wave",
+                "weakref",
+                "webbrowser",
+                "wsgiref",
+                "xdrlib",
+                "xml",
+                "xmlrpc",
+                "zipapp",
+                "zipfile",
+                "zipimport",
+                "zlib",
+                "zoneinfo",
+                "_thread",
+                "__future__",
+            }
+        ),
+    )
 
-    target_dir = PROJECT_ROOT / subdirectory
+    target_dir = project_root / subdirectory
     # Derive the top-level package roots of this project from the project root
     # so we can distinguish "internal project" from "external package".
     # Include all non-hidden directories (with or without __init__.py) and
     # bare .py files at root so packages like seo/ and user_data/ are captured.
     _IGNORE_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".cursor"}
     project_top_dirs: set[str] = set()
-    for item in PROJECT_ROOT.iterdir():
-        if item.is_dir() and item.name not in _IGNORE_DIRS and not item.name.startswith("."):
+    for item in project_root.iterdir():
+        if (
+            item.is_dir()
+            and item.name not in _IGNORE_DIRS
+            and not item.name.startswith(".")
+        ):
             project_top_dirs.add(item.name)
         elif item.is_file() and item.suffix == ".py":
             project_top_dirs.add(item.stem)
@@ -820,7 +1092,9 @@ def _build_dependencies(subdirectory: str) -> str:
                 if root in _STDLIB or not root:
                     continue
                 # Check if it's an intra-module import (within target directory)
-                if name == target_module_prefix or name.startswith(target_module_prefix + "."):
+                if name == target_module_prefix or name.startswith(
+                    target_module_prefix + "."
+                ):
                     continue
                 # Check if it's another project-internal module
                 if root in project_top_dirs:
@@ -836,7 +1110,25 @@ def _build_dependencies(subdirectory: str) -> str:
 
     lines: list[str] = ["## Dependencies", ""]
     if external:
-        lines.append(f"**External packages:** {', '.join(sorted(external))}")
+        if len(external) > 15:
+            _DEP_FILE_CANDIDATES = [
+                "pyproject.toml",
+                "requirements.txt",
+                "setup.cfg",
+                "setup.py",
+            ]
+            dep_files = [f for f in _DEP_FILE_CANDIDATES if (project_root / f).exists()]
+            if dep_files:
+                dep_ref = " / ".join(f"`{f}`" for f in dep_files)
+                lines.append(
+                    f"**External packages:** {len(external)} packages — see {dep_ref} for the full list."
+                )
+            else:
+                lines.append(
+                    f"**External packages:** {len(external)} packages — see project dependency files for the full list."
+                )
+        else:
+            lines.append(f"**External packages:** {', '.join(sorted(external))}")
     if internal:
         lines.append(f"**Internal modules:** {', '.join(sorted(internal))}")
     lines.append("")
@@ -844,7 +1136,9 @@ def _build_dependencies(subdirectory: str) -> str:
     return "\n".join(lines)
 
 
-def _scan_external_imports(subdirectory: str) -> list[tuple[Path, set[str], set[str]]]:
+def _scan_external_imports(
+    subdirectory: str, project_root: Path
+) -> list[tuple[Path, set[str], set[str]]]:
     """
     Walk every .py file outside `subdirectory` and collect those that import
     from the target module.
@@ -860,18 +1154,20 @@ def _scan_external_imports(subdirectory: str) -> list[tuple[Path, set[str], set[
     import warnings as _warnings
 
     module_path = subdirectory.replace("/", ".").replace("\\", ".")
-    target_dir = PROJECT_ROOT / subdirectory
+    target_dir = project_root / subdirectory
 
     # All .py files outside the target directory
     candidates: list[Path] = []
-    for py_file in PROJECT_ROOT.rglob("*.py"):
+    for py_file in project_root.rglob("*.py"):
         try:
             py_file.relative_to(target_dir)
             continue  # inside target module — skip
         except ValueError:
             pass
         parts = py_file.parts
-        if any(p in parts for p in (".venv", "venv", "__pycache__", ".git", "node_modules")):
+        if any(
+            p in parts for p in (".venv", "venv", "__pycache__", ".git", "node_modules")
+        ):
             continue
         candidates.append(py_file)
 
@@ -892,8 +1188,8 @@ def _scan_external_imports(subdirectory: str) -> list[tuple[Path, set[str], set[
         except SyntaxError:
             continue
 
-        imported_names: set[str] = set()   # from module import X  → X
-        module_imports: set[str] = set()   # import module.sub as Y → Y
+        imported_names: set[str] = set()  # from module import X  → X
+        module_imports: set[str] = set()  # import module.sub as Y → Y
 
         for node in _ast.walk(tree):
             if isinstance(node, _ast.ImportFrom):
@@ -913,7 +1209,9 @@ def _scan_external_imports(subdirectory: str) -> list[tuple[Path, set[str], set[
     return results
 
 
-def _discover_entry_points(subdirectory: str) -> dict[str, list[str]]:
+def _discover_entry_points(
+    subdirectory: str, project_root: Path
+) -> dict[str, list[str]]:
     """
     Auto-discover the public entry points of a module by inverting the import graph.
 
@@ -929,13 +1227,13 @@ def _discover_entry_points(subdirectory: str) -> dict[str, list[str]]:
     """
     import ast as _ast
 
-    scan_results = _scan_external_imports(subdirectory)
+    scan_results = _scan_external_imports(subdirectory, project_root)
     if not scan_results:
         return {}
 
     # Build the target module's own public callable names for cross-referencing.
     # This filters out submodule-name imports (e.g. `from ai import tools`).
-    target_callables: set[str] = _get_module_callables(subdirectory)
+    target_callables: set[str] = _get_module_callables(subdirectory, project_root)
 
     callers: dict[str, list[str]] = {}
 
@@ -949,10 +1247,9 @@ def _discover_entry_points(subdirectory: str) -> dict[str, list[str]]:
             # (start with lowercase letter for functions, uppercase for classes)
             # Exclude single-word all-lowercase names that are likely submodules.
             direct_hits = {
-                n for n in imported_names
-                if not n.startswith("_") and (
-                    len(n) > 3 or n[0].isupper()
-                )
+                n
+                for n in imported_names
+                if not n.startswith("_") and (len(n) > 3 or n[0].isupper())
             }
 
         # For module-alias imports, scan the AST for attribute calls: alias.X()
@@ -979,7 +1276,7 @@ def _discover_entry_points(subdirectory: str) -> dict[str, list[str]]:
         all_hits = direct_hits | attr_hits
         if all_hits:
             try:
-                rel = py_file.relative_to(PROJECT_ROOT)
+                rel = py_file.relative_to(project_root)
             except ValueError:
                 rel = py_file
             callers[str(rel).replace("\\", "/")] = sorted(all_hits)
@@ -987,7 +1284,7 @@ def _discover_entry_points(subdirectory: str) -> dict[str, list[str]]:
     return callers
 
 
-def _get_module_callables(subdirectory: str) -> set[str]:
+def _get_module_callables(subdirectory: str, project_root: Path) -> set[str]:
     """
     Return the set of public function and class names defined in `subdirectory`.
     Used to filter discovered imports down to actual callables, excluding
@@ -996,7 +1293,7 @@ def _get_module_callables(subdirectory: str) -> set[str]:
     import ast as _ast
 
     callables: set[str] = set()
-    target_dir = PROJECT_ROOT / subdirectory
+    target_dir = project_root / subdirectory
 
     for py_file in target_dir.rglob("*.py"):
         try:
@@ -1005,7 +1302,9 @@ def _get_module_callables(subdirectory: str) -> set[str]:
         except Exception:
             continue
         for node in tree.body:
-            if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)):
+            if isinstance(
+                node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)
+            ):
                 if not node.name.startswith("_"):
                     callables.add(node.name)
 
@@ -1015,6 +1314,7 @@ def _get_module_callables(subdirectory: str) -> set[str]:
 def _build_callers(
     subdirectory: str,
     entry_points: list[str] | None,
+    project_root: Path,
 ) -> str:
     """
     Build the Upstream Callers table section.
@@ -1033,7 +1333,7 @@ def _build_callers(
 
     if auto_mode:
         # Auto-discovery path: invert the import graph
-        callers_map = _discover_entry_points(subdirectory)
+        callers_map = _discover_entry_points(subdirectory, project_root)
         if not callers_map:
             return ""
         rows: list[tuple[str, str]] = []
@@ -1047,7 +1347,7 @@ def _build_callers(
     else:
         # Manual path: original behaviour — scan for named entry points
         entry_set = set(entry_points)
-        scan_results = _scan_external_imports(subdirectory)
+        scan_results = _scan_external_imports(subdirectory, project_root)
         rows = []
         for py_file, imported_names, module_imports in scan_results:
             called: set[str] = set()
@@ -1075,15 +1375,21 @@ def _build_callers(
                 tree = _ast.parse(source)
                 for node in _ast.walk(tree):
                     if isinstance(node, _ast.Call):
-                        if isinstance(node.func, _ast.Name) and node.func.id in entry_set:
+                        if (
+                            isinstance(node.func, _ast.Name)
+                            and node.func.id in entry_set
+                        ):
                             called.add(node.func.id)
-                        elif isinstance(node.func, _ast.Attribute) and node.func.attr in entry_set:
+                        elif (
+                            isinstance(node.func, _ast.Attribute)
+                            and node.func.attr in entry_set
+                        ):
                             called.add(node.func.attr)
             except Exception:
                 pass
             if called:
                 try:
-                    rel = py_file.relative_to(PROJECT_ROOT)
+                    rel = py_file.relative_to(project_root)
                 except ValueError:
                     rel = py_file
                 for fn in sorted(called):
@@ -1112,6 +1418,7 @@ def _build_callers(
 # ---------------------------------------------------------------------------
 # AUTO block extraction and merging
 # ---------------------------------------------------------------------------
+
 
 def _extract_auto_blocks(content: str) -> dict[str, str]:
     """Return mapping of section_id → inner content for all AUTO blocks found."""
@@ -1158,63 +1465,103 @@ def _build_initial_file(
     scope: list[str] | None,
     project_noise: list[str] | None,
     include_call_graph: bool,
+    project_root: Path,
     entry_points: list[str] | None = None,
     call_graph_exclude: list[str] | None = None,
+    signatures_exclude: list[str] | None = None,
 ) -> str:
     """Build the full file content for first-time creation."""
     module_name = subdirectory.replace("/", ".").replace("\\", ".")
-    child_readmes = _find_child_readmes(subdirectory)
+    child_readmes = _find_child_readmes(subdirectory, project_root)
     parts: list[str] = []
 
-    parts.append(f"# `{module_name}` — Module Overview\n")
+    parts.append(f"# {module_name} — Module Overview\n\n")
     parts.append(
+        "## IMPORTANT: Do not edit auto-generated sections.\n\n"
         "> This document is partially auto-generated. "
         "Sections tagged `<!-- AUTO:id -->` are refreshed by the generator.\n"
         "> Everything else is yours to edit freely and will never be overwritten.\n"
     )
 
     # meta
-    parts.append(_wrap_auto("meta", _build_meta(
-        subdirectory, output_path, mode, scope, child_readmes or None,
-    )))
+    parts.append(
+        _wrap_auto(
+            "meta",
+            _build_meta(
+                subdirectory,
+                output_path,
+                mode,
+                scope,
+                project_root,
+                child_readmes or None,
+            ),
+        )
+    )
     parts.append("")
 
     # architecture stub (human-owned from the start — no AUTO tag)
     parts.append(_ARCHITECTURE_STUB)
 
     # tree — MODULE_README.md files injected so they're visible
-    parts.append(_wrap_auto("tree", _build_tree(subdirectory, child_readmes or None)))
+    parts.append(
+        _wrap_auto(
+            "tree", _build_tree(subdirectory, project_root, child_readmes or None)
+        )
+    )
     parts.append("")
 
     # signatures — covered subdirs collapsed to stubs
-    parts.append(_wrap_auto("signatures", _build_signatures(
-        subdirectory, mode, child_readmes or None,
-    )))
+    parts.append(
+        _wrap_auto(
+            "signatures",
+            _build_signatures(
+                subdirectory,
+                mode,
+                project_root,
+                child_readmes or None,
+                signatures_exclude,
+            ),
+        )
+    )
     parts.append("")
 
     # call_graph (optional)
     if include_call_graph:
-        cg = _build_call_graph(subdirectory, scope, project_noise, child_readmes or None, call_graph_exclude)
+        cg = _build_call_graph(
+            subdirectory,
+            scope,
+            project_noise,
+            project_root,
+            child_readmes or None,
+            call_graph_exclude,
+        )
         if cg:
             parts.append(_wrap_auto("call_graph", cg))
             parts.append("")
 
     # callers — None means auto-discover, [] means explicitly disabled
     if entry_points != []:
-        callers = _build_callers(subdirectory, entry_points)
+        callers = _build_callers(subdirectory, entry_points, project_root)
         if callers:
             parts.append(_wrap_auto("callers", callers))
             parts.append("")
 
     # dependencies (always on — two compact lines, high signal)
-    deps = _build_dependencies(subdirectory)
+    deps = _build_dependencies(subdirectory, project_root)
     if deps:
         parts.append(_wrap_auto("dependencies", deps))
         parts.append("")
 
     # config block — always last, machine-readable, enables auto-refresh of this README
     cfg_block = _build_config_block(
-        subdirectory, mode, scope, project_noise, include_call_graph, entry_points, call_graph_exclude,
+        subdirectory,
+        mode,
+        scope,
+        project_noise,
+        include_call_graph,
+        entry_points,
+        call_graph_exclude,
+        signatures_exclude,
     )
     parts.append(_wrap_auto("config", cfg_block))
     parts.append("")
@@ -1226,6 +1573,7 @@ def _build_initial_file(
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def run(
     subdirectory: str,
     output_path: Path,
@@ -1233,8 +1581,10 @@ def run(
     scope: list[str] | None,
     project_noise: list[str] | None,
     include_call_graph: bool,
+    project_root: Path,
     entry_points: list[str] | None = None,
     call_graph_exclude: list[str] | None = None,
+    signatures_exclude: list[str] | None = None,
     force_refresh_children: bool = False,
 ) -> None:
     is_new = not output_path.exists()
@@ -1245,11 +1595,14 @@ def run(
         # created before this system existed), treat it as a fresh generation so we
         # don't duplicate content by appending new AUTO sections after old prose.
         if not _AUTO_PATTERN.search(existing):
-            logger.info("Existing file has no AUTO blocks — treating as new: %s", output_path)
+            vcprint(
+                f"Existing file has no AUTO blocks — treating as new: {output_path}",
+                color="yellow",
+            )
             is_new = True
 
     # Detect child READMEs once — used in meta, tree, signatures, and staleness check
-    child_readmes = _find_child_readmes(subdirectory)
+    child_readmes = _find_child_readmes(subdirectory, project_root)
 
     # Refresh children: stale ones always, all of them when force_refresh_children=True.
     # This ensures the parent always collapses up-to-date child data.
@@ -1259,13 +1612,13 @@ def run(
         if force_refresh_children:
             children_to_refresh = [(p, "") for p in child_readmes]
         else:
-            children_to_refresh = _check_child_staleness(child_readmes)
+            children_to_refresh = _check_child_staleness(child_readmes, project_root)
         for child_path, _warning in children_to_refresh:
             child_cfg = _read_child_config(child_path)
             if child_cfg is None:
                 # Child exists but has no embedded config (generated before this feature)
                 try:
-                    rel = child_path.relative_to(PROJECT_ROOT)
+                    rel = child_path.relative_to(project_root)
                 except ValueError:
                     rel = child_path
                 no_config.append(str(rel))
@@ -1278,11 +1631,11 @@ def run(
             child_cg = child_cfg.get("include_call_graph", False)
             child_ep = child_cfg.get("entry_points")
             child_cg_exclude = child_cfg.get("call_graph_exclude")
+            child_sig_exclude = child_cfg.get("signatures_exclude")
             child_out = child_path
-            logger.info(
-                "%s child: %s",
-                "Force-refreshing" if force_refresh_children else "Auto-refreshing stale",
-                child_path,
+            vcprint(
+                f"{'Force-refreshing' if force_refresh_children else 'Auto-refreshing stale'} child: {child_path}",
+                color="blue",
             )
             run(
                 subdirectory=child_subdir,
@@ -1291,56 +1644,91 @@ def run(
                 scope=child_scope,
                 project_noise=child_noise,
                 include_call_graph=child_cg,
+                project_root=project_root,
                 entry_points=child_ep,
                 call_graph_exclude=child_cg_exclude,
+                signatures_exclude=child_sig_exclude,
                 force_refresh_children=force_refresh_children,
             )
             try:
-                rel = child_path.relative_to(PROJECT_ROOT)
+                rel = child_path.relative_to(project_root)
             except ValueError:
                 rel = child_path
             auto_refreshed.append(str(rel))
 
         # Re-detect child READMEs after refresh so parent uses updated timestamps
-        child_readmes = _find_child_readmes(subdirectory)
+        child_readmes = _find_child_readmes(subdirectory, project_root)
 
     if is_new:
-        logger.info("Creating new README: %s", output_path)
+        vcprint(output_path, "Creating new README", color="yellow")
         content = _build_initial_file(
-            subdirectory, output_path, mode, scope, project_noise, include_call_graph,
-            entry_points=entry_points, call_graph_exclude=call_graph_exclude,
+            subdirectory,
+            output_path,
+            mode,
+            scope,
+            project_noise,
+            include_call_graph,
+            project_root,
+            entry_points=entry_points,
+            call_graph_exclude=call_graph_exclude,
+            signatures_exclude=signatures_exclude,
         )
     else:
-        logger.info("Updating existing README: %s", output_path)
+        vcprint(f"Updating existing README: {output_path}", color="yellow")
         existing = output_path.read_text(encoding="utf-8")
 
         sections: dict[str, str] = {}
         sections["meta"] = _build_meta(
-            subdirectory, output_path, mode, scope, child_readmes or None,
+            subdirectory,
+            output_path,
+            mode,
+            scope,
+            project_root,
+            child_readmes or None,
         )
-        sections["tree"] = _build_tree(subdirectory, child_readmes or None)
+        sections["tree"] = _build_tree(
+            subdirectory, project_root, child_readmes or None
+        )
         sections["signatures"] = _build_signatures(
-            subdirectory, mode, child_readmes or None,
+            subdirectory,
+            mode,
+            project_root,
+            child_readmes or None,
+            signatures_exclude,
         )
 
         if include_call_graph:
-            cg = _build_call_graph(subdirectory, scope, project_noise, child_readmes or None, call_graph_exclude)
+            cg = _build_call_graph(
+                subdirectory,
+                scope,
+                project_noise,
+                project_root,
+                child_readmes or None,
+                call_graph_exclude,
+            )
             if cg:
                 sections["call_graph"] = cg
 
         # callers — None means auto-discover, [] means explicitly disabled
         if entry_points != []:
-            callers = _build_callers(subdirectory, entry_points)
+            callers = _build_callers(subdirectory, entry_points, project_root)
             if callers:
                 sections["callers"] = callers
 
-        deps = _build_dependencies(subdirectory)
+        deps = _build_dependencies(subdirectory, project_root)
         if deps:
             sections["dependencies"] = deps
 
         # Config block — always written/updated, always last
         sections["config"] = _build_config_block(
-            subdirectory, mode, scope, project_noise, include_call_graph, entry_points, call_graph_exclude,
+            subdirectory,
+            mode,
+            scope,
+            project_noise,
+            include_call_graph,
+            entry_points,
+            call_graph_exclude,
+            signatures_exclude,
         )
 
         content = _merge_sections(existing, sections)
@@ -1348,7 +1736,11 @@ def run(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")
 
-    rel = output_path.relative_to(PROJECT_ROOT) if output_path.is_relative_to(PROJECT_ROOT) else output_path
+    rel = (
+        output_path.relative_to(project_root)
+        if output_path.is_relative_to(project_root)
+        else output_path
+    )
     action = "Created" if is_new else "Updated"
     extra_sections = []
     if include_call_graph:
@@ -1358,32 +1750,45 @@ def run(
     extra_sections.append("dependencies")
     extra_sections.append("config")
     extra = ", " + ", ".join(extra_sections)
-    print(f"{action}: {rel}")
-    print(f"  Sections refreshed: meta, tree, signatures{extra}")
-    print(f"  Architecture section: {'stub inserted (human-owned)' if is_new else 'preserved (human-owned)'}")
+    vcprint(f" --> {action}: {rel}", color="blue")
+    vcprint(f"  Sections refreshed: meta, tree, signatures{extra}", color="green")
+    vcprint(
+        f"  Architecture section: {'stub inserted (human-owned)' if is_new else 'preserved (human-owned)'}",
+        color="green",
+    )
 
     # Report child README status
     if child_readmes:
         if auto_refreshed:
-            print(f"  Child READMEs auto-refreshed ({len(auto_refreshed)}):")
+            vcprint(
+                f"  Child READMEs auto-refreshed ({len(auto_refreshed)}):",
+                color="green",
+            )
             for r in auto_refreshed:
-                print(f"    ↻  {r}")
+                vcprint(f"    ↻  {r}", color="green")
         if no_config:
-            print("  Child READMEs need manual refresh (no stored config — re-run each once):")
+            vcprint(
+                "  Child READMEs need manual refresh (no stored config — re-run each once):",
+                color="yellow",
+            )
             for r in no_config:
-                print(f"    ⚠  {r}")
-        remaining_stale = _check_child_staleness(child_readmes)
+                vcprint(f"    ⚠  {r}", color="yellow")
+        remaining_stale = _check_child_staleness(child_readmes, project_root)
         if not auto_refreshed and not no_config:
-            print(f"  Child READMEs: {len(child_readmes)} found, all up-to-date ✓")
+            vcprint(
+                f"  Child READMEs: {len(child_readmes)} found, all up-to-date ✓",
+                color="green",
+            )
         elif remaining_stale:
             # Shouldn't normally happen, but guard against it
-            print("  Still stale after refresh:")
+            vcprint("  Still stale after refresh:", color="yellow")
             for _, w in remaining_stale:
-                print(w)
+                vcprint(w, color="yellow")
 
 
 def run_cascade(
     subdirectory: str,
+    project_root: Path,
     mode: OutputMode = "signatures",
     child_mode: OutputMode = "signatures",
     min_py_files: int = 5,
@@ -1392,6 +1797,7 @@ def run_cascade(
     include_call_graph: bool = False,
     entry_points: list[str] | None = None,
     call_graph_exclude: list[str] | None = None,
+    signatures_exclude: list[str] | None = None,
     force_refresh_children: bool = False,
     _depth: int = 0,
     _all_new: list[Path] | None = None,
@@ -1426,7 +1832,7 @@ def run_cascade(
     if _all_new is None:
         _all_new = []
 
-    target = PROJECT_ROOT / subdirectory
+    target = project_root / subdirectory
     indent = "  " * _depth
 
     # --- Discover immediate qualifying subdirectories -------------------------
@@ -1441,20 +1847,22 @@ def run_cascade(
             if py_count >= min_py_files:
                 candidates.append((child, py_count))
     except PermissionError:
-        logger.warning("Permission denied reading %s", target)
+        vcprint(f"Permission denied reading {target}", color="yellow")
         return
 
     if _depth == 0:
         if not candidates:
-            print(f"Cascade: no subdirectories with >= {min_py_files} Python files found in {subdirectory}.")
-            print("Generating parent README only.")
+            vcprint(
+                f"Cascade: no subdirectories with >= {min_py_files} Python files found in {subdirectory}."
+            )
+            vcprint("Generating parent README only.")
         else:
-            print(f"Cascade: starting depth-first generation from {subdirectory}/")
-            print(f"  (min_py_files={min_py_files}, child_mode={child_mode})")
+            vcprint(f"Cascade: starting depth-first generation from {subdirectory}/")
+            vcprint(f"  (min_py_files={min_py_files}, child_mode={child_mode})")
 
     # --- Depth-first: recurse into each candidate before generating it --------
     for subdir_path, py_count in candidates:
-        child_subdir = str(subdir_path.relative_to(PROJECT_ROOT))
+        child_subdir = str(subdir_path.relative_to(project_root))
         child_readme = subdir_path / "MODULE_README.md"
         already_has = child_readme.exists()
 
@@ -1462,6 +1870,7 @@ def run_cascade(
         # This ensures grandchildren are documented before their parent is generated.
         run_cascade(
             subdirectory=child_subdir,
+            project_root=project_root,
             mode=child_mode,
             child_mode=child_mode,
             min_py_files=min_py_files,
@@ -1470,6 +1879,7 @@ def run_cascade(
             include_call_graph=False,
             entry_points=entry_points,
             call_graph_exclude=call_graph_exclude,
+            signatures_exclude=signatures_exclude,
             force_refresh_children=force_refresh_children,
             _depth=_depth + 1,
             _all_new=_all_new,
@@ -1485,8 +1895,10 @@ def run_cascade(
                 scope=None,
                 project_noise=project_noise,
                 include_call_graph=False,
+                project_root=project_root,
                 entry_points=entry_points,
                 call_graph_exclude=call_graph_exclude,
+                signatures_exclude=signatures_exclude,
                 force_refresh_children=force_refresh_children,
             )
             _all_new.append(child_readme)
@@ -1499,15 +1911,17 @@ def run_cascade(
                 scope=None,
                 project_noise=project_noise,
                 include_call_graph=False,
+                project_root=project_root,
                 entry_points=entry_points,
                 call_graph_exclude=call_graph_exclude,
+                signatures_exclude=signatures_exclude,
                 force_refresh_children=force_refresh_children,
             )
         else:
             print(f"{indent}  ✓ Already documented: {child_subdir}/")
 
     # --- Generate (or update) this level's README last -----------------------
-    parent_readme = PROJECT_ROOT / subdirectory / "MODULE_README.md"
+    parent_readme = project_root / subdirectory / "MODULE_README.md"
     if _depth == 0:
         print(f"\nGenerating root: {subdirectory}/")
     run(
@@ -1517,26 +1931,191 @@ def run_cascade(
         scope=scope,
         project_noise=project_noise,
         include_call_graph=include_call_graph,
+        project_root=project_root,
         entry_points=entry_points,
         call_graph_exclude=call_graph_exclude,
+        signatures_exclude=signatures_exclude,
         force_refresh_children=force_refresh_children,
     )
 
     if _depth == 0:
         total_new = len(_all_new)
-        print(f"\nCascade complete: {total_new} new child README{'s' if total_new != 1 else ''} created, root updated.")
+        print(
+            f"\nCascade complete: {total_new} new child README{'s' if total_new != 1 else ''} created, root updated."
+        )
         if _all_new:
             print("Next steps:")
             print("  1. Review each child README's Architecture stub and fill it in.")
-            print("  2. Set INCLUDE_CALL_GRAPH=True for children that need call graphs, then re-run with FORCE_REFRESH_CHILDREN=True.")
+            print(
+                "  2. Set INCLUDE_CALL_GRAPH=True for children that need call graphs, then re-run with FORCE_REFRESH_CHILDREN=True."
+            )
+
+
+def readme_orchestrator(
+    subdirectories: list[str] | str,
+    project_root: str | Path | None = None,
+    output: str | None = None,
+    mode: OutputMode = "signatures",
+    call_graph_scope: list[str] | str | None = None,
+    project_noise: list[str] | str | None = None,
+    no_call_graph: bool = False,
+    cascade: bool = False,
+    cascade_min_files: int = 5,
+    cascade_child_mode: OutputMode = "signatures",
+    entry_points: list[str] | None = None,
+    call_graph_exclude: list[str] | None = None,
+    signatures_exclude: list[str] | None = None,
+    force_refresh_children: bool = False,
+) -> None:
+    """Generate or update MODULE_README.md files for one or more subdirectories.
+
+    Can be called directly from Python or via the CLI through :func:`main`.
+
+    Args:
+        subdirectories:         One or more paths relative to *project_root*.
+                                Accepts a single string (e.g. ``"ai/tools"``) or a
+                                list of strings (e.g. ``["backend", "frontend"]``).
+                                An empty list or a list containing only ``""`` targets
+                                the project root itself.  Each entry is processed
+                                independently with identical settings.
+        project_root:           Absolute path to the project root.  Defaults to
+                                auto-detection by walking up from the current working
+                                directory looking for ``pyproject.toml``, ``setup.py``,
+                                or ``.git``.  Pass an explicit path to override.
+        output:                 Output file path. Relative paths are resolved from
+                                *project_root*. Only applied when a single subdirectory
+                                is provided; ignored for multi-target runs.
+        mode:                   Detail level for the API signatures section.
+                                One of ``"signatures"``, ``"tree_only"``, ``"clean"``.
+        call_graph_scope:       File stems to include in the call graph.  Accepts either
+                                a list of strings or a comma-separated string
+                                (e.g. ``"executor,registry"``).  ``None`` includes all.
+        project_noise:          Names to suppress in call graph output beyond the
+                                built-in defaults.  Accepts a list or comma-separated
+                                string.  ``None`` applies no extra suppression.
+        no_call_graph:          When ``True``, skip the call graph section entirely.
+        cascade:                When ``True``, auto-discover subdirectories with at
+                                least *cascade_min_files* Python files, generate their
+                                READMEs first, then generate the parent.
+        cascade_min_files:      Minimum Python file count for a subdirectory to receive
+                                its own README in cascade mode.
+        cascade_child_mode:     Signature mode for auto-generated child READMEs.
+                                Same choices as *mode*.
+        entry_points:           ``None`` → auto-discover upstream callers.
+                                ``["fn1", "fn2"]`` → pin specific entry points.
+                                ``[]`` → disable the callers section entirely.
+        call_graph_exclude:     Directories or files to exclude from the call graph.
+                                Same convention as *signatures_exclude*.
+        signatures_exclude:     Directories or files to exclude from the API signatures
+                                section.  Entries are matched as follows:
+
+                                - ``"tests"`` — bare name, no extension → excludes any
+                                  directory named ``tests`` anywhere in the tree
+                                - ``"utils/helpers"`` — path with ``/`` → excludes the
+                                  last path segment as a directory name
+                                - ``"debug.py"`` — name ending in ``.py`` → excludes
+                                  that exact filename
+
+                                e.g. ``["tests", "migrations", "conftest.py"]``
+        force_refresh_children: When ``True``, regenerate all child READMEs
+                                unconditionally, even if their sources are unchanged.
+    """
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    resolved_root = (
+        Path(project_root).resolve() if project_root else find_project_root()
+    )
+
+    # Accept both list[str] and comma-separated str for ergonomic direct calls
+    if isinstance(call_graph_scope, str):
+        scope = [s.strip() for s in call_graph_scope.split(",")]
+    else:
+        scope = call_graph_scope
+
+    if isinstance(project_noise, str):
+        project_noise_list = [s.strip() for s in project_noise.split(",")]
+    else:
+        project_noise_list = project_noise
+
+    include_call_graph = not no_call_graph and (scope is not None or not no_call_graph)
+
+    # Normalise subdirectories to a list and resolve the "" / [] → root-target convention
+    if isinstance(subdirectories, str):
+        targets = [subdirectories]
+    else:
+        targets = list(subdirectories)
+
+    # [] and [""] both mean "target the project root itself"
+    if not targets or targets == [""]:
+        targets = [""]
+
+    single_target = len(targets) == 1
+
+    for subdirectory in targets:
+        subdirectory = subdirectory.strip("/\\")
+
+        if single_target and output:
+            output_path: Path | None = Path(output)
+            if not output_path.is_absolute():
+                output_path = resolved_root / output_path
+        else:
+            output_path = (
+                resolved_root / subdirectory / "MODULE_README.md"
+                if subdirectory
+                else resolved_root / "MODULE_README.md"
+            )
+
+        if cascade:
+            run_cascade(
+                subdirectory=subdirectory,
+                project_root=resolved_root,
+                mode=mode,
+                child_mode=cascade_child_mode,
+                min_py_files=cascade_min_files,
+                scope=scope,
+                project_noise=project_noise_list,
+                include_call_graph=include_call_graph,
+                entry_points=entry_points,
+                call_graph_exclude=call_graph_exclude,
+                signatures_exclude=signatures_exclude,
+                force_refresh_children=force_refresh_children,
+            )
+        else:
+            run(
+                subdirectory=subdirectory,
+                output_path=output_path,
+                mode=mode,
+                scope=scope,
+                project_noise=project_noise_list,
+                include_call_graph=include_call_graph,
+                project_root=resolved_root,
+                entry_points=entry_points,
+                call_graph_exclude=call_graph_exclude,
+                signatures_exclude=signatures_exclude,
+                force_refresh_children=force_refresh_children,
+            )
 
 
 def main() -> None:
+    """CLI entry point — parses arguments and delegates to :func:`readme_orchestrator`."""
     parser = argparse.ArgumentParser(
         description="Generate or update a MODULE_README.md for a project subdirectory.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("subdirectory", help="Path relative to project root (e.g. ai/tools)")
+    parser.add_argument(
+        "subdirectories",
+        nargs="+",
+        metavar="SUBDIRECTORY",
+        help="One or more paths relative to project root (e.g. ai/tools backend frontend)",
+    )
+    parser.add_argument(
+        "--project-root",
+        metavar="PATH",
+        help=(
+            "Absolute path to the project root. Defaults to auto-detection by walking "
+            "up from cwd looking for pyproject.toml, setup.py, or .git."
+        ),
+    )
     parser.add_argument(
         "--output",
         metavar="PATH",
@@ -1584,44 +2163,50 @@ def main() -> None:
         default="signatures",
         help="Signature mode for auto-generated child READMEs in cascade mode (default: signatures)",
     )
+    parser.add_argument(
+        "--call-graph-exclude",
+        metavar="PATH1,PATH2,...",
+        help=(
+            "Comma-separated entries to exclude from the call graph. "
+            "Bare names match any directory segment; paths with / match the last segment; "
+            "names ending in .py match exact filenames. (e.g. tests,ai/providers,debug.py)"
+        ),
+    )
+    parser.add_argument(
+        "--signatures-exclude",
+        metavar="PATH1,PATH2,...",
+        help=(
+            "Comma-separated entries to exclude from the API signatures section. "
+            "Same matching rules as --call-graph-exclude. "
+            "(e.g. tests,migrations,conftest.py)"
+        ),
+    )
+    parser.add_argument(
+        "--force-refresh-children",
+        action="store_true",
+        help="Regenerate all child READMEs unconditionally, even if their sources are unchanged.",
+    )
 
     args = parser.parse_args()
 
-    subdirectory = args.subdirectory.strip("/\\")
+    def _parse_csv(value: str | None) -> list[str] | None:
+        return [s.strip() for s in value.split(",")] if value else None
 
-    if args.output:
-        output_path = Path(args.output)
-        if not output_path.is_absolute():
-            output_path = PROJECT_ROOT / output_path
-    else:
-        output_path = PROJECT_ROOT / subdirectory / "MODULE_README.md"
-
-    scope = [s.strip() for s in args.call_graph_scope.split(",")] if args.call_graph_scope else None
-    project_noise = [s.strip() for s in args.project_noise.split(",")] if args.project_noise else None
-    include_call_graph = not args.no_call_graph and (scope is not None or not args.no_call_graph)
-
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
-    if args.cascade:
-        run_cascade(
-            subdirectory=subdirectory,
-            mode=args.mode,
-            child_mode=args.cascade_child_mode,
-            min_py_files=args.cascade_min_files,
-            scope=scope,
-            project_noise=project_noise,
-            include_call_graph=include_call_graph,
-        )
-    else:
-        run(
-            subdirectory=subdirectory,
-            output_path=output_path,
-            mode=args.mode,
-            scope=scope,
-            project_noise=project_noise,
-            include_call_graph=include_call_graph,
-            entry_points=None,
-        )
+    readme_orchestrator(
+        subdirectories=args.subdirectories,
+        project_root=args.project_root,
+        output=args.output,
+        mode=args.mode,
+        call_graph_scope=args.call_graph_scope,
+        project_noise=args.project_noise,
+        no_call_graph=args.no_call_graph,
+        cascade=args.cascade,
+        cascade_min_files=args.cascade_min_files,
+        cascade_child_mode=args.cascade_child_mode,
+        call_graph_exclude=_parse_csv(args.call_graph_exclude),
+        signatures_exclude=_parse_csv(args.signatures_exclude),
+        force_refresh_children=args.force_refresh_children,
+    )
 
 
 if __name__ == "__main__":

@@ -25,20 +25,11 @@ Human-owned sections (never overwritten):
     Anything else you write outside AUTO blocks
 """
 
-import logging
-import sys
 from pathlib import Path
 
 from matrx_utils import clear_terminal
-
-import matrx_utils.code_context.generate_module_readme as _readme_mod
 from matrx_utils.code_context.code_context import OutputMode
-from matrx_utils.code_context.generate_module_readme import run as generate_readme
-from matrx_utils.code_context.generate_module_readme import run_cascade
-
-# ── Project paths ─────────────────────────────────────────────────────────────
-
-_DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from matrx_utils.code_context.generate_module_readme import readme_orchestrator
 
 # =============================================================================
 #  SETTINGS — edit everything between the dashed lines
@@ -46,20 +37,21 @@ _DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 if __name__ == "__main__":
     clear_terminal()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     # ── 1. TARGET MODULE ──────────────────────────────────────────────────────
     #
-    #   PROJECT_ROOT_OVERRIDE — set to a path string to run against another project.
-    #   Leave as None to use this project's root (default).
+    #   PROJECT_ROOT — absolute path to the root of the project you are
+    #   documenting.  Leave as None to auto-detect (walks up from cwd looking
+    #   for pyproject.toml, setup.py, or .git — correct for most workflows).
+    #   Set to an explicit path when documenting a different project:
+    #       PROJECT_ROOT = Path("/home/arman/projects/matrx-ai")
     #
-    #   SUBDIRECTORY — path relative to the project root.
-    #   The README will be written to <SUBDIRECTORY>/MODULE_README.md by default.
-    #   Set OUTPUT_PATH to override where the file lands.
+    #   SUBDIRECTORIES — list of paths relative to PROJECT_ROOT.
+    #   The README is written to <PROJECT_ROOT>/<SUBDIRECTORIES>/MODULE_README.md
+    #   by default.  Set OUTPUT_PATH to put it somewhere else.
     #
-    PROJECT_ROOT_OVERRIDE: str | None = None  # e.g. "/home/arman/projects/matrx-ai"
-
-    SUBDIRECTORY: str = "utils"
+    PROJECT_ROOT: Path = Path("/home/arman/projects/flow-matrx")
+    SUBDIRECTORIES: list[str] = ["backend", "frontend", ""]
     OUTPUT_PATH: str | None = None  # e.g. "ai/tools/MODULE_README.md"
 
     # ── 2. CASCADE MODE ───────────────────────────────────────────────────────
@@ -76,7 +68,7 @@ if __name__ == "__main__":
     #   CASCADE_CHILD_MODE — signature detail level for auto-generated children.
     #                        Same choices as SIGNATURE_MODE below.
     #
-    CASCADE: bool = True
+    CASCADE: bool = False
     CASCADE_MIN_FILES: int = 5
     CASCADE_CHILD_MODE: OutputMode = "signatures"
 
@@ -97,6 +89,7 @@ if __name__ == "__main__":
     #
     #   "signatures" — function/class/method signatures + Pydantic field lists
     #   "tree_only"  — directory tree only, no signatures
+    #   "clean"      — full source with comments stripped
     #
     SIGNATURE_MODE: OutputMode = "signatures"
 
@@ -116,19 +109,21 @@ if __name__ == "__main__":
     #     aidream/api/   → ["streaming", "emitter", "context"]
     #     utils/code_context → ["code_context", "generate_module_readme"]
     #
-    INCLUDE_CALL_GRAPH: bool = True
+    INCLUDE_CALL_GRAPH: bool = False
     CALL_GRAPH_SCOPE: list[str] | None = None  # None = all files
 
-    # ── 6. CALL GRAPH DIRECTORY EXCLUSIONS (optional) ─────────────────────────
+    # ── 6. EXCLUSIONS (optional) ──────────────────────────────────────────────
     #
-    #   Subdirectory paths to skip in the call graph. These dirs still appear
-    #   in the tree and signatures — only the call graph ignores them.
+    #   Directories or files to skip in the call graph / API signatures sections.
+    #   Each section has its own list so you can exclude different things from each.
     #
-    #   "tests"        — bare name: matches ANY segment named "tests" anywhere
-    #                    in the module tree (ai.tests, ai.agents.tests, etc.)
-    #   "ai/tests"     — full path: matches only that exact subtree.
+    #   Matching rules (same for both lists):
+    #     "tests"        — bare name: matches ANY directory named "tests" anywhere
+    #     "ai/tests"     — path with /: matches only that directory name (last segment)
+    #     "conftest.py"  — name ending in .py: matches that exact filename
     #
     CALL_GRAPH_EXCLUDE: list[str] | None = ["tests"]
+    SIGNATURES_EXCLUDE: list[str] | None = ["tests"]  # e.g. ["tests", "migrations", "conftest.py"]
 
     # ── 7. UPSTREAM CALLERS ───────────────────────────────────────────────────
     #
@@ -151,62 +146,21 @@ if __name__ == "__main__":
     EXTRA_NOISE: list[str] | None = None  # e.g. ["my_util_fn", "debug_helper"]
 
     # ==========================================================================
-    #  CLI quick-override — pass a subdirectory as the first positional arg:
-    #  python generate_readme.py ai/tools
-    # ==========================================================================
-    args = sys.argv[1:]
-    PROJECT_ROOT = (
-        Path(PROJECT_ROOT_OVERRIDE).resolve()
-        if PROJECT_ROOT_OVERRIDE
-        else _DEFAULT_PROJECT_ROOT
-    )
-
-    if "--root" in args:
-        idx = args.index("--root")
-        if idx + 1 >= len(args):
-            logging.error("--root requires a path argument")
-            sys.exit(1)
-        PROJECT_ROOT = Path(args[idx + 1]).resolve()
-        args = args[:idx] + args[idx + 2:]
-
-    if args:
-        SUBDIRECTORY = args[0].strip("/\\")
-
-    # ==========================================================================
     #  RUN — nothing to edit below this line
     # ==========================================================================
-    output_path = (
-        PROJECT_ROOT / OUTPUT_PATH
-        if OUTPUT_PATH
-        else PROJECT_ROOT / SUBDIRECTORY / "MODULE_README.md"
+    readme_orchestrator(
+        subdirectories=SUBDIRECTORIES,
+        project_root=PROJECT_ROOT,
+        output=OUTPUT_PATH,
+        mode=SIGNATURE_MODE,
+        call_graph_scope=CALL_GRAPH_SCOPE,
+        project_noise=EXTRA_NOISE,
+        no_call_graph=not INCLUDE_CALL_GRAPH,
+        cascade=CASCADE,
+        cascade_min_files=CASCADE_MIN_FILES,
+        cascade_child_mode=CASCADE_CHILD_MODE,
+        entry_points=ENTRY_POINTS,
+        call_graph_exclude=CALL_GRAPH_EXCLUDE,
+        signatures_exclude=SIGNATURES_EXCLUDE,
+        force_refresh_children=FORCE_REFRESH_CHILDREN,
     )
-
-    # Patch the generator's module-level root so all internal helpers resolve
-    # paths correctly when PROJECT_ROOT_OVERRIDE or --root is used.
-    _readme_mod.PROJECT_ROOT = PROJECT_ROOT
-
-    if CASCADE:
-        run_cascade(
-            subdirectory=SUBDIRECTORY,
-            mode=SIGNATURE_MODE,
-            child_mode=CASCADE_CHILD_MODE,
-            min_py_files=CASCADE_MIN_FILES,
-            scope=CALL_GRAPH_SCOPE or None,
-            project_noise=EXTRA_NOISE,
-            include_call_graph=INCLUDE_CALL_GRAPH,
-            entry_points=ENTRY_POINTS,
-            call_graph_exclude=CALL_GRAPH_EXCLUDE or None,
-            force_refresh_children=FORCE_REFRESH_CHILDREN,
-        )
-    else:
-        generate_readme(
-            subdirectory=SUBDIRECTORY,
-            output_path=output_path,
-            mode=SIGNATURE_MODE,
-            scope=CALL_GRAPH_SCOPE or None,
-            project_noise=EXTRA_NOISE,
-            include_call_graph=INCLUDE_CALL_GRAPH,
-            entry_points=ENTRY_POINTS,
-            call_graph_exclude=CALL_GRAPH_EXCLUDE or None,
-            force_refresh_children=FORCE_REFRESH_CHILDREN,
-        )

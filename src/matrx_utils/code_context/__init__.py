@@ -27,6 +27,9 @@ from .code_context import (
     SignatureExtractor,
 )
 
+from .generate_module_readme import readme_orchestrator
+
+
 __all__ = [
     "ASTAnalyzer",
     "ClassInfo",
@@ -45,4 +48,5 @@ __all__ = [
     "OutputMode",
     "SignatureBlock",
     "SignatureExtractor",
+    "readme_orchestrator",
 ]
