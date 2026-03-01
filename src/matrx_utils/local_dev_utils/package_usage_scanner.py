@@ -47,20 +47,22 @@ from pathlib import Path
 import pandas as pd
 from matrx_utils import clear_terminal
 
-from config.package_analysis import report_dir
-from config.package_analysis.packages import CLI_PACKAGES, PACKAGE_COMPANIONS, PACKAGES_TO_IGNORE
-from config.package_analysis.scan_excludes import MENTION_SCAN_EXCLUDE_DIRS, MENTION_SCAN_EXCLUDE_FILES
-from config.settings import settings
-from utils.local_dev_utils.package_size_analyzer import run_package_size_report
+from matrx_utils.package_analysis import (
+    report_dir,
+    CLI_PACKAGES,
+    PACKAGE_COMPANIONS,
+    PACKAGES_TO_IGNORE,
+    MENTION_SCAN_EXCLUDE_DIRS,
+    MENTION_SCAN_EXCLUDE_FILES,
+)
+from matrx_utils.conf import settings
+from matrx_utils.local_dev_utils.package_size_analyzer import run_package_size_report
 
-OUTPUT_DIR = report_dir("packages")
-ALL_PACKAGES_CSV = OUTPUT_DIR / "all_packages.csv"
 
-USAGE_COUNTS_CSV = OUTPUT_DIR / "usage_counts.csv"
-USAGE_COUNTS_JSON = OUTPUT_DIR / "usage_counts.json"
-USAGE_DETAILS_CSV = OUTPUT_DIR / "usage_details.csv"
-USAGE_DETAILS_JSON = OUTPUT_DIR / "usage_details.json"
-USAGE_SUMMARY_TXT = OUTPUT_DIR / "usage_summary.txt"
+def _output_dir():
+    """Lazy evaluation — avoids NotConfiguredError when settings not yet configured."""
+    return report_dir("packages")
+
 
 SKIP_DIRS = {
     ".venv", "venv", ".git", "__pycache__", ".mypy_cache",
@@ -428,11 +430,12 @@ def _print_usage_table(counts_df: pd.DataFrame, title: str) -> None:
 
 
 def _load_target_packages() -> list[str]:
-    if ALL_PACKAGES_CSV.exists():
-        df = pd.read_csv(ALL_PACKAGES_CSV)
+    all_packages_csv = _output_dir() / "all_packages.csv"
+    if all_packages_csv.exists():
+        df = pd.read_csv(all_packages_csv)
         col = "Package" if "Package" in df.columns else "package"
         packages = df[col].dropna().str.lower().tolist()
-        print(f"Loaded {len(packages)} packages from {ALL_PACKAGES_CSV.name}")
+        print(f"Loaded {len(packages)} packages from {all_packages_csv.name}")
         return packages
 
     print("No package CSV found — this should not happen after a refresh.")
@@ -596,20 +599,27 @@ def run_package_usage_scan(
         mention_hints = _search_all_mentions(zero_packages, py_files, text_files, base)
 
     # ── Persist ───────────────────────────────────────────────────────────────
-    details_df.to_csv(USAGE_DETAILS_CSV, index=False)
-    details_df.to_json(USAGE_DETAILS_JSON, orient="records", indent=2)
-    counts_df.to_csv(USAGE_COUNTS_CSV, index=False)
-    counts_df.to_json(USAGE_COUNTS_JSON, orient="records", indent=2)
+    output_dir = _output_dir()
+    usage_counts_csv = output_dir / "usage_counts.csv"
+    usage_counts_json = output_dir / "usage_counts.json"
+    usage_details_csv = output_dir / "usage_details.csv"
+    usage_details_json = output_dir / "usage_details.json"
+    usage_summary_txt = output_dir / "usage_summary.txt"
 
-    _write_summary(counts_df, details_df, cli_only_packages, suppressed, mention_hints)
+    details_df.to_csv(usage_details_csv, index=False)
+    details_df.to_json(usage_details_json, orient="records", indent=2)
+    counts_df.to_csv(usage_counts_csv, index=False)
+    counts_df.to_json(usage_counts_json, orient="records", indent=2)
+
+    _write_summary(counts_df, details_df, cli_only_packages, suppressed, mention_hints, usage_summary_txt)
     _print_terminal_summary(counts_df, cli_only_packages, suppressed, mention_hints, detail_threshold, details_df)
 
     print(f"\nSaved files:")
-    print(f"  {USAGE_COUNTS_CSV}")
-    print(f"  {USAGE_COUNTS_JSON}")
-    print(f"  {USAGE_DETAILS_CSV}")
-    print(f"  {USAGE_DETAILS_JSON}")
-    print(f"  {USAGE_SUMMARY_TXT}")
+    print(f"  {usage_counts_csv}")
+    print(f"  {usage_counts_json}")
+    print(f"  {usage_details_csv}")
+    print(f"  {usage_details_json}")
+    print(f"  {usage_summary_txt}")
 
     return counts_df
 
@@ -777,6 +787,7 @@ def _write_summary(
     cli_only_packages: set[str],
     suppressed: set[str],
     mention_hints: dict[str, list[MentionHit]],
+    usage_summary_txt: Path,
 ) -> None:
     lines: list[str] = []
 
@@ -822,7 +833,7 @@ def _write_summary(
         for f in pkg_files:
             lines.append(f"  {f}")
 
-    USAGE_SUMMARY_TXT.write_text("\n".join(lines), encoding="utf-8")
+    usage_summary_txt.write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":

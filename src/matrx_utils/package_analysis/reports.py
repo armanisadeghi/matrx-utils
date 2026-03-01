@@ -2,7 +2,7 @@
 Report registry — maps report keys to their output directories under reports/.
 
 Usage:
-    from config.package_analysis import report_dir
+    from matrx_utils.package_analysis import report_dir
 
     output_dir = report_dir("packages")
     all_packages_csv = output_dir / "all_packages.csv"
@@ -13,7 +13,7 @@ The directory will be created automatically on first access.
 
 from pathlib import Path
 
-from config.settings import settings
+from matrx_utils.conf import settings
 
 REPORT_REGISTRY: dict[str, str] = {
     # key          → subdirectory name under reports/

@@ -1,6 +1,6 @@
 [project]
 name = "matrx-utils"
-version = "1.0.5"
+version = "1.0.6"
 description = "Basic utilities for matrx"
 readme = "README.md"
 authors = [
@@ -16,6 +16,7 @@ dependencies = [
     "inflect>=7.5.0",
     "pillow>=11.2.1",
     "pytesseract>=0.3.13",
+    "pyyaml>=6.0.3",
     "requests>=2.32.5",
     "supabase>=2.28.0",
 ]

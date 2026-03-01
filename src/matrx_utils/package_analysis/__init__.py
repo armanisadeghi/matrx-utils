@@ -1,9 +1,13 @@
-from config.package_analysis.packages import CLI_PACKAGES, PACKAGE_COMPANIONS, PACKAGES_TO_IGNORE
-from config.package_analysis.reports import report_dir
+from .packages import CLI_PACKAGES, PACKAGE_COMPANIONS, PACKAGES_TO_IGNORE
+from .reports import report_dir, REPORT_REGISTRY
+from .scan_excludes import MENTION_SCAN_EXCLUDE_DIRS, MENTION_SCAN_EXCLUDE_FILES
 
 __all__ = [
     "CLI_PACKAGES",
     "PACKAGE_COMPANIONS",
     "PACKAGES_TO_IGNORE",
     "report_dir",
+    "REPORT_REGISTRY",
+    "MENTION_SCAN_EXCLUDE_DIRS",
+    "MENTION_SCAN_EXCLUDE_FILES",
 ]

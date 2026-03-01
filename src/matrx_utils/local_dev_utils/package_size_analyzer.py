@@ -7,18 +7,16 @@ from pathlib import Path
 import pandas as pd
 from matrx_utils import clear_terminal
 
-from config.package_analysis import report_dir
-from config.settings import settings
+from matrx_utils.package_analysis import report_dir
+from matrx_utils.conf import settings
 
 TOP_N = 20
-OUTPUT_DIR = report_dir("packages")
-
-ALL_PACKAGES_CSV = OUTPUT_DIR / "all_packages.csv"
-ALL_PACKAGES_JSON = OUTPUT_DIR / "all_packages.json"
-TOP_PACKAGES_CSV = OUTPUT_DIR / "top_packages.csv"
-TOP_PACKAGES_JSON = OUTPUT_DIR / "top_packages.json"
-
 COL_WIDTH = 40
+
+
+def _output_dir():
+    """Lazy evaluation — avoids NotConfiguredError when settings not yet configured."""
+    return report_dir("packages")
 
 
 def _load_direct_deps() -> set[str]:
@@ -118,20 +116,26 @@ def get_package_sizes(direct_only: bool = True, verbose: bool = True) -> pd.Data
 def run_package_size_report(verbose: bool = True) -> pd.DataFrame:
     df = get_package_sizes(verbose=verbose)
 
-    df.to_csv(ALL_PACKAGES_CSV, index=False)
-    df.to_json(ALL_PACKAGES_JSON, orient="records", indent=2)
+    output_dir = _output_dir()
+    all_packages_csv = output_dir / "all_packages.csv"
+    all_packages_json = output_dir / "all_packages.json"
+    top_packages_csv = output_dir / "top_packages.csv"
+    top_packages_json = output_dir / "top_packages.json"
+
+    df.to_csv(all_packages_csv, index=False)
+    df.to_json(all_packages_json, orient="records", indent=2)
 
     top_df = df.head(TOP_N)
-    top_df.to_csv(TOP_PACKAGES_CSV, index=False)
-    top_df.to_json(TOP_PACKAGES_JSON, orient="records", indent=2)
+    top_df.to_csv(top_packages_csv, index=False)
+    top_df.to_json(top_packages_json, orient="records", indent=2)
 
     if verbose:
         _print_size_table(top_df, f"Top {TOP_N} Direct Dependencies by Size")
         print(f"\nSaved files:")
-        print(f"  {ALL_PACKAGES_CSV}")
-        print(f"  {ALL_PACKAGES_JSON}")
-        print(f"  {TOP_PACKAGES_CSV}")
-        print(f"  {TOP_PACKAGES_JSON}")
+        print(f"  {all_packages_csv}")
+        print(f"  {all_packages_json}")
+        print(f"  {top_packages_csv}")
+        print(f"  {top_packages_json}")
 
     return df
 
