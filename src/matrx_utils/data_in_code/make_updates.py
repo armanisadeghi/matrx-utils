@@ -189,7 +189,7 @@ def _update_ts_file(variable_name, value, filename, timestamp):
 
 
 def update_data_in_code(variable_name, new_value, filename=DEFAULT_DATA_FILE, verbose=False, ts_filename=DEFAULT_TS_DATA_FILE):
-    from common import plt
+    from matrx_utils import plt
 
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     serializable_value = _to_serializable(new_value)
@@ -294,7 +294,7 @@ def update_data_in_code(variable_name, new_value, filename=DEFAULT_DATA_FILE, ve
 
 
 def update_history(filename, variable_name, new_value, timestamp, verbose=False):
-    from common import plt
+    from matrx_utils import plt
     
     os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
     history_key = f"{os.path.normpath(filename)}:{variable_name}"
@@ -325,7 +325,7 @@ def update_history(filename, variable_name, new_value, timestamp, verbose=False)
 
 
 def clean_history(variable_name, filename=DEFAULT_DATA_FILE, verbose=False):
-    from common import plt
+    from matrx_utils import plt
     
     history_key = f"{os.path.normpath(filename)}:{variable_name}"
     history = {}
@@ -350,7 +350,7 @@ def clean_history(variable_name, filename=DEFAULT_DATA_FILE, verbose=False):
 
 
 def delete_from_history(variable_name, filename=DEFAULT_DATA_FILE, verbose=False):
-    from common import plt
+    from matrx_utils import plt
     
     history_key = f"{os.path.normpath(filename)}:{variable_name}"
     history = {}

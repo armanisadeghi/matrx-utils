@@ -18,22 +18,23 @@ from matrx_utils import clear_terminal
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 # Directories to scan (relative to project root). Edit as needed.
 SCAN_DIRS =[
-        "ai",
-        "aidream",
-        "api_management",
-        "common",
-        "research",
-        "matrix",
-        "mcp_server",
-        "utils",
-        "workflows",
-        "workflows_v2",
-        "utils",
-        "config",
+        # "ai",
+        # "aidream",
+        # "api_management",
+        # "common",
+        # "research",
+        # "matrix",
+        # "mcp_server",
+        # "utils",
+        # "workflows",
+        # "workflows_v2",
+        # "utils",
+        # "config",
+        "src",
     ]
 
 # Top-level names to skip — stdlib, third-party, and known installed packages.
@@ -358,18 +359,7 @@ if __name__ == "__main__":
     clear_terminal()
 
     OVERRIDE_DIRS = [
-        "ai",
-        "aidream",
-        "api_management",
-        "common",
-        "research",
-        "matrix",
-        "mcp_server",
-        "utils",
-        "workflows",
-        "workflows_v2",
-        "utils",
-        "config",
+        "src",
     ]
 
     # Allow passing a specific subdir as argument: python import_checker.py ai

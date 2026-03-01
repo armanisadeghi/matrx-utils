@@ -1,10 +1,10 @@
 import os
 
-from utils.react_analysis.analyze_react_imports import analyze_imports_from_directory_structure
-from utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
-from utils.react_analysis.generate_full_index_with_structure import create_combined_structure
-from utils.react_analysis.utils import save_structure_to_json
-from utils.react_analysis.z_configs import get_default_configs_with_overrides
+from matrx_utils.react_analysis.analyze_react_imports import analyze_imports_from_directory_structure
+from matrx_utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
+from matrx_utils.react_analysis.generate_full_index_with_structure import create_combined_structure
+from matrx_utils.react_analysis.utils import save_structure_to_json
+from matrx_utils.react_analysis.z_configs import get_default_configs_with_overrides
 
 
 def save_summary_to_txt(structure, output_file):

@@ -287,7 +287,7 @@ class PDFHandler(FileHandler):
         Requires Java to be installed on the system.
         """
         try:
-            import tabula  # type: ignore[import]
+            import tabula
         except ImportError:
             raise RuntimeError(
                 "tabula-py is not installed. Run: uv pip install tabula-py"
