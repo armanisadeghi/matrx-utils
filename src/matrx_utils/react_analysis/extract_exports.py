@@ -2,7 +2,7 @@ import os
 import re
 from pathlib import Path
 
-from utils.react_analysis.utils import read_file_content
+from matrx_utils.react_analysis.utils import read_file_content
 
 
 def preprocess_content(content):

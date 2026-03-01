@@ -2,7 +2,7 @@ import os
 import re
 from pathlib import Path
 
-from utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
+from matrx_utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
 
 
 def generate_index_ts(directory_structure, analysis_results, root_directory, output_file="index-gen.ts"):

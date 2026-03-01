@@ -34,7 +34,7 @@ CodeContextBuilder         # orchestrator: discovery → parallel file load → 
 ## Core flow
 
 ```python
-from utils.code_context import CodeContextBuilder
+from matrx_utils.code_context import CodeContextBuilder
 
 builder = CodeContextBuilder(
     project_root="/path/to/project",

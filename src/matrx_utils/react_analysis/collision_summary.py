@@ -1,7 +1,7 @@
 import os
 
-from utils.react_analysis.name_collision_analyer import find_name_collisions, analyze_file_collisions
-from utils.react_analysis.utils import load_json, save_structure_to_json
+from matrx_utils.react_analysis.name_collision_analyer import find_name_collisions, analyze_file_collisions
+from matrx_utils.react_analysis.utils import load_json, save_structure_to_json
 
 
 def summarize_collisions(name_collisions):

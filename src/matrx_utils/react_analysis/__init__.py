@@ -1,11 +1,11 @@
 """
 react_analysis — React/TypeScript codebase intelligence pipeline.
 
-Consumes the canonical _files-keyed JSON from utils.code_context to perform
+Consumes the canonical _files-keyed JSON from matrx_utils.code_context to perform
 export/import analysis, name collision detection, and invalid import validation.
 
 Primary entry points:
-    from utils.react_analysis import get_full_index_structure, ReactAnalysisConfig
+    from matrx_utils.react_analysis import get_full_index_structure, ReactAnalysisConfig
 
     config = ReactAnalysisConfig(
         root_directory="/path/to/frontend",

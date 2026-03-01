@@ -64,8 +64,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from utils.code_context import CodeContextBuilder
-from utils.code_context.code_context import OutputMode
+from matrx_utils.code_context import CodeContextBuilder
+from matrx_utils.code_context.code_context import OutputMode
 
 logger = logging.getLogger(__name__)
 

@@ -22,11 +22,9 @@ ASTAnalyzer covers:
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from utils.code_context.code_context import ASTAnalyzer, CodeExtractor
+from matrx_utils.code_context.code_context import ASTAnalyzer, CodeExtractor
 
 
 # ---------------------------------------------------------------------------

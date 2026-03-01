@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-from utils.react_analysis.utils import save_structure_to_json, load_json, resolve_alias
+from matrx_utils.react_analysis.utils import save_structure_to_json, load_json, resolve_alias
 
 
 def find_invalid_imports(combined_structure, config):

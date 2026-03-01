@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 
-from utils.react_analysis.analyze_react_imports import analyze_imports_from_directory_structure
-from utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
-from utils.react_analysis.utils import (
+from matrx_utils.react_analysis.analyze_react_imports import analyze_imports_from_directory_structure
+from matrx_utils.react_analysis.extract_all_exports import extract_and_analyze_all_exports
+from matrx_utils.react_analysis.utils import (
     save_combined_structure_to_txt,
     save_structure_to_json,
     normalize_path,

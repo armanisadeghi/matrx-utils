@@ -7,7 +7,7 @@ produces a navigation links JSON from directories containing page.tsx.
 import json
 import os
 
-from utils.local_dev_utils.link_generator import process_directory_structure
+from matrx_utils.local_dev_utils.link_generator import process_directory_structure
 
 
 default_config = {
@@ -49,7 +49,7 @@ def react_link_generator(project_root=None, target_directory=None, exclude_dynam
     """
     import json as _json
     import tempfile
-    from utils.code_context import CodeContextBuilder
+    from matrx_utils.code_context import CodeContextBuilder
 
     root_dir = project_root or default_config["root_directory"]
     if target_directory:

@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from utils.react_analysis.extract_exports import analyze_react_exports
-from utils.react_analysis.utils import file_extension_supported, normalize_path
+from matrx_utils.react_analysis.extract_exports import analyze_react_exports
+from matrx_utils.react_analysis.utils import file_extension_supported, normalize_path
 
 
 def extract_and_analyze_all_exports(directory_structure, config):

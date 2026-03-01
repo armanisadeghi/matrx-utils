@@ -2,7 +2,7 @@
 code_context — unified code context builder for LLM prompts.
 
 Primary entry point:
-    from utils.code_context import CodeContextBuilder, OutputMode
+    from matrx_utils.code_context import CodeContextBuilder, OutputMode
 
     result = CodeContextBuilder(project_root="/path", output_mode="signatures").build()
 """

@@ -2,13 +2,13 @@ import os
 import re
 from pathlib import Path
 
-from utils.react_analysis.utils import (
+from matrx_utils.react_analysis.utils import (
     file_extension_supported,
     read_file_content,
     normalize_path,
     save_structure_to_json,
 )
-from utils.react_analysis.z_configs import get_default_configs_with_overrides
+from matrx_utils.react_analysis.z_configs import get_default_configs_with_overrides
 
 
 def analyze_imports(file_path, alias_map, config):

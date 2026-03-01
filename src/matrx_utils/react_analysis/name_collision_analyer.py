@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-from utils.react_analysis.utils import save_structure_to_json, load_json, normalize_path
+from matrx_utils.react_analysis.utils import save_structure_to_json, load_json, normalize_path
 
 
 def find_name_collisions(combined_structure):
