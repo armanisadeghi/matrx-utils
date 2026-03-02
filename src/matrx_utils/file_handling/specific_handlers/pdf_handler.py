@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import os
 import re
 import uuid
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-import fitz
+import pypdfium2 as pdfium
 import httpx
 import pytesseract
 from PIL import Image
@@ -93,29 +92,29 @@ class PDFHandler(FileHandler):
     # Legacy read helpers (kept for backwards compatibility)
     # ------------------------------------------------------------------
 
-    def read_pdf_file(self, path: str) -> fitz.Document | None:
+    def read_pdf_file(self, path: str) -> pdfium.PdfDocument | None:
         try:
-            pdf = fitz.open(path)
+            doc = pdfium.PdfDocument(path)
             self._print_link(path=path, message="Read PDF file")
-            return pdf
+            return doc
         except Exception as e:
             self._print_link(path=path, message="Error reading PDF", color="red")
             print(f"Error: {str(e)}")
             return None
 
-    def _return_if_pdf_valid(self, pdf: Any) -> fitz.Document | None:
-        if pdf and isinstance(pdf, fitz.Document):
+    def _return_if_pdf_valid(self, pdf: Any) -> pdfium.PdfDocument | None:
+        if pdf and isinstance(pdf, pdfium.PdfDocument):
             return pdf
         return None
 
-    def custom_read_pdf(self, path: str) -> fitz.Document | None:
-        pdf = self.read_pdf_file(path)
-        return self._return_if_pdf_valid(pdf)
+    def custom_read_pdf(self, path: str) -> pdfium.PdfDocument | None:
+        doc = self.read_pdf_file(path)
+        return self._return_if_pdf_valid(doc)
 
     def custom_delete_pdf(self, path: str) -> bool:
         return self.delete(path)
 
-    def read_pdf(self, root: str, path: str) -> fitz.Document | None:
+    def read_pdf(self, root: str, path: str) -> pdfium.PdfDocument | None:
         full_path = self._get_full_path(root, path)
         return self.read_pdf_file(str(full_path))
 
@@ -235,42 +234,50 @@ class PDFHandler(FileHandler):
         Otherwise, Tesseract is used only when a page has fewer than
         *use_ocr_threshold* characters of native text.
         """
-        doc = fitz.open(path)
+        doc = pdfium.PdfDocument(path)
         all_text = ""
+        page_count = len(doc)
         batch_size = 10
 
         try:
-            for page_num in range(doc.page_count):
+            for page_num in range(page_count):
                 page = doc[page_num]
 
                 if force_ocr:
                     text = await self._ocr_page(page)
                 else:
-                    text = page.get_text()
+                    textpage = page.get_textpage()
+                    text = textpage.get_text_range()
+                    textpage.close()
                     if len(text.strip()) < use_ocr_threshold:
                         text = await self._ocr_page(page)
 
+                page.close()
                 all_text += text
 
                 if emitter and (
                     page_num % batch_size == batch_size - 1
-                    or page_num == doc.page_count - 1
+                    or page_num == page_count - 1
                 ):
                     await emitter.send_status_update(
                         status="processing",
-                        user_visible_message=f"Processed page {page_num + 1} of {doc.page_count}",
-                        system_message=f"pdf_extract page {page_num + 1}/{doc.page_count}",
+                        user_visible_message=f"Processed page {page_num + 1} of {page_count}",
+                        system_message=f"pdf_extract page {page_num + 1}/{page_count}",
                     )
         finally:
             doc.close()
 
         return all_text
 
-    async def _ocr_page(self, page: fitz.Page) -> str:
-        pix = page.get_pixmap(dpi=300)
-        img = Image.open(io.BytesIO(pix.pil_tobytes(format="jpeg")))
+    async def _ocr_page(self, page: pdfium.PdfPage) -> str:
+        # Render at 300 DPI — pypdfium2 default scale=1 equals 72 DPI
+        bitmap = page.render(scale=300 / 72)
+        pil_image = bitmap.to_pil()
+        # Ensure RGB for Tesseract
+        if pil_image.mode != "RGB":
+            pil_image = pil_image.convert("RGB")
         custom_config = r"--oem 3 --psm 6"
-        return pytesseract.image_to_string(img, config=custom_config)
+        return pytesseract.image_to_string(pil_image, config=custom_config)
 
     # ------------------------------------------------------------------
     # Table extraction
@@ -373,15 +380,15 @@ class PDFHandler(FileHandler):
         Write PDF content to *path*.
 
         Accepts:
-        - fitz.Document  → saved directly with fitz
-        - bytes           → written as raw binary
-        - str             → encoded as UTF-8 and written (plain-text PDF)
+        - pdfium.PdfDocument  → saved directly with pypdfium2
+        - bytes                → written as raw binary
+        - str                  → encoded as UTF-8 and written (plain-text PDF)
         """
         full_path = self._get_full_path(root, path)
         self._ensure_directory(full_path)
 
         try:
-            if isinstance(data, fitz.Document):
+            if isinstance(data, pdfium.PdfDocument):
                 data.save(str(full_path))
                 data.close()
                 return True
@@ -401,7 +408,7 @@ class PDFHandler(FileHandler):
         p = Path(path)
         self._ensure_directory(p)
         try:
-            if isinstance(content, fitz.Document):
+            if isinstance(content, pdfium.PdfDocument):
                 content.save(str(p))
                 content.close()
                 return True
