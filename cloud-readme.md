@@ -60,6 +60,7 @@ server://path/to/file.ext
 
 Always prefer the `_async` variants inside FastAPI. S3 uses `run_in_executor` (non-blocking), Supabase uses its native `AsyncClient`, and the custom server uses `httpx.AsyncClient`.
 
+
 ### Read
 
 ```python
