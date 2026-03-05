@@ -7,7 +7,6 @@ import uuid
 import decimal
 from matrx_utils import vcprint
 from .validators import URLValidator, validate_email
-import inflect
 from .utils import get_random_text_entry
 
 random_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -26,7 +25,7 @@ class SingletonMeta(type):
 
 class DataTransformer(metaclass=SingletonMeta):
     def __init__(self):
-        self.inflect_engine = inflect.engine()
+        self._inflect_engine = None
         # self.code_handler = CodeHandler() # Not used anywhere.
         self.verbose = False
         self.debug = False
@@ -304,6 +303,13 @@ class DataTransformer(metaclass=SingletonMeta):
             "ARRAY": "ArrayField",  # Generic ARRAY mapped to ArrayField
             "USER-DEFINED": "CharField",  # User-defined types mapped to CharField
         }
+
+    @property
+    def inflect_engine(self):
+        if self._inflect_engine is None:
+            import inflect
+            self._inflect_engine = inflect.engine()
+        return self._inflect_engine
 
     def set_enum_list(self, enum_list):
         vcprint(data=enum_list, title="Enum list updated with the following values", verbose=self.verbose,
