@@ -1,6 +1,6 @@
 [project]
 name = "matrx-utils"
-version = "1.0.13"
+version = "1.0.14"
 description = "Basic utilities for matrx"
 readme = "README.md"
 authors = [
