@@ -235,8 +235,30 @@ class DataTransformer(metaclass=SingletonMeta):
         self.sql_to_python_models_field = {
             "uuid": "UUIDField",
             "text": "TextField",
-            "_text": "JSONBField",
-            "_varchar": "JSONBField",
+            # Postgres internal array type codes (leading underscore = array of base type)
+            "_text": "TextArrayField",       # was incorrectly JSONBField
+            "_varchar": "TextArrayField",    # was incorrectly JSONBField
+            "_bpchar": "TextArrayField",     # char[]
+            "_uuid": "UUIDArrayField",
+            "_jsonb": "JSONBArrayField",
+            "_json": "JSONBArrayField",
+            "_bool": "BooleanArrayField",
+            "_int2": "SmallIntegerArrayField",
+            "_int4": "IntegerArrayField",
+            "_int8": "BigIntegerArrayField",
+            "_float4": "FloatArrayField",
+            "_float8": "FloatArrayField",
+            "_numeric": "NumericArrayField",
+            "_date": "DateArrayField",
+            "_time": "TimeArrayField",
+            "_timetz": "TimeArrayField",
+            "_timestamp": "DateArrayField",
+            "_timestamptz": "DateArrayField",
+            "_inet": "IPNetworkArrayField",
+            "_cidr": "IPNetworkArrayField",
+            "_macaddr": "TextArrayField",
+            "_hstore": "HStoreArrayField",
+            # scalar types
             "character varying": "CharField",
             "varchar": "CharField",
             "bool": "BooleanField",
@@ -245,8 +267,6 @@ class DataTransformer(metaclass=SingletonMeta):
             "int8": "BigIntegerField",
             "float4": "FloatField",
             "float8": "FloatField",
-            "_uuid": "UUIDArrayField",
-            "_jsonb": "JSONBArrayField",  # Array of JSONB objects using JSONBArrayField
             "jsonb": "JSONBField",
             "json": "JSONField",
             "boolean": "BooleanField",
@@ -286,12 +306,42 @@ class DataTransformer(metaclass=SingletonMeta):
             "macaddr": "MacAddressField",  # Mapping macaddr to MacAddressField
             "tsvector": "TextField",  # Mapping tsvector to TextField
             "tsquery": "TextField",  # Mapping tsquery to TextField
-            "uuid[]": "UUIDArrayField",  # Array of UUIDs to UUIDArrayField
-            "text[]": "TextArrayField",  # Using TextArrayField for array of text
-            "integer[]": "IntegerArrayField",  # Array of integers to IntegerArrayField
-            "boolean[]": "BooleanArrayField",  # Array of booleans to BooleanArrayField
-            "char[]": "ArrayField",  # Using ArrayField for array of char
-            "varchar[]": "ArrayField",  # Using ArrayField for array of varchar
+            # full_type (information_schema) array entries
+            "uuid[]": "UUIDArrayField",
+            "text[]": "TextArrayField",
+            "character varying[]": "TextArrayField",
+            "varchar[]": "TextArrayField",
+            "char[]": "TextArrayField",
+            "citext[]": "TextArrayField",
+            "integer[]": "IntegerArrayField",
+            "int[]": "IntegerArrayField",
+            "int4[]": "IntegerArrayField",
+            "bigint[]": "BigIntegerArrayField",
+            "int8[]": "BigIntegerArrayField",
+            "smallint[]": "SmallIntegerArrayField",
+            "int2[]": "SmallIntegerArrayField",
+            "boolean[]": "BooleanArrayField",
+            "bool[]": "BooleanArrayField",
+            "real[]": "FloatArrayField",
+            "float4[]": "FloatArrayField",
+            "double precision[]": "FloatArrayField",
+            "float8[]": "FloatArrayField",
+            "numeric[]": "NumericArrayField",
+            "decimal[]": "NumericArrayField",
+            "jsonb[]": "JSONBArrayField",
+            "json[]": "JSONBArrayField",
+            "date[]": "DateArrayField",
+            "time[]": "TimeArrayField",
+            "time without time zone[]": "TimeArrayField",
+            "time with time zone[]": "TimeArrayField",
+            "timestamp[]": "DateArrayField",
+            "timestamp without time zone[]": "DateArrayField",
+            "timestamp with time zone[]": "DateArrayField",
+            "timestamptz[]": "DateArrayField",
+            "inet[]": "IPNetworkArrayField",
+            "cidr[]": "IPNetworkArrayField",
+            "macaddr[]": "TextArrayField",
+            "hstore[]": "HStoreArrayField",
             "xml": "TextField",  # Mapping XML to TextField
             "money": "MoneyField",  # Mapping money to MoneyField
             "bit": "CharField",  # Using CharField for bit type
