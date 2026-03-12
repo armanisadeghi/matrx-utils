@@ -188,7 +188,6 @@ IGNORE_PREFIXES = {
     "parso",
     "astor",
     "mashumaro",
-    "inflect",
     "aioconsole",
     "aiofiles",
     "socketio",

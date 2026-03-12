@@ -13,7 +13,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "pypdfium2>=4.30.0",
     "httpx>=0.28.1",
-    "inflect>=7.5.0",
     "pillow>=11.2.1",
     "pytesseract>=0.3.13",
     "python-pptx>=1.0.2",

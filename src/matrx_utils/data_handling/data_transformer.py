@@ -23,9 +23,143 @@ class SingletonMeta(type):
         return cls._instances[cls]
 
 
+_IRREGULAR_PLURALS: dict[str, str] = {
+    "person": "people",
+    "man": "men",
+    "woman": "women",
+    "child": "children",
+    "foot": "feet",
+    "tooth": "teeth",
+    "goose": "geese",
+    "mouse": "mice",
+    "ox": "oxen",
+    "index": "indices",
+    "matrix": "matrices",
+    "vertex": "vertices",
+    "axis": "axes",
+    "analysis": "analyses",
+    "basis": "bases",
+    "crisis": "crises",
+    "diagnosis": "diagnoses",
+    "hypothesis": "hypotheses",
+    "parenthesis": "parentheses",
+    "thesis": "theses",
+    "datum": "data",
+    "medium": "media",
+    "criterion": "criteria",
+    "phenomenon": "phenomena",
+    "schema": "schemas",
+    "status": "statuses",
+}
+_IRREGULAR_SINGULARS: dict[str, str] = {v: k for k, v in _IRREGULAR_PLURALS.items()}
+
+_UNCOUNTABLE: frozenset[str] = frozenset({
+    "equipment", "information", "rice", "money", "species", "series",
+    "fish", "sheep", "deer", "aircraft", "data", "media", "news",
+    "staff", "police", "traffic",
+})
+
+_PLURAL_RULES: list[tuple[str, str]] = [
+    (r"(quiz)$", r"\1zes"),
+    (r"^(oxen)$", r"\1"),
+    (r"^(ox)$", r"\1en"),
+    (r"(m|l)ice$", r"\1ice"),
+    (r"(m|l)ouse$", r"\1ice"),
+    (r"(pea)ple$", r"\1ple"),
+    (r"(child)ren$", r"\1ren"),
+    (r"(x|ch|ss|sh)es$", r"\1es"),
+    (r"(x|ch|ss|sh)$", r"\1es"),
+    (r"([^aeiouy]|qu)ies$", r"\1ies"),
+    (r"([^aeiouy]|qu)y$", r"\1ies"),
+    (r"(hive|archive|love|move|prove|live)s$", r"\1s"),
+    (r"(buffal|tomat|volcan|her|potat|tornad)oes$", r"\1oes"),
+    (r"(buffal|tomat|volcan|her|potat|tornad)o$", r"\1oes"),
+    (r"(bu|mis|gas)ses$", r"\1ses"),
+    (r"(bu|mis|gas)s$", r"\1ses"),
+    (r"(s)tatus$", r"\1tatuses"),
+    (r"(s)tatuses$", r"\1tatuses"),
+    (r"(alias|status|campus|apparatus|virus|walrus)es$", r"\1es"),
+    (r"(alias|campus|apparatus|virus|walrus)$", r"\1es"),
+    (r"(ax|test|crisis)es$", r"\1es"),
+    (r"(octop|syllab|cact|foc|hippopotam|radi|stimul|alumn|bacill|curr|fung|nucle|termin)i$", r"\1i"),
+    (r"(octop|syllab|cact|foc|hippopotam|radi|stimul|alumn|bacill|curr|fung|nucle|termin)us$", r"\1i"),
+    (r"(ax|cris|test)is$", r"\1es"),
+    (r"(vert|ind)(ex|ices)$", r"\1ices"),
+    (r"(vert|ind)ex$", r"\1ices"),
+    (r"([lr])ves$", r"\1ves"),
+    (r"([lr])f$", r"\1ves"),
+    (r"([^f])ves$", r"\1ves"),
+    (r"([ti])a$", r"\1a"),
+    (r"((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$", r"\1ses"),
+    (r"((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)sis$", r"\1ses"),
+    (r"(analy)sis$", r"\1ses"),
+    (r"([^aeious])s$", r"\1s"),
+    (r"s$", r"s"),
+    (r"$", r"s"),
+]
+
+_SINGULAR_RULES: list[tuple[str, str]] = [
+    (r"(quiz)zes$", r"\1"),
+    (r"(matr)ices$", r"\1ix"),
+    (r"(vert|ind)(ex|ices)$", r"\1ex"),
+    (r"^(ox)en", r"\1"),
+    (r"(alias|status|campus|apparatus|virus|walrus)es$", r"\1"),
+    (r"(octop|syllab|cact|foc|hippopotam|radi|stimul|alumn|bacill|curr|fung|nucle|termin)i$", r"\1us"),
+    (r"(cris|test|ax)es$", r"\1is"),
+    (r"(shoe)s$", r"\1"),
+    (r"(o)es$", r"\1"),
+    (r"(bus)ses$", r"\1"),
+    (r"([m|l])ice$", r"\1ouse"),
+    (r"(x|ch|ss|sh)es$", r"\1"),
+    (r"(m)ovies$", r"\1ovie"),
+    (r"(s)eries$", r"\1eries"),
+    (r"([^aeiouy]|qu)ies$", r"\1y"),
+    (r"([lr])ves$", r"\1f"),
+    (r"(thi|shea|lea)ves$", r"\1f"),
+    (r"(s)tatus(es)?$", r"\1tatus"),
+    (r"(analy|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$", r"\1sis"),
+    (r"([ti])a$", r"\1um"),
+    (r"(p)eople$", r"\1erson"),
+    (r"(child)ren$", r"\1"),
+    (r"(n)ews$", r"\1ews"),
+    (r"s$", r""),
+]
+
+
+def _pluralize(word: str) -> str:
+    if not word:
+        return word
+    lower = word.lower()
+    if lower in _UNCOUNTABLE:
+        return word
+    if lower in _IRREGULAR_PLURALS:
+        result = _IRREGULAR_PLURALS[lower]
+        return result[0].upper() + result[1:] if word[0].isupper() else result
+    for pattern, replacement in _PLURAL_RULES:
+        if re.search(pattern, word, re.IGNORECASE):
+            result = re.sub(pattern, replacement, word, flags=re.IGNORECASE)
+            return result
+    return word + "s"
+
+
+def _singularize(word: str) -> str:
+    if not word:
+        return word
+    lower = word.lower()
+    if lower in _UNCOUNTABLE:
+        return word
+    if lower in _IRREGULAR_SINGULARS:
+        result = _IRREGULAR_SINGULARS[lower]
+        return result[0].upper() + result[1:] if word[0].isupper() else result
+    for pattern, replacement in _SINGULAR_RULES:
+        if re.search(pattern, word, re.IGNORECASE):
+            result = re.sub(pattern, replacement, word, flags=re.IGNORECASE)
+            return result
+    return word
+
+
 class DataTransformer(metaclass=SingletonMeta):
     def __init__(self):
-        self._inflect_engine = None
         # self.code_handler = CodeHandler() # Not used anywhere.
         self.verbose = False
         self.debug = False
@@ -354,13 +488,6 @@ class DataTransformer(metaclass=SingletonMeta):
             "USER-DEFINED": "CharField",  # User-defined types mapped to CharField
         }
 
-    @property
-    def inflect_engine(self):
-        if self._inflect_engine is None:
-            import inflect
-            self._inflect_engine = inflect.engine()
-        return self._inflect_engine
-
     def set_enum_list(self, enum_list):
         vcprint(data=enum_list, title="Enum list updated with the following values", verbose=self.verbose,
                 color="yellow")
@@ -528,12 +655,12 @@ class DataTransformer(metaclass=SingletonMeta):
 
     def to_plural(self, s):
         if isinstance(s, str):
-            return self.inflect_engine.plural(s)
+            return _pluralize(s)
         return None
 
     def to_singular(self, s):
         if isinstance(s, str):
-            return self.inflect_engine.singular_noun(s) or s
+            return _singularize(s)
         return None
 
     def to_constant_case(self, s):
