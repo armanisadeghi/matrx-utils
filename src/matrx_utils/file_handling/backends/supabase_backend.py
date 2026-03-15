@@ -58,16 +58,23 @@ class SupabaseBackend(StorageBackend):
         try:
             from matrx_utils.conf import settings
 
-            url: str = self._safe_get(settings, "SUPABASE_URL")
+            # SUPABASE_URL is the standard name; SUPABASE_MATRIX_URL is the
+            # aidream-specific alias used when the project pre-dates this library.
+            url: str = (
+                self._safe_get(settings, "SUPABASE_URL")
+                or self._safe_get(settings, "SUPABASE_MATRIX_URL")
+            )
             if not url:
                 return
 
-            # New format takes priority; legacy JWT keys are the fallback.
+            # New Supabase key format takes priority; legacy JWT formats are
+            # checked next; SUPABASE_MATRIX_KEY is the aidream-specific alias.
             key: str = (
                 self._safe_get(settings, "SUPABASE_SECRET_KEY")
                 or self._safe_get(settings, "SUPABASE_SERVICE_ROLE_KEY")
                 or self._safe_get(settings, "SUPABASE_PUBLISHABLE_KEY")
                 or self._safe_get(settings, "SUPABASE_ANON_KEY")
+                or self._safe_get(settings, "SUPABASE_MATRIX_KEY")
             )
             if not key:
                 return
