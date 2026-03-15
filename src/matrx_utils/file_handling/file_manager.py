@@ -4,7 +4,16 @@ from .specific_handlers.html_handler import HtmlHandler
 from .specific_handlers.json_handler import JsonHandler
 from .specific_handlers.markdown_handler import MarkdownHandler
 from .specific_handlers.text_handler import TextHandler
-from .specific_handlers.image_handler import ImageHandler
+from .specific_handlers.image_handler import (
+    ImageHandler,
+    ImageVariant,
+    PODCAST_VARIANTS,
+    SOCIAL_VARIANTS,
+    WEB_VARIANTS,
+    EMAIL_VARIANTS,
+    ALL_VARIANTS,
+)
+from .specific_handlers.video_handler import VideoHandler
 from .batch_handler import BatchHandler
 from .backends import (
     BackendRouter,
@@ -39,6 +48,7 @@ class FileManager:
         self.html_handler = HtmlHandler(app_name, batch_print=batch_print)
         self.image_handler = ImageHandler(app_name, batch_print=batch_print)
         self.markdown_handler = MarkdownHandler(app_name, batch_print=batch_print)
+        self.video_handler = VideoHandler(app_name, batch_print=batch_print)
         self.cloud = BackendRouter()
 
         # Inject the shared router into every handler so they can call
@@ -51,6 +61,7 @@ class FileManager:
             self.html_handler,
             self.image_handler,
             self.markdown_handler,
+            self.video_handler,
         ):
             _handler.set_cloud_router(self.cloud)
 
@@ -480,5 +491,77 @@ class FileManager:
     def add_to_batch(self, full_path=None, message=None, color=None):
         self.file_handler.add_to_batch(full_path, message, color)
 
-    def get_full_path_from_base(self,root, path):
+    def get_full_path_from_base(self, root, path):
         return self.file_handler.public_get_full_path(root, path)
+
+    # ------------------------------------------------------------------
+    # Media processing convenience methods
+    # ------------------------------------------------------------------
+
+    async def process_image_variants_async(
+        self,
+        image_bytes: bytes,
+        variants: "list[ImageVariant]",
+        folder_uri: str,
+    ) -> "dict[str, str]":
+        """Resize image to all variants, upload each to cloud, return public URLs.
+
+        Delegates to ImageHandler.process_variants_async(). CPU work runs in a
+        thread executor; uploads are fully async.
+
+        Parameters
+        ----------
+        image_bytes:
+            Raw bytes of the source image.
+        variants:
+            List of ImageVariant dicts. Use PODCAST_VARIANTS, SOCIAL_VARIANTS,
+            WEB_VARIANTS, EMAIL_VARIANTS, or a custom list.
+        folder_uri:
+            Cloud folder URI, e.g. ``"supabase://podcast-assets/{user_id}/{uuid}"``.
+
+        Returns
+        -------
+        dict[str, str]
+            Variant key → permanent public URL.
+        """
+        return await self.image_handler.process_variants_async(image_bytes, variants, folder_uri)
+
+    async def extract_video_frame_async(
+        self, video_bytes: bytes, position: float = 0.10
+    ) -> bytes:
+        """Extract a JPEG frame from *video_bytes* at *position* (0.0–1.0).
+
+        Delegates to VideoHandler.extract_frame_at_async(). Runs in a thread
+        executor — never blocks the event loop.
+
+        Returns JPEG bytes of the extracted frame.
+        """
+        return await self.video_handler.extract_frame_at_async(video_bytes, position)
+
+    async def upload_video_async(
+        self,
+        video_bytes: bytes,
+        dest_uri: str,
+        content_type: str = "video/mp4",
+    ) -> str:
+        """Upload video bytes to cloud storage and return the permanent public URL.
+
+        Delegates to VideoHandler.upload_video_async(). Uses the SupabaseBackend's
+        600-second timeout, which safely handles large podcast video files.
+
+        Parameters
+        ----------
+        video_bytes:
+            Raw bytes of the video file.
+        dest_uri:
+            Full cloud storage URI including filename.
+            e.g. ``"supabase://podcast-assets/{user_id}/{uuid}/video.mp4"``
+        content_type:
+            MIME type. Defaults to ``"video/mp4"``.
+
+        Returns
+        -------
+        str
+            Permanent public URL of the uploaded video.
+        """
+        return await self.video_handler.upload_video_async(video_bytes, dest_uri, content_type)

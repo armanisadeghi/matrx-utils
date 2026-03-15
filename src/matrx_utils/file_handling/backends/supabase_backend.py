@@ -86,6 +86,11 @@ class SupabaseBackend(StorageBackend):
         except Exception:
             return ""
 
+    # Large file uploads (especially video) need a much longer timeout than
+    # the httpx default of ~5s connect / 5s read.  600s (10 min) covers even
+    # very large podcast video files over a typical cloud connection.
+    upload_timeout_seconds: float = 600.0
+
     def _get_client(self) -> Client:
         if self._client is None:
             from supabase import create_client
@@ -94,8 +99,17 @@ class SupabaseBackend(StorageBackend):
 
     async def _get_async_client(self) -> AsyncClient:
         if self._async_client is None:
+            import httpx
             from supabase import acreate_client
-            self._async_client = await acreate_client(self._url, self._key)
+            from supabase.lib.client_options import AsyncClientOptions
+            _timeout = httpx.Timeout(timeout=self.upload_timeout_seconds)
+            self._async_client = await acreate_client(
+                self._url,
+                self._key,
+                options=AsyncClientOptions(
+                    httpx_client=httpx.AsyncClient(timeout=_timeout)
+                ),
+            )
         return self._async_client  # type: ignore[return-value]
 
     def _get_storage(self):
@@ -147,14 +161,20 @@ class SupabaseBackend(StorageBackend):
         data: bytes = self._bucket(bucket).download(file_path)
         return data
 
-    def write(self, path: str, content: bytes | str, upsert: bool = True) -> bool:
+    def write(
+        self,
+        path: str,
+        content: bytes | str,
+        upsert: bool = True,
+        content_type: str | None = None,
+    ) -> bool:
         self._require_configured()
         bucket, file_path = self._parse_path(path)
         raw: bytes = content.encode() if isinstance(content, str) else content
-        if upsert:
-            self._bucket(bucket).upload(file_path, raw, file_options={"upsert": "true"})
-        else:
-            self._bucket(bucket).upload(file_path, raw)
+        file_options: dict = {"upsert": "true" if upsert else "false"}
+        if content_type:
+            file_options["content-type"] = content_type
+        self._bucket(bucket).upload(file_path, raw, file_options=file_options)
         return True
 
     def append(self, path: str, content: bytes | str) -> bool:
@@ -292,15 +312,21 @@ class SupabaseBackend(StorageBackend):
         data: bytes = await bucket_api.download(file_path)
         return data
 
-    async def write_async(self, path: str, content: bytes | str, upsert: bool = True) -> bool:
+    async def write_async(
+        self,
+        path: str,
+        content: bytes | str,
+        upsert: bool = True,
+        content_type: str | None = None,
+    ) -> bool:
         self._require_configured()
         bucket, file_path = self._parse_path(path)
         raw: bytes = content.encode() if isinstance(content, str) else content
         bucket_api = await self._async_bucket(bucket)
-        if upsert:
-            await bucket_api.upload(file_path, raw, file_options={"upsert": "true"})
-        else:
-            await bucket_api.upload(file_path, raw)
+        file_options: dict = {"upsert": "true" if upsert else "false"}
+        if content_type:
+            file_options["content-type"] = content_type
+        await bucket_api.upload(file_path, raw, file_options=file_options)
         return True
 
     async def append_async(self, path: str, content: bytes | str) -> bool:

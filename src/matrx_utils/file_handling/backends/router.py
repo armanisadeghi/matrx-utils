@@ -323,6 +323,11 @@ class BackendRouter:
         backend, path = self._resolve(uri)
         return backend.get_url(path, expires_in=expires_in)
 
+    def get_public_url(self, uri: str) -> str:
+        """Return the permanent public URL for a cloud object (bucket must be public)."""
+        backend, path = self._resolve(uri)
+        return backend.get_public_url(path)
+
     def list_files(self, uri_prefix: str = "") -> list[str]:
         if not uri_prefix:
             raise ValueError(
@@ -416,6 +421,16 @@ class BackendRouter:
     async def delete_async(self, uri: str) -> bool:
         backend, path = self._resolve(uri)
         return await backend.delete_async(path)
+
+    def get_public_url(self, uri: str) -> str:
+        """Return the permanent public URL for a cloud object (bucket must be public)."""
+        backend, path = self._resolve(uri)
+        return backend.get_public_url(path)
+
+    async def get_public_url_async(self, uri: str) -> str:
+        """Non-blocking permanent public URL (bucket must be public)."""
+        backend, path = self._resolve(uri)
+        return await backend.get_public_url_async(path)
 
     async def get_url_async(self, uri: str, expires_in: int = 3600) -> str:
         backend, path = self._resolve(uri)

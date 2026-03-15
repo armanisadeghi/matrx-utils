@@ -1,9 +1,65 @@
+from __future__ import annotations
 
+import asyncio
 import base64
 from io import BytesIO
 from pathlib import Path
+from typing import TypedDict
+
 from PIL import Image, ImageEnhance
+
 from matrx_utils.file_handling.file_handler import FileHandler
+
+
+# ---------------------------------------------------------------------------
+# Variant type and preset collections
+# ---------------------------------------------------------------------------
+
+class ImageVariant(TypedDict):
+    key: str      # Key in the returned dict, e.g. "cover_url"
+    suffix: str   # Filename suffix, e.g. "cover"
+    width: int
+    height: int
+    quality: int  # JPEG/WEBP quality 1-95
+    format: str   # "JPEG" | "PNG" | "WEBP"
+
+
+# Podcast / Audio — Apple Podcasts & Spotify recommended 3000×3000; 1400 kept
+# as legacy SD variant. OG covers Twitter / LinkedIn / Facebook. Thumb for UI.
+PODCAST_VARIANTS: list[ImageVariant] = [
+    {"key": "cover_url",     "suffix": "cover",    "width": 3000, "height": 3000, "quality": 90, "format": "JPEG"},
+    {"key": "cover_sd_url",  "suffix": "cover_sd", "width": 1400, "height": 1400, "quality": 85, "format": "JPEG"},
+    {"key": "og_url",        "suffix": "og",       "width": 1200, "height": 630,  "quality": 85, "format": "JPEG"},
+    {"key": "thumbnail_url", "suffix": "thumb",    "width": 400,  "height": 400,  "quality": 80, "format": "JPEG"},
+]
+
+# Social media — OG/Twitter card, Instagram square/portrait/story, YouTube thumbnail
+SOCIAL_VARIANTS: list[ImageVariant] = [
+    {"key": "og_url",           "suffix": "og",       "width": 1200, "height": 630,  "quality": 85, "format": "JPEG"},
+    {"key": "square_url",       "suffix": "sq",       "width": 1080, "height": 1080, "quality": 85, "format": "JPEG"},
+    {"key": "portrait_url",     "suffix": "portrait", "width": 1080, "height": 1350, "quality": 85, "format": "JPEG"},
+    {"key": "story_url",        "suffix": "story",    "width": 1080, "height": 1920, "quality": 85, "format": "JPEG"},
+    {"key": "yt_thumbnail_url", "suffix": "yt_thumb", "width": 1280, "height": 720,  "quality": 85, "format": "JPEG"},
+]
+
+# Web — hero banner, OG/SEO, content card, Apple touch icon, PWA manifest icon, UI thumbnail
+WEB_VARIANTS: list[ImageVariant] = [
+    {"key": "hero_url",       "suffix": "hero",       "width": 1920, "height": 1080, "quality": 85, "format": "JPEG"},
+    {"key": "og_url",         "suffix": "og",         "width": 1200, "height": 630,  "quality": 85, "format": "JPEG"},
+    {"key": "card_url",       "suffix": "card",       "width": 800,  "height": 450,  "quality": 85, "format": "JPEG"},
+    {"key": "touch_icon_url", "suffix": "touch_icon", "width": 180,  "height": 180,  "quality": 90, "format": "PNG"},
+    {"key": "pwa_icon_url",   "suffix": "pwa_icon",   "width": 512,  "height": 512,  "quality": 90, "format": "PNG"},
+    {"key": "thumbnail_url",  "suffix": "thumb",      "width": 400,  "height": 400,  "quality": 80, "format": "JPEG"},
+]
+
+# Email — standard 600px-wide header + small inline square
+EMAIL_VARIANTS: list[ImageVariant] = [
+    {"key": "header_url", "suffix": "email_header", "width": 600, "height": 200, "quality": 85, "format": "JPEG"},
+    {"key": "square_url", "suffix": "email_sq",     "width": 200, "height": 200, "quality": 85, "format": "JPEG"},
+]
+
+# Full set — use when you want every variant in one call
+ALL_VARIANTS: list[ImageVariant] = PODCAST_VARIANTS + SOCIAL_VARIANTS + WEB_VARIANTS
 
 
 class ImageHandler(FileHandler):
@@ -346,3 +402,146 @@ class ImageHandler(FileHandler):
         except Exception as e:
             print(f"[ImageHandler] write_image_to_cloud_async failed for {dest_uri}: {e}")
             return False
+
+    # ------------------------------------------------------------------
+    # Cover-crop resize and JPEG normalization
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def resize_cover(image: Image.Image, width: int, height: int) -> Image.Image:
+        """Scale and center-crop to exact dimensions (CSS object-fit: cover).
+
+        The image is scaled so that it completely fills the target box
+        (no empty space), then the excess is trimmed from both sides equally.
+        Uses LANCZOS resampling for maximum quality.
+        """
+        src_ratio = image.width / image.height
+        dst_ratio = width / height
+        if src_ratio > dst_ratio:
+            # Source is wider than target — scale by height, crop width
+            new_h = height
+            new_w = int(image.width * (height / image.height))
+        else:
+            # Source is taller than target — scale by width, crop height
+            new_w = width
+            new_h = int(image.height * (width / image.width))
+        image = image.resize((new_w, new_h), Image.LANCZOS)
+        left = (image.width - width) // 2
+        top = (image.height - height) // 2
+        return image.crop((left, top, left + width, top + height))
+
+    @staticmethod
+    def normalize_for_export(image: Image.Image, fmt: str) -> Image.Image:
+        """Ensure image mode is compatible with the target format.
+
+        JPEG and WEBP cannot encode alpha channels — RGBA images are composited
+        onto a white background and converted to RGB. Non-RGB modes for JPEG
+        are also converted. PNG passes through unchanged to preserve alpha.
+        """
+        fmt_upper = fmt.upper()
+        if fmt_upper in ("JPEG", "WEBP"):
+            if image.mode == "RGBA":
+                bg = Image.new("RGB", image.size, (255, 255, 255))
+                bg.paste(image, mask=image.split()[3])
+                return bg
+            if image.mode != "RGB":
+                return image.convert("RGB")
+        return image
+
+    def _render_variants(
+        self, image_bytes: bytes, variants: list[ImageVariant]
+    ) -> list[tuple[str, str, str, bytes]]:
+        """CPU-bound: open source image and produce all variant byte buffers.
+
+        Returns a list of (key, suffix, format, encoded_bytes) tuples.
+        Runs synchronously — always call from a thread executor in async contexts.
+        """
+        img = Image.open(BytesIO(image_bytes))
+        results: list[tuple[str, str, str, bytes]] = []
+        for v in variants:
+            resized = self.resize_cover(img, v["width"], v["height"])
+            normalized = self.normalize_for_export(resized, v["format"])
+            buf = BytesIO()
+            save_kwargs: dict = {"format": v["format"]}
+            if v["format"].upper() in ("JPEG", "WEBP"):
+                save_kwargs["quality"] = v.get("quality", 85)
+                save_kwargs["optimize"] = True
+            normalized.save(buf, **save_kwargs)
+            results.append((v["key"], v["suffix"], v["format"], buf.getvalue()))
+        return results
+
+    def process_variants(
+        self,
+        image_bytes: bytes,
+        variants: list[ImageVariant],
+        folder_uri: str,
+    ) -> dict[str, str]:
+        """Resize image to all variants, upload each to cloud, return public URLs.
+
+        Synchronous version — use process_variants_async() in FastAPI routes.
+
+        Parameters
+        ----------
+        image_bytes:
+            Raw bytes of the source image (any PIL-supported format).
+        variants:
+            List of ImageVariant dicts. Use PODCAST_VARIANTS, SOCIAL_VARIANTS,
+            WEB_VARIANTS, EMAIL_VARIANTS, or a custom list.
+        folder_uri:
+            Cloud folder URI, e.g. ``"supabase://podcast-assets/{user_id}/{uuid}"``.
+            Each variant is uploaded as ``{folder_uri}/{suffix}.{ext}``.
+
+        Returns
+        -------
+        dict[str, str]
+            Mapping of variant key to permanent public URL.
+            e.g. ``{"cover_url": "https://...", "og_url": "https://..."}``
+        """
+        rendered = self._render_variants(image_bytes, variants)
+        urls: dict[str, str] = {}
+        for key, suffix, fmt, data in rendered:
+            ext = "jpg" if fmt.upper() == "JPEG" else fmt.lower()
+            dest_uri = f"{folder_uri.rstrip('/')}/{suffix}.{ext}"
+            mime = f"image/jpeg" if ext == "jpg" else f"image/{ext}"
+            self.cloud_write(dest_uri, data, content_type=mime)
+            urls[key] = self.cloud_get_public_url(dest_uri)
+        return urls
+
+    async def process_variants_async(
+        self,
+        image_bytes: bytes,
+        variants: list[ImageVariant],
+        folder_uri: str,
+    ) -> dict[str, str]:
+        """Async version of process_variants(). Use this in FastAPI routes.
+
+        CPU work (Pillow resizing) runs in a thread executor so the event loop
+        is never blocked. Supabase uploads are fully async via AsyncClient.
+
+        Parameters
+        ----------
+        image_bytes:
+            Raw bytes of the source image (any PIL-supported format).
+        variants:
+            List of ImageVariant dicts. Use PODCAST_VARIANTS, SOCIAL_VARIANTS,
+            WEB_VARIANTS, EMAIL_VARIANTS, or a custom list.
+        folder_uri:
+            Cloud folder URI, e.g. ``"supabase://podcast-assets/{user_id}/{uuid}"``.
+
+        Returns
+        -------
+        dict[str, str]
+            Mapping of variant key to permanent public URL.
+        """
+        loop = asyncio.get_event_loop()
+        rendered = await loop.run_in_executor(
+            None, self._render_variants, image_bytes, variants
+        )
+        urls: dict[str, str] = {}
+        for key, suffix, fmt, data in rendered:
+            ext = "jpg" if fmt.upper() == "JPEG" else fmt.lower()
+            dest_uri = f"{folder_uri.rstrip('/')}/{suffix}.{ext}"
+            mime = f"image/jpeg" if ext == "jpg" else f"image/{ext}"
+            await self.cloud_write_async(dest_uri, data, content_type=mime)
+            urls[key] = await self.cloud_get_public_url_async(dest_uri)
+        return urls

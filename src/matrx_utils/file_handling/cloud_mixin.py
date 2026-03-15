@@ -125,6 +125,14 @@ class CloudMixin:
         """Non-blocking signed/presigned URL generation."""
         return await self._require_cloud().get_url_async(uri, expires_in=expires_in)
 
+    async def cloud_get_public_url_async(self, uri: str) -> str:
+        """Return the permanent public URL for a cloud object (bucket must be public)."""
+        return await self._require_cloud().get_public_url_async(uri)
+
+    def cloud_get_public_url(self, uri: str) -> str:
+        """Return the permanent public URL for a cloud object (bucket must be public)."""
+        return self._require_cloud().get_public_url(uri)
+
     async def cloud_list_files_async(self, uri_prefix: str) -> list[str]:
         """Non-blocking file listing under a URI prefix."""
         return await self._require_cloud().list_files_async(uri_prefix)
