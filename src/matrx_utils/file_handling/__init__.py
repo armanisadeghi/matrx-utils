@@ -26,6 +26,26 @@ from .backends import (
     is_storage_url,
     ParsedStorageUrl,
 )
+from .cloud_sync import (
+    CloudSyncConfig,
+    SyncEngine,
+    SyncResult,
+    PermissionsManager,
+    VersionManager,
+    DatabaseClient,
+    CloudFile,
+    CloudFolder,
+    CloudFileVersion,
+    CloudFilePermission,
+    CloudShareLink,
+    CloudUserGroup,
+    CloudGroupMember,
+    FileTreeEntry,
+    get_migration_sql,
+    run_migrations,
+    is_schema_applied,
+    print_migration_sql,
+)
 
 __all__ = [
     # Core
@@ -57,4 +77,23 @@ __all__ = [
     'parse_storage_url',
     'is_storage_url',
     'ParsedStorageUrl',
+    # Cloud sync
+    'CloudSyncConfig',
+    'SyncEngine',
+    'SyncResult',
+    'PermissionsManager',
+    'VersionManager',
+    'DatabaseClient',
+    'CloudFile',
+    'CloudFolder',
+    'CloudFileVersion',
+    'CloudFilePermission',
+    'CloudShareLink',
+    'CloudUserGroup',
+    'CloudGroupMember',
+    'FileTreeEntry',
+    'get_migration_sql',
+    'run_migrations',
+    'is_schema_applied',
+    'print_migration_sql',
 ]

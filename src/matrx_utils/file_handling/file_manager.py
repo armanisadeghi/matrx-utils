@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime
+from typing import TYPE_CHECKING
+import uuid
 
 from .file_handler import FileHandler
 from .specific_handlers.html_handler import HtmlHandler
@@ -28,15 +35,27 @@ from .backends import (
     LLMOutputFormat,
 )
 
-from datetime import datetime
-import uuid
+if TYPE_CHECKING:
+    from .cloud_sync.config import CloudSyncConfig
+    from .cloud_sync.sync_engine import SyncEngine
+    from .cloud_sync.models import SyncResult
+
+_logger = logging.getLogger(__name__)
 
 
 class FileManager:
     _instances = {}
     _log_intro = "[MATRX FILE MANAGER]"
 
-    def __init__(self, app_name, new_instance=False, batch_print=False, print_errors=True, batch_handler=None):
+    def __init__(
+        self,
+        app_name,
+        new_instance=False,
+        batch_print=False,
+        print_errors=True,
+        batch_handler=None,
+        cloud_sync: CloudSyncConfig | None = None,
+    ):
         self.app_name = app_name
         self.batch_print = batch_print
         self.print_errors = print_errors
@@ -65,16 +84,62 @@ class FileManager:
         ):
             _handler.set_cloud_router(self.cloud)
 
+        # Cloud sync engine — None when not configured.
+        self._sync_engine: SyncEngine | None = None
+        if cloud_sync is not None:
+            from .cloud_sync.sync_engine import SyncEngine as _SE
+            self._sync_engine = _SE(cloud_sync, self.cloud)
+
+    @property
+    def sync_engine(self) -> SyncEngine | None:
+        """The cloud sync engine, or None if cloud_sync is not configured."""
+        return self._sync_engine
+
     @classmethod
-    def get_instance(cls, app_name, new_instance=False, batch_print=False, print_errors=True, batch_handler=None):
+    def get_instance(
+        cls,
+        app_name,
+        new_instance=False,
+        batch_print=False,
+        print_errors=True,
+        batch_handler=None,
+        cloud_sync: CloudSyncConfig | None = None,
+    ):
         key = (app_name, batch_print, print_errors, id(batch_handler))
         if not new_instance and key in cls._instances:
-            return cls._instances[key]
+            existing = cls._instances[key]
+            # If cloud_sync is newly provided, attach it to the existing instance
+            if cloud_sync is not None and existing._sync_engine is None:
+                from .cloud_sync.sync_engine import SyncEngine as _SE
+                existing._sync_engine = _SE(cloud_sync, existing.cloud)
+            return existing
 
-        instance = cls(app_name, new_instance, batch_print, print_errors, batch_handler)
+        instance = cls(app_name, new_instance, batch_print, print_errors, batch_handler, cloud_sync)
         if not new_instance:
             cls._instances[key] = instance
         return instance
+
+    # ------------------------------------------------------------------
+    # Internal sync helpers
+    # ------------------------------------------------------------------
+
+    def _should_sync(self, override: bool | None) -> bool:
+        """Determine whether to auto-sync this operation."""
+        if override is not None:
+            return override
+        return self._sync_engine is not None and self._sync_engine.auto_sync
+
+    def _background_sync_write(
+        self, path: str, content, mime_type: str | None = None
+    ) -> None:
+        """Fire-and-forget cloud sync after a local write."""
+        if self._sync_engine:
+            self._sync_engine.fire_and_forget_write(path, content, mime_type=mime_type)
+
+    def _background_sync_delete(self, path: str) -> None:
+        """Fire-and-forget cloud sync after a local delete."""
+        if self._sync_engine:
+            self._sync_engine.fire_and_forget_delete(path)
 
     def read(self, root, path=None, file_type='text'):
         """Read a file from local storage or a cloud URI.
@@ -92,7 +157,7 @@ class FileManager:
         handler = getattr(self, f"{file_type}_handler")
         return getattr(handler, f"read_{file_type}")(root, path)
 
-    def write(self, root, path=None, content=None, file_type='text', clean=True, **kwargs):
+    def write(self, root, path=None, content=None, file_type='text', clean=True, *, cloud_sync=None, **kwargs):
         """Write content to local storage or a cloud URI.
 
         Local usage (unchanged):
@@ -102,13 +167,20 @@ class FileManager:
             fm.write("s3://bucket/report.json", content=data)
             fm.write("supabase://bucket/avatar.png", content=image_bytes)
             fm.write("server://uploads/data.csv", content=csv_text)
+
+        When cloud_sync is configured, local writes automatically sync
+        to cloud storage and record metadata in the database (background).
+        Pass ``cloud_sync=False`` to skip sync for this call.
         """
         if is_cloud_uri(root):
             if content is None:
                 raise ValueError("write() requires 'content' when using a cloud URI.")
             return self.cloud.write(root, content, **kwargs)
         handler = getattr(self, f"{file_type}_handler")
-        return getattr(handler, f"write_{file_type}")(root, path, content, clean=clean)
+        result = getattr(handler, f"write_{file_type}")(root, path, content, clean=clean)
+        if result and path and self._should_sync(cloud_sync):
+            self._background_sync_write(path, content)
+        return result
 
     def append(self, root, path=None, content=None, file_type='text', **kwargs):
         """Append to a file in local storage or a cloud URI.
@@ -128,16 +200,22 @@ class FileManager:
             )
         return append_method(root, path, content)
 
-    def delete(self, root, path=None, file_type='text'):
+    def delete(self, root, path=None, file_type='text', *, cloud_sync=None):
         """Delete a file from local storage or a cloud URI.
 
         Cloud usage:
             fm.delete("s3://bucket/old-report.json")
+
+        When cloud_sync is configured, local deletes also soft-delete
+        the file record in the database (background).
         """
         if is_cloud_uri(root):
             return self.cloud.delete(root)
         handler = getattr(self, f"{file_type}_handler")
-        return handler.delete_file(root, path)
+        result = handler.delete_file(root, path)
+        if result and path and self._should_sync(cloud_sync):
+            self._background_sync_delete(path)
+        return result
 
     def file_exists(self, root, path, file_type='text'):
         handler = getattr(self, f"{file_type}_handler")
@@ -393,8 +471,11 @@ class FileManager:
     def read_json(self, root, path):
         return self.json_handler.read_json(root, path)
 
-    def write_json(self, root, path, data, clean=True):
-        return self.json_handler.write_json(root=root, path=path, data=data, clean=clean)
+    def write_json(self, root, path, data, clean=True, *, cloud_sync=None):
+        result = self.json_handler.write_json(root=root, path=path, data=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="application/json")
+        return result
 
     def append_json(self, root, path, data, clean=True):
         return self.json_handler.append_json(root=root, path=path, data=data, clean=clean)
@@ -402,8 +483,11 @@ class FileManager:
     def read_temp_json(self, path):
         return self.json_handler.read_json(root="temp", path=path)
 
-    def write_temp_json(self, path, data, clean=True):
-        return self.json_handler.write_json(root="temp", path=path, data=data, clean=clean)
+    def write_temp_json(self, path, data, clean=True, *, cloud_sync=None):
+        result = self.json_handler.write_json(root="temp", path=path, data=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="application/json")
+        return result
 
     def get_config_json(self, path):
         return self.json_handler.read_json(root="config", path=path)
@@ -411,40 +495,58 @@ class FileManager:
     def read_text(self, root, path):
         return self.text_handler.read_text(root, path)
 
-    def write_text(self, root, path, data, clean=True):
-        return self.text_handler.write_text(root=root, path=path, content=data, clean=clean)
+    def write_text(self, root, path, data, clean=True, *, cloud_sync=None):
+        result = self.text_handler.write_text(root=root, path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/plain")
+        return result
 
     def read_temp_text(self, path):
         return self.text_handler.read_text(root="temp", path=path)
 
-    def write_temp_text(self, path, data, clean=True):
-        return self.text_handler.write_text(root="temp", path=path, content=data, clean=clean)
+    def write_temp_text(self, path, data, clean=True, *, cloud_sync=None):
+        result = self.text_handler.write_text(root="temp", path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/plain")
+        return result
 
     # HTML specific methods
     def read_html(self, root, path):
         return self.html_handler.read_html(root, path)
 
-    def write_html(self, root, path, data, clean=True):
-        return self.html_handler.write_html(root=root, path=path, content=data, clean=clean)
+    def write_html(self, root, path, data, clean=True, *, cloud_sync=None):
+        result = self.html_handler.write_html(root=root, path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/html")
+        return result
 
     def read_temp_html(self, path):
         return self.html_handler.read_html(root="temp", path=path)
 
-    def write_temp_html(self, path, data, clean=True):
-        return self.html_handler.write_html(root="temp", path=path, content=data, clean=clean)
+    def write_temp_html(self, path, data, clean=True, *, cloud_sync=None):
+        result = self.html_handler.write_html(root="temp", path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/html")
+        return result
 
     # Markdown specific methods
     def read_markdown(self, root, path):
         return self.markdown_handler.read_markdown(root, path)
 
-    def write_markdown(self, root, path, data, clean=True):
-        return self.markdown_handler.write_markdown(root=root, path=path, content=data, clean=clean)
+    def write_markdown(self, root, path, data, clean=True, *, cloud_sync=None):
+        result = self.markdown_handler.write_markdown(root=root, path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/markdown")
+        return result
 
     def read_temp_markdown(self, path):
         return self.markdown_handler.read_markdown(root="temp", path=path)
 
-    def write_temp_markdown(self, path, data, clean=True):
-        return self.markdown_handler.write_markdown(root="temp", path=path, content=data, clean=clean)
+    def write_temp_markdown(self, path, data, clean=True, *, cloud_sync=None):
+        result = self.markdown_handler.write_markdown(root="temp", path=path, content=data, clean=clean)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data, mime_type="text/markdown")
+        return result
 
     def read_markdown_lines(self, root, path):
         return self.markdown_handler.read_lines(root, path)
@@ -457,14 +559,20 @@ class FileManager:
     def read_image(self, root, path):
         return self.image_handler.read_image(root, path)
 
-    def write_image(self, root, path, data):
-        return self.image_handler.write_image(root=root, path=path, image=data)
+    def write_image(self, root, path, data, *, cloud_sync=None):
+        result = self.image_handler.write_image(root=root, path=path, image=data)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data)
+        return result
 
     def read_temp_image(self, path):
         return self.image_handler.read_image(root="temp", path=path)
 
-    def write_temp_image(self, path, data, clean=True):
-        return self.image_handler.write_image(root="temp", path=path, image=data)
+    def write_temp_image(self, path, data, *, cloud_sync=None):
+        result = self.image_handler.write_image(root="temp", path=path, image=data)
+        if result and self._should_sync(cloud_sync):
+            self._background_sync_write(path, data)
+        return result
 
     def generate_filename(self, extension, sub_dir="", prefix="", suffix="", random=False):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -565,3 +673,227 @@ class FileManager:
             Permanent public URL of the uploaded video.
         """
         return await self.video_handler.upload_video_async(video_bytes, dest_uri, content_type)
+
+    # ==================================================================
+    # Managed cloud sync operations
+    # ==================================================================
+    # These methods provide full control over cloud-synced files with
+    # permission checks, versioning, and metadata tracking.  They
+    # require a CloudSyncConfig to have been provided.
+    # ==================================================================
+
+    def _require_sync_engine(self) -> SyncEngine:
+        if self._sync_engine is None:
+            raise RuntimeError(
+                "Cloud sync is not configured. Pass a CloudSyncConfig to "
+                "FileManager to enable managed operations."
+            )
+        return self._sync_engine
+
+    def managed_write(
+        self,
+        file_path: str,
+        content: bytes | str | dict | list,
+        *,
+        mime_type: str | None = None,
+        visibility: str = "private",
+        share_with: list[str] | None = None,
+        share_level: str = "read",
+        change_summary: str | None = None,
+        user_id: str | None = None,
+        metadata: dict | None = None,
+    ) -> SyncResult:
+        """Write a file to cloud with full metadata, versioning, and permissions.
+
+        Parameters
+        ----------
+        file_path:
+            Logical file path (e.g. "reports/q1.json").
+        content:
+            File content — bytes, str, dict, or list.
+        visibility:
+            "private" (default), "public", or "shared".
+        share_with:
+            List of user UUIDs to grant access to.
+        share_level:
+            Permission level for shared users ("read", "write", "admin").
+        change_summary:
+            Optional description of this version's changes.
+        user_id:
+            Override the configured user_id for this operation.
+        metadata:
+            Optional JSONB metadata to store with the file.
+
+        Returns
+        -------
+        SyncResult
+            Contains file_id, storage_uri, version_number, checksum, url.
+        """
+        return self._require_sync_engine().managed_write(
+            file_path, content,
+            mime_type=mime_type,
+            visibility=visibility,
+            share_with=share_with,
+            share_level=share_level,
+            change_summary=change_summary,
+            user_id=user_id,
+            metadata=metadata,
+        )
+
+    async def managed_write_async(
+        self,
+        file_path: str,
+        content: bytes | str | dict | list,
+        *,
+        mime_type: str | None = None,
+        visibility: str = "private",
+        share_with: list[str] | None = None,
+        share_level: str = "read",
+        change_summary: str | None = None,
+        user_id: str | None = None,
+        metadata: dict | None = None,
+    ) -> SyncResult:
+        """Async version of managed_write(). Use this in FastAPI routes."""
+        return await self._require_sync_engine().managed_write_async(
+            file_path, content,
+            mime_type=mime_type,
+            visibility=visibility,
+            share_with=share_with,
+            share_level=share_level,
+            change_summary=change_summary,
+            user_id=user_id,
+            metadata=metadata,
+        )
+
+    def managed_read(
+        self,
+        file_path: str,
+        *,
+        user_id: str | None = None,
+        version: int | None = None,
+    ) -> bytes:
+        """Read a cloud-managed file with permission checking.
+
+        Parameters
+        ----------
+        file_path:
+            Logical file path (e.g. "reports/q1.json").
+        user_id:
+            Override the configured user_id for this operation.
+        version:
+            Read a specific version instead of the current one.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file doesn't exist.
+        PermissionError
+            If the user lacks read access.
+        """
+        return self._require_sync_engine().managed_read(
+            file_path, user_id=user_id, version=version
+        )
+
+    async def managed_read_async(
+        self,
+        file_path: str,
+        *,
+        user_id: str | None = None,
+        version: int | None = None,
+    ) -> bytes:
+        """Async version of managed_read()."""
+        return await self._require_sync_engine().managed_read_async(
+            file_path, user_id=user_id, version=version
+        )
+
+    def managed_delete(
+        self,
+        file_path: str,
+        *,
+        user_id: str | None = None,
+        hard_delete: bool = False,
+    ) -> bool:
+        """Delete a cloud-managed file (soft delete by default).
+
+        Parameters
+        ----------
+        file_path:
+            Logical file path.
+        hard_delete:
+            If True, also removes the file from cloud storage.
+
+        Raises
+        ------
+        PermissionError
+            If the user lacks admin access and is not the owner.
+        """
+        return self._require_sync_engine().managed_delete(
+            file_path, user_id=user_id, hard_delete=hard_delete
+        )
+
+    async def managed_delete_async(
+        self,
+        file_path: str,
+        *,
+        user_id: str | None = None,
+        hard_delete: bool = False,
+    ) -> bool:
+        """Async version of managed_delete()."""
+        return await self._require_sync_engine().managed_delete_async(
+            file_path, user_id=user_id, hard_delete=hard_delete
+        )
+
+    def managed_list_files(
+        self,
+        folder_path: str | None = None,
+        *,
+        user_id: str | None = None,
+    ) -> list[dict]:
+        """List cloud-managed files, optionally filtered by folder."""
+        return self._require_sync_engine().list_files(
+            folder_path=folder_path, user_id=user_id
+        )
+
+    async def managed_list_files_async(
+        self,
+        folder_path: str | None = None,
+        *,
+        user_id: str | None = None,
+    ) -> list[dict]:
+        """Async version of managed_list_files()."""
+        return await self._require_sync_engine().list_files_async(
+            folder_path=folder_path, user_id=user_id
+        )
+
+    def managed_get_url(
+        self,
+        file_path: str,
+        expires_in: int = 3600,
+        *,
+        user_id: str | None = None,
+    ) -> str:
+        """Get a signed URL for a managed file, with permission check."""
+        return self._require_sync_engine().get_file_url(
+            file_path, expires_in=expires_in, user_id=user_id
+        )
+
+    async def managed_get_url_async(
+        self,
+        file_path: str,
+        expires_in: int = 3600,
+        *,
+        user_id: str | None = None,
+    ) -> str:
+        """Async version of managed_get_url()."""
+        return await self._require_sync_engine().get_file_url_async(
+            file_path, expires_in=expires_in, user_id=user_id
+        )
+
+    def set_sync_user(self, user_id: str) -> None:
+        """Switch the active user for cloud sync (call per-request in FastAPI).
+
+        This updates the user_id used for all auto-sync, permissions,
+        and managed operations.
+        """
+        engine = self._require_sync_engine()
+        engine.set_user(user_id)
