@@ -85,9 +85,27 @@ class SyncEngine:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _resolve_user_id(self, explicit: str | None) -> str:
+        """Resolve user_id with three-level priority:
+
+        1. Explicitly passed ``user_id`` argument (highest — per-call override).
+        2. ``CloudSyncConfig.user_id`` baked in at construction time.
+        3. Active request context via ``matrx_utils.ctx.get_active_user_id()``
+           (set automatically by middleware in web apps that called
+           ``configure_context()``).
+
+        Returns ``""`` if none of the above is set.
+        """
+        if explicit:
+            return explicit
+        if self._config.user_id:
+            return self._config.user_id
+        from matrx_utils.ctx import get_active_user_id
+        return get_active_user_id()
+
     def _storage_uri(self, file_path: str, user_id: str | None = None) -> str:
         """Build the canonical cloud storage URI for a file path."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         bucket = self._config.resolve_s3_bucket()
         backend = self._config.storage_backend
         return f"{backend}://{bucket}/{uid}/{file_path}"
@@ -169,7 +187,7 @@ class SyncEngine:
     ) -> None:
         """Upload to cloud and record in database.  Fire-and-forget."""
         try:
-            uid = user_id or self._config.user_id
+            uid = self._resolve_user_id(user_id)
             content_bytes = self._to_bytes(content)
             storage_uri = self._storage_uri(file_path, uid)
 
@@ -227,7 +245,7 @@ class SyncEngine:
     ) -> None:
         """Async version of track_write()."""
         try:
-            uid = user_id or self._config.user_id
+            uid = self._resolve_user_id(user_id)
             content_bytes = self._to_bytes(content)
             storage_uri = self._storage_uri(file_path, uid)
 
@@ -273,7 +291,7 @@ class SyncEngine:
     def track_delete(self, file_path: str, user_id: str | None = None) -> None:
         """Soft-delete in database and optionally remove from cloud."""
         try:
-            uid = user_id or self._config.user_id
+            uid = self._resolve_user_id(user_id)
             existing = self._db.get_file_by_path(uid, file_path)
             if existing:
                 self._db.soft_delete_file(existing["id"])
@@ -283,7 +301,7 @@ class SyncEngine:
 
     async def track_delete_async(self, file_path: str, user_id: str | None = None) -> None:
         try:
-            uid = user_id or self._config.user_id
+            uid = self._resolve_user_id(user_id)
             existing = await self._db.get_file_by_path_async(uid, file_path)
             if existing:
                 await self._db.soft_delete_file_async(existing["id"])
@@ -341,7 +359,7 @@ class SyncEngine:
         Unlike the auto-sync methods, this returns a ``SyncResult`` and
         raises on errors rather than swallowing them.
         """
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         content_bytes = self._to_bytes(content)
         storage_uri = self._storage_uri(file_path, uid)
 
@@ -439,7 +457,7 @@ class SyncEngine:
         metadata: dict | None = None,
     ) -> SyncResult:
         """Async version of managed_write()."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         content_bytes = self._to_bytes(content)
         storage_uri = self._storage_uri(file_path, uid)
 
@@ -528,7 +546,7 @@ class SyncEngine:
         If *version* is given, reads that specific version.
         Raises PermissionError if the user lacks read access.
         """
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = self._db.get_file_by_path(uid, file_path)
 
         if not file_record:
@@ -557,7 +575,7 @@ class SyncEngine:
         version: int | None = None,
     ) -> bytes:
         """Async version of managed_read()."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = await self._db.get_file_by_path_async(uid, file_path)
 
         if not file_record:
@@ -584,7 +602,7 @@ class SyncEngine:
         hard_delete: bool = False,
     ) -> bool:
         """Delete a file (soft by default).  Requires admin access."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = self._db.get_file_by_path(uid, file_path)
         if not file_record:
             return False
@@ -609,7 +627,7 @@ class SyncEngine:
         hard_delete: bool = False,
     ) -> bool:
         """Async version of managed_delete()."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = await self._db.get_file_by_path_async(uid, file_path)
         if not file_record:
             return False
@@ -635,7 +653,7 @@ class SyncEngine:
         user_id: str | None = None,
     ) -> list[dict]:
         """List files owned by the user, optionally filtered by folder."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         folder_id = None
         if folder_path:
             folder = self._db.get_folder_by_path(uid, folder_path)
@@ -647,7 +665,7 @@ class SyncEngine:
         folder_path: str | None = None,
         user_id: str | None = None,
     ) -> list[dict]:
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         folder_id = None
         if folder_path:
             folder = await self._db.get_folder_by_path_async(uid, folder_path)
@@ -659,7 +677,7 @@ class SyncEngine:
         parent_path: str | None = None,
         user_id: str | None = None,
     ) -> list[dict]:
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         parent_id = None
         if parent_path:
             parent = self._db.get_folder_by_path(uid, parent_path)
@@ -671,7 +689,7 @@ class SyncEngine:
         parent_path: str | None = None,
         user_id: str | None = None,
     ) -> list[dict]:
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         parent_id = None
         if parent_path:
             parent = await self._db.get_folder_by_path_async(uid, parent_path)
@@ -680,13 +698,13 @@ class SyncEngine:
 
     def get_file_info(self, file_path: str, user_id: str | None = None) -> dict | None:
         """Get file metadata from the database."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         return self._db.get_file_by_path(uid, file_path)
 
     async def get_file_info_async(
         self, file_path: str, user_id: str | None = None
     ) -> dict | None:
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         return await self._db.get_file_by_path_async(uid, file_path)
 
     def get_file_url(
@@ -696,7 +714,7 @@ class SyncEngine:
         user_id: str | None = None,
     ) -> str:
         """Get a signed URL for a tracked file, with permission check."""
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = self._db.get_file_by_path(uid, file_path)
         if not file_record:
             raise FileNotFoundError(f"File '{file_path}' not found for user '{uid}'.")
@@ -710,7 +728,7 @@ class SyncEngine:
         expires_in: int = 3600,
         user_id: str | None = None,
     ) -> str:
-        uid = user_id or self._config.user_id
+        uid = self._resolve_user_id(user_id)
         file_record = await self._db.get_file_by_path_async(uid, file_path)
         if not file_record:
             raise FileNotFoundError(f"File '{file_path}' not found for user '{uid}'.")

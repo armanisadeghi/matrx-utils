@@ -92,6 +92,7 @@ from .field_processing import (
 from .conf import (
     settings,
     configure_settings,
+    configure_context,
     NotConfiguredError,
 )
 from .conf import (
@@ -99,6 +100,17 @@ from .conf import (
     _restricted_env_vars as RESTRICTED_ENV_VAR_NAMES,
     _restricted_service_names as RESTRICTED_SERVICE_NAMES,
     _restricted_fields_names as RESTRICTED_FIELD_NAMES,
+)
+from .ctx import (
+    UserContext,
+    SimpleUserContext,
+    get_active_context,
+    get_active_user_id,
+    get_active_organization_id,
+    is_authenticated,
+    set_manual_context,
+    clear_manual_context,
+    context_for_user,
 )
 from .react_analysis import (
     get_full_index_structure,

@@ -209,3 +209,45 @@ def configure_settings(settings_object, env_first=False, verbose=False):
 
     if verbose:
         vcprint(f"Configured settings with env_first: {env_first}, verbose: {verbose}", verbose=True, color="blue")
+
+
+def configure_context(getter) -> None:
+    """Register a callable that returns the active request-scoped user context.
+
+    Call this once at app startup, after your middleware is configured.
+    The getter is called on every resolution attempt and must return an object
+    with at least a ``.user_id: str`` attribute, or ``None``.
+
+    Once registered, matrx-utils features (cloud_sync managed operations, etc.)
+    automatically resolve the current user without requiring explicit ``user_id``
+    arguments in every call.
+
+    Parameters
+    ----------
+    getter:
+        A zero-argument callable that returns a context object (or None).
+        Must be safe to call from any async coroutine or thread.
+
+    Examples
+    --------
+    aidream / matrx-connect — pass ``try_get_app_context`` directly::
+
+        from matrx_utils.conf import configure_context
+        from matrx_connect.context.app_context import try_get_app_context
+        configure_context(try_get_app_context)
+
+    Any other FastAPI / Django app with a request-local::
+
+        from matrx_utils.conf import configure_context
+        configure_context(lambda: getattr(request_local, "ctx", None))
+
+    Background scripts / tests — use ``set_manual_context`` instead::
+
+        from matrx_utils.ctx import set_manual_context, SimpleUserContext
+        token = set_manual_context(SimpleUserContext(user_id="test-uuid"))
+        # ... do work ...
+        from matrx_utils.ctx import clear_manual_context
+        clear_manual_context(token)
+    """
+    from matrx_utils import ctx as _ctx
+    _ctx._context_getter = getter
