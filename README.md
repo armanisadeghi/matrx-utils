@@ -1,120 +1,67 @@
 # matrx-utils
 
-A comprehensive collection of Python utilities designed to complement the AI Matrx platform.
+Foundation utilities for the Matrx ecosystem — cloud file handling (AWS S3, Supabase Storage, local/server filesystems), a pluggable settings + request-context layer, and a set of developer helpers (fancy printing, data transforms, field-processing, code analysis).
 
-## Overview
+`matrx-utils` is the bottom of the Matrx dependency graph. It has **no sibling dependencies**. Everything else (`matrx-connect`, `matrx-orm`, `matrx-graph`, `matrx-scraper`, `matrx-ai`) depends on it, directly or transitively.
 
-matrx-utils provides a curated set of utility functions and tools that enhance the AI Matrx ecosystem. This repository serves as a centralized library of commonly used functionality, allowing for easy integration across the main AI Matrx application and related projects.
-
-## Features
-
-- **Logging utilities** - Enhanced logging capabilities
-- **Print utilities** - Advanced printing and formatting tools
-- **Code analysis** - Tools for analyzing and processing code
-- **Markdown processing** - Utilities for working with markdown content
-- **Object manipulation** - Helper functions for working with Python objects
-- **Data conversion** - Tools for converting between different data formats
-- **Additional utilities** - Various other Python utility-level tools
-
-## Purpose
-
-This library is designed to provide instant access to a powerful set of utilities without requiring additional code setup. All utilities have been customized and configured specifically for the AI Matrx platform ecosystem.
-
-## Installation
-
-### From PyPI (recommended)
+## Install
 
 ```bash
 pip install matrx-utils
-# or with uv
-uv add matrx-utils
 ```
 
-### From GitHub (for development)
+Python 3.13+ required.
 
-```bash
-pip install git+https://github.com/armanisadeghi/matrx-utils.git
-```
+## What's in the box
 
-## Quick Start
+| Module | What it does |
+|---|---|
+| `matrx_utils.conf` | `configure_settings(obj)` + a lazy `settings` proxy that falls back to env vars |
+| `matrx_utils.ctx` | `UserContext` protocol, `SimpleUserContext`, `configure_context(getter)`, `get_active_context()` |
+| `matrx_utils.fancy_prints` | `vcprint`, `vclist`, `print_link`, `MatrixPrintLog`, `to_matrx_json` |
+| `matrx_utils.data_handling` | `DataTransformer`, URL and value validators |
+| `matrx_utils.file_handling` | `FileManager`, `FileHandler`, `BatchHandler`, `open_any_file` |
+| `matrx_utils.file_handling.cloud_sync` | `S3Backend`, `SupabaseBackend`, `ServerBackend`, `CloudSyncConfig`, `SyncEngine` + permissions and versioning |
+| `matrx_utils.field_processing` | `camel_to_snake`, `process_field_definitions`, `generate_complete_code` |
+| `matrx_utils.code_context`, `matrx_utils.package_analysis`, `matrx_utils.react_analysis` | Developer utilities for scanning codebases |
+
+## Usage — standalone
+
+Out of the box, `matrx-utils` reads its configuration from environment variables via a lazy `settings` proxy, and returns a minimal `SimpleUserContext` when no request context is available:
 
 ```python
-import matrx_utils
+from matrx_utils import vcprint, settings
+from matrx_utils.file_handling.cloud_sync import SupabaseBackend
 
-# Example usage will be added as the library develops
+vcprint("hello")
+vcprint(settings.SUPABASE_URL)           # read from env
+backend = SupabaseBackend()              # credentials resolved from settings
+backend.write("reports/today.json", b"{}")
 ```
+
+## Usage — inside a host application
+
+A parent app (like aidream) can inject its own settings object and request-context resolver so every downstream helper picks up the right user/project/emitter automatically:
+
+```python
+from matrx_utils import configure_settings, configure_context
+from matrx_connect import try_get_app_context  # optional, only if you use matrx-connect
+from myapp.settings import settings
+
+configure_settings(settings)
+configure_context(try_get_app_context)
+```
+
+After `configure_context(...)`, any code that calls `get_active_context()` inside a request will get the caller's `UserContext` without that code having to accept it as a parameter. This is the "capability-within, injection-without" pattern that the other Matrx packages follow.
+
+## Standalone-friendliness
+
+This package is designed to work with zero Matrx siblings present. It references `matrx-connect` in exactly one place — the PDF handler — and that import is **lazy with a dict fallback**, so `pip install matrx-utils` followed by `import matrx_utils` works in any Python project.
 
 ## Contributing
 
-This project is part of the AI Matrx ecosystem. Contributions and suggestions are welcome.
+See [CLAUDE.md](CLAUDE.md) for package-specific rules (import rules, configuration pattern, known issues). This package lives in the aidream monorepo at [github.com/AI-Matrix-Engine/aidream-current](https://github.com/AI-Matrix-Engine/aidream-current/tree/main/packages/matrx-utils).
 
 ## License
 
-[License information to be added]
-
-## Related Projects
-
-- [AI Matrx](https://github.com/armanisadeghi/ai-matrx) - Main AI Matrx platform repository
-
-
-## Publishing a New Version
-
-### Automated PyPI Publishing (Current Process)
-
-The package automatically publishes to PyPI when you push a version tag. Here's the workflow:
-
-1. **Make and test your changes locally**
-   ```bash
-   # Test your changes
-   ```
-
-2. **Update the version in pyproject.toml**
-   ```toml
-   version = "1.0.3"  # Increment appropriately
-   ```
-
-
-3. **Commit and push changes**
-   ```bash
-   git add .
-   git commit -m "Add new feature - v1.0.3"
-   git push origin main
-   ```
-
-4. **Create and push the version tag**
-   ```bash
-   git tag v1.0.3
-   git push origin v1.0.3
-   ```
-
-5. **GitHub Actions automatically:**
-   - Verifies the tag matches pyproject.toml version
-   - Builds the package
-   - Publishes to PyPI
-
-6. **Update dependent projects**
-   
-   In projects like AI Dream, simply update the version:
-   ```bash
-   uv add matrx-utils@1.0.3
-   # or manually in pyproject.toml:
-   # matrx-utils = "^1.0.3"
-   ```
-
-### Version History
-
-Check current tags: `git tag`
-
-Example output:
-```
-v1.0.0
-v1.0.1
-v1.0.2
-```
-
-### Important Notes
-
-- **Always update pyproject.toml version before tagging**
-- The GitHub Action will fail if tag version ≠ pyproject.toml version
-- Semantic versioning: MAJOR.MINOR.PATCH (e.g., v1.0.3)
-- Tags trigger automatic PyPI publishing
+MIT.
